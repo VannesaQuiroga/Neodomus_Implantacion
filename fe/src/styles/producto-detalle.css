@@ -847,8 +847,6 @@
   font-weight: 600;
 }
 .detalle-combo:disabled .detalle-combo-info small { color: #9f9f9f; }
-<<<<<<< Updated upstream
-=======
 
 /* ============================================================
    RECOMENDADOS
@@ -1071,4 +1069,3 @@
     min-height: 480px;
   }
 }
->>>>>>> Stashed changes
