@@ -12,6 +12,7 @@ import {
   FaTruckField,
   FaRotateLeft,
   FaBoxOpen,
+  FaShieldHalved,
 } from "react-icons/fa6";
 import "../../styles/admin-sidebar.css";
 
@@ -58,6 +59,7 @@ const AdminSidebar = ({ open, pendientes, onNavigate }: AdminSidebarProps) => {
       links: [
         { to: "/admin/consultas", icon: <FaEnvelopeOpenText />, label: t('adm.sidebar.solicitudes') },
         { to: "/admin/devoluciones", icon: <FaRotateLeft />, label: t('adm.sidebar.devoluciones') },
+        { to: "/admin/novedades", icon: <FaShieldHalved />, label: 'Novedades' },
         { to: "/admin/reportes", icon: <FaChartColumn />, label: t('adm.sidebar.reportes') },
       ],
     },

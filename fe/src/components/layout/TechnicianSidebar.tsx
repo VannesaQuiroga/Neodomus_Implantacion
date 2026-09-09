@@ -8,6 +8,7 @@ import {
   FaTruckFast,
   FaUsers,
   FaStar,
+  FaShieldHalved,
 } from "react-icons/fa6";
 import "@styles/admin-sidebar.css";
 
@@ -37,6 +38,7 @@ const TechnicianSidebar = ({ open, onNavigate }: TechnicianSidebarProps) => {
         { to: "/tecnico/citas", icon: <FaCalendarCheck />, label: t('tec.misCitas') },
         { to: "/tecnico/entregas", icon: <FaTruckFast />, label: t('nav.entregas') },
         { to: "/tecnico/devoluciones", icon: <FaBoxOpen />, label: t('tec.devoluciones') },
+        { to: "/tecnico/novedades", icon: <FaShieldHalved />, label: 'Novedades' },
         { to: "/tecnico/historial", icon: <FaClockRotateLeft />, label: t('tec.historial') },
       ],
     },
