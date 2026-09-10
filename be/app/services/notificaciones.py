@@ -307,6 +307,46 @@ def notificar_cita_asignada_tecnico(
     programar_correo(correo, subject, body)
 
 
+def notificar_cita_reagendada_tecnico(
+    db, id_tecnico_usuario: int | None, correo: str, tecnico_nombre: str, datos: dict
+) -> None:
+    """Correo + notificación de plataforma al técnico cuando el cliente o el
+    administrador reagendan una cita ya asignada (cambia fecha/hora)."""
+    if id_tecnico_usuario is not None:
+        crear_notificacion(
+            db,
+            id_tecnico_usuario,
+            "cita",
+            "Cita reagendada",
+            (
+                f"La cita de {datos['servicio']} para {datos['cliente']} fue "
+                f"reagendada para el {datos['fecha']} a las {datos['hora']} en "
+                f"{datos['direccion']}."
+            ),
+        )
+    subject = "Cita reagendada en Neodomus"
+    filas = [
+        ("Cliente", datos["cliente"]),
+        ("Servicio", datos["servicio"]),
+        ("Fecha", datos["fecha"]),
+        ("Hora", datos["hora"]),
+        ("Dirección", datos["direccion"]),
+        ("Teléfono cliente", str(datos.get("telefono") or "-")),
+        ("Descripción", datos.get("descripcion") or "-"),
+    ]
+    body = _plantilla(
+        "CITA REAGENDADA",
+        f"Hola {tecnico_nombre}, la cita de {datos['servicio']} para "
+        f"{datos['cliente']} fue reagendada. Revisa la nueva fecha y hora a "
+        "continuación.",
+        filas,
+        "Si no puedes atender la cita en el nuevo horario, comunícate con el administrador.",
+        color="#3d3d3d",
+        acento="#ffd98a",
+    )
+    programar_correo(correo, subject, body)
+
+
 def notificar_cita_finalizada_cliente(correo: str, cliente_nombre: str, datos: dict) -> None:
     """Correo al cliente cuando el técnico finaliza la cita: solicita calificar."""
     subject = "Tu cita en Neodomus fue finalizada"

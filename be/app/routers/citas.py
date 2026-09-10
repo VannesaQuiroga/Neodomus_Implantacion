@@ -50,7 +50,7 @@ from app.services.especialidades import (
     ESTADOS_ENTREGA_OCUPAN,
 )
 from app.services import pagos_service
-from app.services.notificaciones import crear_notificacion, notificar_cita_asignada_tecnico, notificar_recordatorio_cita, notificar_cita_reasignada_cliente
+from app.services.notificaciones import crear_notificacion, notificar_cita_asignada_tecnico, notificar_cita_reagendada_tecnico, notificar_recordatorio_cita, notificar_cita_reasignada_cliente
 from app.models.calificacion import Calificacion
 from app.utils.security import get_current_client, get_current_employee, oauth2_scheme, decode_token
 
@@ -337,6 +337,44 @@ def _notificar_tecnicos_cita(db: Session, cita: Cita, cliente: Optional[Cliente]
         if not tecnico_obj or not tecnico_obj.usuario or not tecnico_obj.usuario.email:
             continue
         notificar_cita_asignada_tecnico(
+            db,
+            tecnico_obj.usuario.id_usuario,
+            tecnico_obj.usuario.email,
+            tecnico_obj.usuario.first_name or "técnico",
+            {
+                "cliente": nombre_cliente,
+                "servicio": cita.tipo_servicio,
+                "fecha": cita.fecha.strftime("%d/%m/%Y"),
+                "hora": cita.hora,
+                "direccion": cita.direccion,
+                "telefono": cliente.telefono_cliente if cliente else None,
+                "descripcion": cita.descripcion,
+            },
+        )
+
+
+def _notificar_tecnicos_cita_reagendada(
+    db: Session, cita: Cita, cliente: Optional[Cliente], solo_ids: Optional[set] = None
+) -> None:
+    """Avisa por correo + plataforma a los técnicos vinculados cuando el
+    cliente (o el admin) reagenda la cita a una nueva fecha/hora. Con
+    ``solo_ids`` se limita a esos ids (para no avisar a los recién asignados)."""
+    from app.models.tecnico import Tecnico
+
+    nombre_cliente = (
+        f"{cliente.first_name} {cliente.last_name}".strip() or "Cliente"
+        if cliente
+        else "Cliente"
+    )
+    for id_tecnico in (cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3):
+        if id_tecnico is None:
+            continue
+        if solo_ids is not None and id_tecnico not in solo_ids:
+            continue
+        tecnico_obj = db.query(Tecnico).filter(Tecnico.id_tecnico == id_tecnico).first()
+        if not tecnico_obj or not tecnico_obj.usuario or not tecnico_obj.usuario.email:
+            continue
+        notificar_cita_reagendada_tecnico(
             db,
             tecnico_obj.usuario.id_usuario,
             tecnico_obj.usuario.email,
@@ -1506,7 +1544,16 @@ def reasignar_cita_admin(
         t for t in tecnicos_previos if t is not None
     }
     cliente = db.query(Cliente).filter(Cliente.id_cliente == cita.id_cliente).first()
-    _notificar_tecnicos_cita(db, cita, cliente, solo_ids=nuevos or None)
+    if nuevos:
+        _notificar_tecnicos_cita(db, cita, cliente, solo_ids=nuevos)
+    # Si el admin reagendó la fecha/hora, avisar a los técnicos que YA estaban
+    # asignados (los nuevos ya recibieron el correo de cita asignada).
+    if data.fecha or data.hora:
+        vigentes = {
+            t for t in (cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3) if t is not None
+        } - nuevos
+        if vigentes:
+            _notificar_tecnicos_cita_reagendada(db, cita, cliente, solo_ids=vigentes)
 
     # Si cambió el técnico ENCARGADO, la entrega del pedido lo sigue al nuevo
     # encargado, ajustada a la nueva fecha/hora de la instalación.
@@ -1688,6 +1735,9 @@ def editar_cita(
     # editar fechas/hora no la regresa a Pendiente.
     db.commit()
     db.refresh(cita)
+    # Avisar a los técnicos asignados cuando el cliente reagenda (cambia fecha/hora).
+    if cita.id_tecnico is not None and ("fecha" in update_data or "hora" in update_data):
+        _notificar_tecnicos_cita_reagendada(db, cita, client)
     return cita
 
 
