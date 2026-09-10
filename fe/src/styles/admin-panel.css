@@ -3570,3 +3570,31 @@
     white-space: nowrap;
   }
 }
+
+/* ── Novedades: dark mode para textarea y select ────────────── */
+.ap-form-textarea {
+  color-scheme: dark;
+}
+
+.ap-form-select {
+  color-scheme: dark;
+}
+
+.ap-filtro-estado {
+  color-scheme: dark;
+}
+
+/* ── Novedades: Badges de origen en tabla ────────────────────── */
+.ap-badge.info svg,
+.ap-badge.proceso svg {
+  opacity: 0.8;
+}
+
+/* ── Novedades: Historial items con animacion sutil ──────────── */
+.ap-historial-list > div {
+  transition: background 0.15s ease;
+}
+
+.ap-historial-list > div:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}

@@ -5,14 +5,16 @@
 // favoritos y agregar al carrito con la configuración elegida.
 // ─────────────────────────────────────────────────────────────
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
+  FlatList,
 } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, router } from "expo-router";
@@ -31,7 +33,9 @@ import {
   tieneDescuento,
   urlImagenProducto,
   type Producto as ProductoType,
+  type ListaProductos,
 } from "@/services/productos.service";
+import { apiFetch } from "@/services/api";
 import {
   COLOR_HEX,
   RGB_GRADIENTE,
@@ -55,7 +59,13 @@ export default function ProductoDetalleScreen() {
   const [tamano, setTamano] = useState("");
   const [metros, setMetros] = useState(10);
   const [cantidad, setCantidad] = useState(1);
+  const [displayCantidad, setDisplayCantidad] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
+  const [recomendados, setRecomendados] = useState<ProductoType[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const carouselRef = useRef<FlatList>(null);
+  const [scrollX, setScrollX] = useState(0);
+  const CARD_W = 162;
 
   const { esFavorito, toggleFavorito } = useFavoritos();
   const { addItem } = useCart();
@@ -78,6 +88,23 @@ export default function ProductoDetalleScreen() {
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  // Productos recomendados: misma categoría primero, luego las demás
+  useEffect(() => {
+    if (!producto?.id_cate_pr) return;
+    apiFetch<ListaProductos>("/productos/?limit=100")
+      .then((res) => {
+        const todos = res.data ?? [];
+        const mismosCat = todos.filter(
+          (p: ProductoType) => p.id_cate_pr === producto.id_cate_pr && p.id_producto !== producto.id_producto,
+        );
+        const otrosCat = todos.filter(
+          (p: ProductoType) => p.id_cate_pr !== producto.id_cate_pr && p.id_producto !== producto.id_producto,
+        );
+        setRecomendados([...mismosCat, ...otrosCat].slice(0, 15));
+      })
+      .catch(() => {});
+  }, [producto?.id_cate_pr, producto?.id_producto]);
 
   useEffect(() => {
     if (!toast) return;
@@ -205,6 +232,29 @@ export default function ProductoDetalleScreen() {
     <View style={styles.pantalla}>
       {/* Navbar fijo arriba */}
       <PublicNavbar />
+
+      {/* Barra de búsqueda */}
+      <View style={styles.buscadorWrap}>
+        <FontAwesome6 name="magnifying-glass" size={14} color="#9e9e9e" />
+        <TextInput
+          style={styles.buscador}
+          placeholder="Buscar producto"
+          placeholderTextColor="#9e9e9e"
+          value={busqueda}
+          onChangeText={setBusqueda}
+          onSubmitEditing={() => {
+            if (busqueda.trim()) {
+              router.push({ pathname: "/(tabs)/productos", params: { busqueda: busqueda.trim() } } as never);
+            }
+          }}
+          returnKeyType="search"
+        />
+        {busqueda.length > 0 && (
+          <Pressable onPress={() => setBusqueda("")} hitSlop={8}>
+            <FontAwesome6 name="xmark" size={14} color="#9e9e9e" />
+          </Pressable>
+        )}
+      </View>
 
       {/* Contenido con scroll; el bloque de compra vive DENTRO del flujo. */}
       <ScrollView
@@ -443,7 +493,25 @@ export default function ProductoDetalleScreen() {
                 >
                   <FontAwesome6 name="minus" size={13} color={C.blanco} />
                 </Pressable>
-                <Text style={styles.contadorValor}>{cantidad}</Text>
+                <TextInput
+                  style={styles.contadorInput}
+                  value={displayCantidad !== undefined ? displayCantidad : String(cantidad)}
+                  onChangeText={(txt) => {
+                    const limpio = txt.replace(/\D/g, "");
+                    setDisplayCantidad(limpio);
+                  }}
+                  onBlur={() => {
+                    const raw = (displayCantidad ?? String(cantidad)).trim();
+                    let num = parseInt(raw, 10);
+                    if (raw === "" || isNaN(num) || num < 1) num = 1;
+                    if (stockDisponible > 0 && num > stockDisponible) num = stockDisponible;
+                    setCantidad(num);
+                    setDisplayCantidad(undefined);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  selectTextOnFocus
+                />
                 <Pressable
                   style={styles.contadorBoton}
                   onPress={() => setCantidad((actual) => actual + 1)}
@@ -533,6 +601,66 @@ export default function ProductoDetalleScreen() {
             )}
           </View>
         </View>
+
+        {/* Recomendados */}
+        {recomendados.length > 0 && (
+          <View style={styles.recomendados}>
+            <Text style={styles.recomendadosTitulo}>También te puede interesar</Text>
+            <View style={styles.recomendadosCarrousel}>
+              <Pressable
+                style={styles.flechaIzq}
+                onPress={() => carouselRef.current?.scrollToOffset({ offset: Math.max(0, scrollX - 170), animated: true })}
+                hitSlop={16}
+              >
+                <FontAwesome6 name="chevron-left" size={20} color={C.oroSuave} />
+              </Pressable>
+              <FlatList
+              ref={carouselRef}
+              data={recomendados}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => String(item.id_producto)}
+              contentContainerStyle={styles.recomendadosLista}
+              onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
+              scrollEventThrottle={16}
+              renderItem={({ item: p }) => {
+                const img = urlImagenProducto(p);
+                const precio = precioFinalDe(p);
+                return (
+                  <Pressable
+                    style={styles.recomendadoCard}
+                    onPress={() => router.push(`/(tabs)/producto/${p.id_producto}` as never)}
+                  >
+                    {img ? (
+                      <Image source={{ uri: img }} style={styles.recomendadoImg} contentFit="cover" cachePolicy="memory-disk" />
+                    ) : (
+                      <View style={[styles.recomendadoImg, styles.recomendadoImgPlaceholder]}>
+                        <FontAwesome6 name="image" size={20} color="#555" />
+                      </View>
+                    )}
+                    {tieneDescuento(p) && (
+                      <View style={styles.recomendadoBadge}>
+                        <Text style={styles.recomendadoBadgeTxt}>-{p.descuento_activo}%</Text>
+                      </View>
+                    )}
+                    <View style={styles.recomendadoInfo}>
+                      <Text style={styles.recomendadoNombre} numberOfLines={2}>{p.nombre_producto}</Text>
+                      <Text style={styles.recomendadoPrecio}>{formatearPrecio(precio)}</Text>
+                    </View>
+                  </Pressable>
+                );
+              }}
+            />
+              <Pressable
+                style={styles.flechaDer}
+                onPress={() => carouselRef.current?.scrollToOffset({ offset: scrollX + 170, animated: true })}
+                hitSlop={16}
+              >
+                <FontAwesome6 name="chevron-right" size={20} color={C.oroSuave} />
+              </Pressable>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {toast && (
@@ -568,6 +696,27 @@ const styles = StyleSheet.create({
   contenedor: {
     paddingHorizontal: 14,
     paddingTop: 10,
+  },
+
+  buscadorWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1c1c1c",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 12,
+    marginHorizontal: 14,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+
+  buscador: {
+    flex: 1,
+    color: "#ffffff",
+    fontSize: 14,
+    paddingVertical: 10,
   },
 
   volver: {
@@ -832,6 +981,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+  contadorInput: {
+    color: "#ffffff",
+    fontSize: 17,
+    fontFamily: FontFamilies.bodyBold,
+    minWidth: 40,
+    textAlign: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.2)",
+    paddingVertical: 2,
+  },
+
   descripcionTitulo: {
     color: "#ffffff",
     fontSize: 16,
@@ -1006,5 +1166,86 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontFamily: FontFamilies.bodyMedium,
     textAlign: "center",
+  },
+
+  // ── Recomendados ──
+  recomendados: {
+    marginTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.09)",
+    paddingTop: 18,
+  },
+  recomendadosTitulo: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontFamily: FontFamilies.bodyBold,
+    marginBottom: 14,
+  },
+  recomendadosWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  recomendadosCarrousel: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  flechaIzq: {
+    padding: 8,
+    marginRight: 4,
+  },
+  flechaDer: {
+    padding: 8,
+    marginLeft: 4,
+  },
+  recomendadosLista: {
+    gap: 12,
+    paddingRight: 14,
+  },
+  recomendadoCard: {
+    width: 150,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  recomendadoImg: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#0f0f0f",
+  },
+  recomendadoImgPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recomendadoBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    backgroundColor: "#e5484d",
+    borderRadius: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+  },
+  recomendadoBadgeTxt: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  recomendadoInfo: {
+    padding: 10,
+    gap: 4,
+  },
+  recomendadoNombre: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontFamily: FontFamilies.bodyMedium,
+    lineHeight: 16,
+  },
+  recomendadoPrecio: {
+    color: "#caa24d",
+    fontSize: 14,
+    fontFamily: FontFamilies.bodyBold,
   },
 });

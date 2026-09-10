@@ -11,6 +11,7 @@ import {
   FaLocationDot,
   FaMagnifyingGlass,
   FaPhone,
+  FaPlus,
   FaTruckFast,
   FaUserTie,
   FaXmark,
@@ -19,6 +20,7 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
+import NuevaNovedadModal from '@components/tecnico/NuevaNovedadModal';
 
 interface Recogida {
   id_devolucion: number;
@@ -65,6 +67,9 @@ const TecnicoDevoluciones = () => {
   const [toast, setToast] = useState<Toast>(null);
   const recogidaRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const cambioRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // Novedad modal state
+  const [novedadDevolucion, setNovedadDevolucion] = useState<Recogida | null>(null);
 
   const notificar = (msg: string, tipo: 'success' | 'error' = 'success') => {
     setToast({ msg, tipo });
@@ -418,6 +423,15 @@ const TecnicoDevoluciones = () => {
                     <FaEye /> {t('tec.verDetalles')}
                   </button>
 
+                  <button
+                    type="button"
+                    className="ap-btn ap-btn-ghost"
+                    style={{ fontSize: '0.78rem', padding: '5px 12px', border: '1px solid rgba(212,165,75,0.3)', color: '#d4a54b' }}
+                    onClick={() => setNovedadDevolucion(r)}
+                  >
+                    <FaPlus /> Agregar novedad
+                  </button>
+
                   {r.fecha_recogida && (
                     <span style={{ fontSize: '0.75rem', color: '#9a8f78' }}>
                       {t('tec.recogidaHecha')}: {formatFechaHora(r.fecha_recogida)}
@@ -436,7 +450,7 @@ const TecnicoDevoluciones = () => {
       )}
 
       {detalle && (
-        <div className="ap-modal-overlay" onClick={() => setDetalle(null)}>
+          <div className="ap-modal-overlay">
           <div className="ap-modal ap-cita-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="ap-cita-modal-head">
               <div>
@@ -542,6 +556,17 @@ const TecnicoDevoluciones = () => {
           {toast.msg}
         </div>
       )}
+
+      <NuevaNovedadModal
+        abierto={!!novedadDevolucion}
+        onCerrar={() => setNovedadDevolucion(null)}
+        onCreado={cargar}
+        tipoOrigen="devolucion"
+        idDevolucion={novedadDevolucion?.id_devolucion}
+        idPedido={novedadDevolucion?.id_pedido ?? undefined}
+        nombreCliente={novedadDevolucion?.cliente}
+        referenciaLabel={`#${novedadDevolucion?.id_devolucion}`}
+      />
     </motion.div>
   );
 };

@@ -386,6 +386,7 @@ const AdminInstalaciones = () => {
         delete copia[cita.id_cita];
         return copia;
       });
+      await cargar(true);
       notify(
         cambios.id_comision_c === null
           ? t('adm.instalaciones.comisionRetirada')
@@ -436,6 +437,7 @@ const AdminInstalaciones = () => {
         id_tecnico: idTecnico,
       });
       setCitas((prev) => prev.map((c) => (c.id_cita === cita.id_cita ? res.data : c)));
+      await cargar(true);
       notify(t('adm.instalaciones.reasignada'));
     } catch (err: any) {
       const msg = err.response?.data?.detail;
@@ -498,6 +500,7 @@ const AdminInstalaciones = () => {
         hora,
       });
       setCitas((prev) => prev.map((c) => (c.id_cita === sugerencia.id_cita ? res.data : c)));
+      await cargar(true);
       setSugerencia(null);
       setAplazarFecha('');
       setAplazarHora('');
@@ -1256,7 +1259,7 @@ const AdminInstalaciones = () => {
       )}
 
       {citaACancelar && (
-        <div className="ap-modal-overlay" onClick={() => setCitaACancelar(null)}>
+        <div className="ap-modal-overlay">
           <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-head">
               <h3><FaBan /> Cancelar cita #{citaACancelar.id_cita}</h3>

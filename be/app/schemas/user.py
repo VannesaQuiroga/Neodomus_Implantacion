@@ -13,6 +13,7 @@ class EmployeeResponse(BaseModel):
     is_active: bool
     id_rol_u: Optional[int] = None
     created_at: datetime
+    foto_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

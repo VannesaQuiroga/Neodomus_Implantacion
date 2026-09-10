@@ -122,10 +122,11 @@ async function request<T>(
 
   let response: Response;
   try {
+    const isMultipart = options.body instanceof FormData;
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(!isMultipart ? { "Content-Type": "application/json" } : {}),
         ...(sesion ? { Authorization: `Bearer ${sesion.accessToken}` } : {}),
         ...options.headers,
       },

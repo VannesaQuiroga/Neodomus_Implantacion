@@ -277,7 +277,14 @@ export default function ProductCard({ producto }: ProductCardProps) {
                   value={displayUnidades !== undefined ? displayUnidades : String(unidades)}
                   onChangeText={(val) => {
                     const limpio = val.replace(/[^0-9]/g, "");
-                    setDisplayUnidades(limpio);
+                    if (limpio === "") {
+                      setDisplayUnidades("");
+                      return;
+                    }
+                    let num = parseInt(limpio, 10);
+                    const maxU = Number.isFinite(stockTotal) ? Math.max(1, Math.floor(stockTotal / metros) || 1) : Infinity;
+                    if (Number.isFinite(maxU) && num > (maxU as number)) num = maxU as number;
+                    setDisplayUnidades(String(num));
                   }}
                   onBlur={confirmarUnidades}
                   onSubmitEditing={confirmarUnidades}
@@ -332,7 +339,13 @@ export default function ProductCard({ producto }: ProductCardProps) {
                   value={displayCantidad !== undefined ? displayCantidad : String(cantidad)}
                   onChangeText={(val) => {
                     const limpio = val.replace(/[^0-9]/g, "");
-                    setDisplayCantidad(limpio);
+                    if (limpio === "") {
+                      setDisplayCantidad("");
+                      return;
+                    }
+                    let num = parseInt(limpio, 10);
+                    if (Number.isFinite(stockTotal) && num > stockTotal) num = stockTotal as number;
+                    setDisplayCantidad(String(num));
                   }}
                   onBlur={confirmarCantidad}
                   onSubmitEditing={confirmarCantidad}

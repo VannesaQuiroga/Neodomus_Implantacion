@@ -16,6 +16,7 @@ export default function TecnicoNotificacionesScreen() {
   const [loading, setLoading] = useState(true);
   const [marcando, setMarcando] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
 
   const cargar = async () => {
     setLoading(true);
@@ -43,6 +44,7 @@ export default function TecnicoNotificacionesScreen() {
   if (loading) return <View style={styles.centro}><ActivityIndicator color={C.oro} /><Text style={styles.gris}>{t("common.cargando")}</Text></View>;
 
   const noLeidas = notifs.filter((n:any)=> !n.leida).length;
+  const notifsVisibles = mostrarTodas ? notifs : notifs.filter((n:any)=> !n.leida);
 
   return (
     <View style={styles.pantalla}>
@@ -52,12 +54,20 @@ export default function TecnicoNotificacionesScreen() {
             <Text style={styles.titulo}>{t("notificaciones.titulo")}</Text>
             <Text style={styles.sub}>{noLeidas >0 ? `${noLeidas} sin leer` : t("notificaciones.todasAlDia")}</Text>
           </View>
-          {notifs.length>0 && (
-            <Pressable onPress={marcarTodas} disabled={marcando || noLeidas===0} style={[styles.btnMarcar, (marcando || noLeidas===0) && { opacity:0.5 }]}>
-              <FontAwesome6 name="check-double" size={11} color="#141414" />
-              <Text style={styles.btnMarcarTxt}>{marcando ? t("notificaciones.marcando") : t("notificaciones.marcarLeidas")}</Text>
-            </Pressable>
-          )}
+          <View style={styles.headerBtns}>
+            {notifs.length > 0 && (
+              <Pressable onPress={() => setMostrarTodas(!mostrarTodas)} style={styles.btnToggle}>
+                <FontAwesome6 name={mostrarTodas ? "eye-slash" : "eye"} size={11} color="#141414" />
+                <Text style={styles.btnMarcarTxt}>{mostrarTodas ? "No leídas" : "Ver todas"}</Text>
+              </Pressable>
+            )}
+            {notifs.length>0 && (
+              <Pressable onPress={marcarTodas} disabled={marcando || noLeidas===0} style={[styles.btnMarcar, (marcando || noLeidas===0) && { opacity:0.5 }]}>
+                <FontAwesome6 name="check-double" size={11} color="#141414" />
+                <Text style={styles.btnMarcarTxt}>{marcando ? t("notificaciones.marcando") : t("notificaciones.marcarLeidas")}</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         {notifs.length===0 ? (
@@ -66,8 +76,14 @@ export default function TecnicoNotificacionesScreen() {
             <Text style={styles.emptyTitle}>{t("tecnico.sinNotificaciones")}</Text>
             <Text style={styles.emptyHint}>{t("tecnico.sinNotificacionesHint")}</Text>
           </View>
+        ) : notifsVisibles.length===0 ? (
+          <View style={styles.empty}>
+            <FontAwesome6 name="bell-slash" size={24} color="#5a5a5a" />
+            <Text style={styles.emptyTitle}>{mostrarTodas ? "Sin notificaciones" : "Todo al día"}</Text>
+            <Text style={styles.emptyHint}>{mostrarTodas ? "No hay notificaciones" : "No tienes notificaciones sin leer"}</Text>
+          </View>
         ) : (
-          notifs.map((n:any)=> {
+          notifsVisibles.map((n:any)=> {
             const titulo = n.titulo || n.title || "Notificación";
             const mensaje = n.mensaje || n.message || "";
             const fechaRaw = n.fecha_creacion || n.fecha || n.created_at;
@@ -104,6 +120,8 @@ const styles = StyleSheet.create({
   titulo: { color:"#fff", fontSize:18, fontFamily: FontFamilies.bodyBold },
   sub: { color:"#bdbdbd", fontSize:13, marginTop:-8 },
   headerRow: { flexDirection:"row", alignItems:"center", justifyContent:"space-between", gap:10 },
+  headerBtns: { flexDirection:"row", gap:6 },
+  btnToggle: { flexDirection:"row", alignItems:"center", gap:6, backgroundColor:"#caa24d", paddingVertical:6, paddingHorizontal:10, borderRadius:8 },
   btnMarcar: { flexDirection:"row", alignItems:"center", gap:6, backgroundColor:"#caa24d", paddingVertical:6, paddingHorizontal:10, borderRadius:8 },
   btnMarcarTxt: { color:"#141414", fontSize:11, fontFamily: FontFamilies.bodyBold },
   empty: { alignItems:"center", paddingVertical:30, gap:8 },

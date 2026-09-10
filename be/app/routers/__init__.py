@@ -14,3 +14,4 @@ from .notificaciones import router as notificaciones_router
 from .especializaciones import router as especializaciones_router
 from .reembolsos import router as reembolsos_router
 from .devoluciones import router as devoluciones_router
+from .novedades import router as novedades_router

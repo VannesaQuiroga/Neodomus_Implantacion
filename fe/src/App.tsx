@@ -40,6 +40,8 @@ import TecnicoDevoluciones from '@pages/tecnico/TecnicoDevoluciones';
 import Calificaciones from '@pages/tecnico/Calificaciones';
 import TechnicianEntregas from '@pages/tecnico/TechnicianEntregas';
 import AdminDevoluciones from '@pages/admin/AdminDevoluciones';
+import AdminNovedades from '@pages/admin/AdminNovedades';
+import TecnicoNovedades from '@pages/tecnico/TecnicoNovedades';
 import ProductosPublicos from '@pages/public/ProductosPublicos';
 import ProductoDetalle from '@pages/public/ProductoDetalle';
 import CarritoPage from '@pages/public/CarritoPage';
@@ -117,6 +119,7 @@ function App() {
             <Route path="/tecnico/calificaciones" element={<Calificaciones />} />
             <Route path="/tecnico/entregas" element={<TechnicianEntregas />} />
             <Route path="/tecnico/devoluciones" element={<TecnicoDevoluciones />} />
+            <Route path="/tecnico/novedades" element={<TecnicoNovedades />} />
           </Route>
         </Route>
 
@@ -136,6 +139,7 @@ function App() {
 <Route path="/admin/facturas" element={<AdminFacturas />} />
             <Route path="/admin/consultas" element={<AdminConsultas />} />
 <Route path="/admin/devoluciones" element={<AdminDevoluciones />} />
+            <Route path="/admin/novedades" element={<AdminNovedades />} />
             <Route path="/admin/clientes" element={<AdminClientes />} />
             <Route path="/admin/proveedores" element={<AdminProveedores />} />
             <Route path="/admin/reportes" element={<AdminReportes />} />

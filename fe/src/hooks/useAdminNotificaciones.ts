@@ -153,12 +153,22 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
 
   const marcarLeida = (id: string) => {
     if (!rol) return;
+    setNotificaciones((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, leida: true } : n)),
+    );
     setLeidas((prev) => {
       if (prev[id]) return prev;
       const next = { ...prev, [id]: true };
       localStorage.setItem(claveStorage(rol), JSON.stringify(next));
       return next;
     });
+    // Si es una notificación de plataforma (plat-), marcar en el backend
+    if (id.startsWith('plat-')) {
+      const backendId = id.replace('plat-', '');
+      api.patch(`/notificaciones/${backendId}/leida`).catch(() => {});
+    }
+    // Notificar a otros componentes que el conteo cambió
+    window.dispatchEvent(new Event('notificaciones-refresh'));
   };
 
   const recargar = useCallback(async (opciones?: { silencioso?: boolean }) => {

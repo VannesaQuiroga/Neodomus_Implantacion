@@ -30,6 +30,7 @@ import AppScreen from "@/components/app/AppScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import { ApiError } from "@/services/api";
+import { apiFetch } from "@/services/api";
 import {
   actualizarPerfilCliente,
   crearSolicitudInhabilitar,
@@ -123,12 +124,30 @@ export default function PerfilScreen() {
     });
     if (resultado.canceled || !resultado.assets[0]) return;
     const asset = resultado.assets[0];
-    // Límite de la web: 4 MB.
-    if ((asset.fileSize ?? 0) > 4 * 1024 * 1024) {
-      setError("La imagen supera los 4 MB.");
+    if ((asset.fileSize ?? 0) > 5 * 1024 * 1024) {
+      setError("La imagen supera los 5 MB.");
       return;
     }
-    setAvatar(asset.uri);
+    try {
+      const formData = new FormData();
+      const ext = (asset.mimeType?.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+      formData.append("archivo", {
+        uri: asset.uri,
+        name: `perfil.${ext}`,
+        type: asset.mimeType || "image/jpeg",
+      } as any);
+      const actualizado = await apiFetch<any>("/clients/me/foto", {
+        method: "POST",
+        body: formData,
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (actualizado?.foto_url) {
+        setAvatar(actualizado.foto_url);
+      }
+      await actualizarUsuario();
+    } catch {
+      setError("No se pudo subir la foto");
+    }
   };
 
   /** El correo del formulario es diferente al original (cambio real). */

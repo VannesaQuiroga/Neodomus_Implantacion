@@ -27,8 +27,8 @@ import NotificationsTab from '@components/profile/NotificationsTab';
 import PasswordTab from '@components/profile/PasswordTab';
 
 import { getAvatar, getIniciales, getMensajes, PF_AVATAR_KEY, removeAvatar } from '@utils/profileStorage';
-import { useFavoritos } from '@utils/favoritos';
 import api from '@services/api';
+import { useFavoritos } from '@utils/favoritos';
 
 interface NavItem {
   id: string;
@@ -245,22 +245,29 @@ const Perfil = () => {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      notify('La imagen debe pesar menos de 4 MB', 'error');
+    if (file.size > 5 * 1024 * 1024) {
+      notify('La imagen debe pesar menos de 5 MB', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setAvatarState(dataUrl);
-      localStorage.setItem(PF_AVATAR_KEY, dataUrl);
-      window.dispatchEvent(new CustomEvent('client-profile-updated'));
+    try {
+      const formData = new FormData();
+      formData.append('archivo', file);
+      const res = await api.post('/clients/me/foto', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data?.foto_url;
+      if (url) {
+        setAvatarState(url);
+        localStorage.setItem(PF_AVATAR_KEY, url);
+        window.dispatchEvent(new CustomEvent('client-profile-updated'));
+      }
       notify('Foto de perfil actualizada', 'success');
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'No se pudo subir la foto', 'error');
+    }
   };
 
   const handleEliminarFoto = () => {

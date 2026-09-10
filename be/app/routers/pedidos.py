@@ -72,6 +72,7 @@ class CheckoutRequest(BaseModel):
     items: List[ItemCarrito]
     servicios: List[ServicioCheckout] = []
     pago: DatosPago
+    codigo_cupon: Optional[str] = None
 
 
 # ── Helpers de serialización ────────────────────────────────────
@@ -210,6 +211,7 @@ async def checkout(
         [s.model_dump() for s in data.servicios],
         data.pago.metodo,
         data.pago.model_dump(exclude={"metodo"}),
+        codigo_cupon=data.codigo_cupon,
     )
     pedido = result["pedido"]
     pago = result["pago"]
@@ -383,6 +385,54 @@ def listar_entregas_admin(
     ]
 
 
+@router.get("/admin/horarios-disponibles")
+def horarios_disponibles_entrega(
+    fecha: date,
+    tecnico_id: Optional[int] = None,
+    _admin_user: User = Depends(_admin),
+    db: Session = Depends(get_db),
+):
+    """Horarios disponibles para entrega en la fecha indicada.
+    Filtra franjas pasadas si es hoy y valida disponibilidad del técnico."""
+    from datetime import timedelta
+    from app.services.especialidades import (
+        _dia_es_laboral,
+        tecnico_libre_en_rango,
+        HORA_INICIO,
+        HORA_FIN,
+    )
+
+    hoy = date.today()
+    ahora = datetime.now()
+
+    if not _dia_es_laboral(fecha) or fecha < hoy:
+        return []
+
+    # Franjas de entrega: cada 3 horas desde las 8 hasta las 17
+    paso = 3
+    todas = [f"{h:02d}:00" for h in range(HORA_INICIO, HORA_FIN, paso)]
+
+    disponibles = []
+    for h in todas:
+        # Si es hoy, descartar horarios que ya pasaron
+        if fecha == hoy:
+            partes = h.split(":")
+            h_min = int(partes[0]) * 60 + int(partes[1])
+            ahora_min = ahora.hour * 60 + ahora.minute
+            if h_min <= ahora_min:
+                continue
+
+        # Si se especifica técnico, validar que esté libre
+        if tecnico_id is not None:
+            libre = tecnico_libre_en_rango(db, tecnico_id, fecha, h, excluir_pedido_id=None)
+            if not libre:
+                continue
+
+        disponibles.append(h)
+
+    return disponibles
+
+
 class EntregaAsignarRequest(BaseModel):
     id_tecnico: Optional[int] = None
     fecha_entrega: Optional[date] = None
@@ -467,6 +517,23 @@ def asignar_entrega_admin(
                 status_code=400,
                 detail="Las entregas solo se programan de lunes a sábado",
             )
+        # No permitir fechas pasadas
+        if data.fecha_entrega < date.today():
+            raise HTTPException(
+                status_code=400,
+                detail="No es posible programar una entrega en una fecha pasada",
+            )
+        # Si es hoy, validar que la hora no haya pasado
+        if data.fecha_entrega == date.today() and data.hora_entrega:
+            ahora = datetime.now()
+            partes = data.hora_entrega.split(":")
+            hora_sel = int(partes[0])
+            min_sel = int(partes[1]) if len(partes) > 1 else 0
+            if hora_sel < ahora.hour or (hora_sel == ahora.hour and min_sel <= ahora.minute):
+                raise HTTPException(
+                    status_code=400,
+                    detail="El horario seleccionado ya pasó. Seleccione un horario disponible",
+                )
         rango_cambiado = pedido.fecha_entrega != data.fecha_entrega
         pedido.fecha_entrega = data.fecha_entrega
     if data.hora_entrega is not None:

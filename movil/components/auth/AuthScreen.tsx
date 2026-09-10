@@ -42,7 +42,7 @@ export default function AuthScreen({ children }: AuthScreenProps) {
       {/* Fondo DESENFOCIDO (BlurView) + overlay sutil: la pantalla pública
           sigue visible detrás pero el foco visual es el modal. */}
       <BlurView
-        intensity={45}
+        intensity={80}
         tint="dark"
         experimentalBlurMethod="dimezisBlurView"
         style={StyleSheet.absoluteFill}
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   // Overlay oscurecido sobre el blur (contraste para el modal).
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.7)",
   },
 
   hoja: {
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: C.bordeOro,
-    backgroundColor: "#121212",
+    backgroundColor: "#0a0a0e",
     overflow: "hidden",
     alignSelf: "stretch",
   },

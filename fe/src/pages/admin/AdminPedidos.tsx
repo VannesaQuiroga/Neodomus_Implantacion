@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { FaBoxOpen } from 'react-icons/fa6';
+import { FaBoxOpen, FaCalendarDay, FaClock } from 'react-icons/fa6';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/admin-panel.css';
@@ -13,6 +13,7 @@ interface PedidoEntrega {
   telefono: number | null;
   fecha_entrega: string | null;
   hora_entrega: string | null;
+  hora_entrega_fin: string | null;
   estado_entrega: string | null;
   id_tecnico_entrega: number | null;
   nombre_tecnico: string | null;
@@ -42,6 +43,32 @@ const AdminPedidos = () => {
   const [busqueda, setBusqueda] = useState('');
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
 
+  // Edición de fecha/hora por pedido
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [fechaSeleccion, setFechaSeleccion] = useState('');
+  const [horaSeleccion, setHoraSeleccion] = useState('');
+  const [horaFinSeleccion, setHoraFinSeleccion] = useState('');
+  const [horariosDisponibles, setHorariosDisponibles] = useState<string[]>([]);
+  const [cargandoHorarios, setCargandoHorarios] = useState(false);
+
+  // Fecha mínima (hoy) — se recalcula automáticamente al cambiar de día
+  const [hoyStr, setHoyStr] = useState(() => new Date().toISOString().split('T')[0]);
+  const [ahoraMinutos, setAhoraMinutos] = useState(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  });
+
+  // Auto-actualizar la fecha mínima cuando cambia el día
+  useEffect(() => {
+    const intervalo = window.setInterval(() => {
+      const now = new Date();
+      const nuevaFecha = now.toISOString().split('T')[0];
+      setHoyStr(nuevaFecha);
+      setAhoraMinutos(now.getHours() * 60 + now.getMinutes());
+    }, 60000); // Cada minuto
+    return () => window.clearInterval(intervalo);
+  }, []);
+
   const cargar = async (silencioso = false) => {
     if (!silencioso) setCargando(true);
     try {
@@ -60,7 +87,6 @@ const AdminPedidos = () => {
 
   useEffect(() => {
     cargar();
-    // Tiempo real: refresco silencioso cada 30 s para ver datos actuales.
     const intervalo = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +109,88 @@ const AdminPedidos = () => {
         (p.nombre_tecnico || '').toLowerCase().includes(q),
     );
   }, [pedidos, busqueda]);
+
+  // Horarios de fin: disponibles desde hora inicio + 1h
+  const horariosFinFiltrados = useMemo(() => {
+    if (!horaSeleccion) return [];
+    const [hhIni, mmIni] = horaSeleccion.split(':').map(Number);
+    const iniMin = hhIni * 60 + mmIni + 60; // mínimo 1 hora después
+    return horariosDisponibles.filter((h) => {
+      const [hh, mm] = h.split(':').map(Number);
+      const hMin = hh * 60 + mm;
+      return hMin > iniMin;
+    });
+  }, [horaSeleccion, horariosDisponibles]);
+
+  // Cargar horarios disponibles del backend al cambiar fecha o técnico
+  const cargarHorarios = useCallback(async (fecha: string, tecnicoId?: number | null) => {
+    if (!fecha) { setHorariosDisponibles([]); return; }
+    setCargandoHorarios(true);
+    try {
+      const params: Record<string, string> = { fecha };
+      if (tecnicoId) params.tecnico_id = String(tecnicoId);
+      const res = await api.get<string[]>('/pedidos/admin/horarios-disponibles', { params });
+      setHorariosDisponibles(res.data);
+    } catch {
+      setHorariosDisponibles([]);
+    } finally {
+      setCargandoHorarios(false);
+    }
+  }, []);
+
+  const abrirEditor = useCallback((pedido: PedidoEntrega) => {
+    setEditandoId(pedido.id_pedido);
+    setFechaSeleccion(pedido.fecha_entrega || hoyStr);
+    setHoraSeleccion(pedido.hora_entrega || '');
+    setHoraFinSeleccion(pedido.hora_entrega_fin || '');
+    // Cargar horarios disponibles del backend
+    const fecha = pedido.fecha_entrega || hoyStr;
+    cargarHorarios(fecha, pedido.id_tecnico_entrega);
+  }, [hoyStr, cargarHorarios]);
+
+  const cancelarEdicion = () => {
+    setEditandoId(null);
+    setFechaSeleccion('');
+    setHoraSeleccion('');
+    setHoraFinSeleccion('');
+  };
+
+  const guardarFechaHora = async (pedido: PedidoEntrega) => {
+    if (!fechaSeleccion) {
+      setToast({ msg: 'Selecciona una fecha de entrega', tipo: 'err' });
+      return;
+    }
+    // Validación frontend: fecha no puede ser pasada
+    if (fechaSeleccion < hoyStr) {
+      setToast({ msg: 'No es posible programar una entrega en una fecha pasada', tipo: 'err' });
+      return;
+    }
+    // Validación frontend: si es hoy, hora no puede ser pasada
+    if (fechaSeleccion === hoyStr && horaSeleccion) {
+      const [hh, mm] = horaSeleccion.split(':').map(Number);
+      if (hh * 60 + mm <= ahoraMinutos) {
+        setToast({ msg: 'El horario seleccionado ya pasó. Seleccione un horario disponible', tipo: 'err' });
+        return;
+      }
+    }
+    setGuardandoId(pedido.id_pedido);
+    try {
+      await api.put(`/pedidos/admin/${pedido.id_pedido}/entrega`, {
+        id_tecnico: pedido.id_tecnico_entrega,
+        fecha_entrega: fechaSeleccion,
+        hora_entrega: horaSeleccion || null,
+        hora_entrega_fin: horaFinSeleccion || null,
+      });
+      setToast({ msg: 'Fecha y hora de entrega actualizadas', tipo: 'ok' });
+      cancelarEdicion();
+      await cargar();
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || t('adm.pedidos.errorActualizar');
+      setToast({ msg, tipo: 'err' });
+    } finally {
+      setGuardandoId(null);
+    }
+  };
 
   const cambiarEncargado = async (pedido: PedidoEntrega, valor: string) => {
     setGuardandoId(pedido.id_pedido);
@@ -143,7 +251,7 @@ const AdminPedidos = () => {
                   <th>#</th>
                   <th>{t('adm.pedidos.cliente') || 'Cliente'}</th>
                   <th>{t('adm.pedidos.productos') || 'Productos'}</th>
-                  <th>{t('adm.pedidos.fechaEntrega') || 'Fecha entrega'}</th>
+                  <th><FaCalendarDay style={{ marginRight: 4 }} /> {t('adm.pedidos.fechaEntrega') || 'Fecha entrega'}</th>
                   <th>Estado</th>
                   <th>{t('adm.pedidos.tecnicoEncargado')}</th>
                 </tr>
@@ -157,9 +265,101 @@ const AdminPedidos = () => {
                       {p.productos.length > 0 ? p.productos.join(', ') : '—'}
                     </td>
                     <td>
-                      {p.fecha_entrega
-                        ? `${p.fecha_entrega} ${p.hora_entrega || ''}`
-                        : '—'}
+                      {editandoId === p.id_pedido ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
+                          <input
+                            type="date"
+                            className="ap-form-input"
+                            value={fechaSeleccion}
+                            min={hoyStr}
+                            onChange={(e) => {
+                              setFechaSeleccion(e.target.value);
+                              setHoraSeleccion('');
+                              setHoraFinSeleccion('');
+                              cargarHorarios(e.target.value, p.id_tecnico_entrega);
+                            }}
+                            style={{ fontSize: '0.85rem' }}
+                          />
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <select
+                              className="ap-form-select"
+                              value={horaSeleccion}
+                              onChange={(e) => {
+                                setHoraSeleccion(e.target.value);
+                                setHoraFinSeleccion('');
+                              }}
+                              style={{ fontSize: '0.85rem', flex: 1 }}
+                            >
+                              <option value="">Hora inicio</option>
+                              {horariosDisponibles.map((h) => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </select>
+                            <select
+                              className="ap-form-select"
+                              value={horaFinSeleccion}
+                              disabled={!horaSeleccion}
+                              onChange={(e) => setHoraFinSeleccion(e.target.value)}
+                              style={{ fontSize: '0.85rem', flex: 1 }}
+                            >
+                              <option value="">Hora fin</option>
+                              {horariosFinFiltrados.map((h) => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </select>
+                          </div>
+                          {fechaSeleccion === hoyStr && horariosDisponibles.length === 0 && !cargandoHorarios && (
+                            <span style={{ fontSize: '0.75rem', color: '#e5484d' }}>
+                              <FaClock style={{ marginRight: 3 }} />
+                              No hay horarios disponibles para hoy
+                            </span>
+                          )}
+                          {cargandoHorarios && (
+                            <span style={{ fontSize: '0.75rem', color: '#9a8f78' }}>
+                              Cargando horarios...
+                            </span>
+                          )}
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              className="ap-btn ap-btn-primary"
+                              style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+                              disabled={guardandoId === p.id_pedido || !fechaSeleccion}
+                              onClick={() => guardarFechaHora(p)}
+                            >
+                              {guardandoId === p.id_pedido ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ap-btn"
+                              style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+                              onClick={cancelarEdicion}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="ap-btn"
+                          style={{
+                            background: 'none',
+                            border: '1px dashed #666',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontSize: '0.85rem',
+                            color: '#ccc',
+                          }}
+                          onClick={() => abrirEditor(p)}
+                          disabled={guardandoId === p.id_pedido}
+                        >
+                          {p.fecha_entrega
+                            ? `${p.fecha_entrega} ${p.hora_entrega || ''}${p.hora_entrega_fin ? ` - ${p.hora_entrega_fin}` : ''}`
+                            : '— Asignar fecha —'}
+                        </button>
+                      )}
                     </td>
                     <td>
                       <span className={`ap-badge ${ESTADO_CLASE[p.estado_entrega || ''] || 'neutral'}`}>

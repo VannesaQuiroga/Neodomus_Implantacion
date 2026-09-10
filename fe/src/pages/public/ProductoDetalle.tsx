@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { FaArrowLeft, FaHeart, FaCheck, FaTruckFast, FaShieldHalved, FaRotateLeft, FaUsers } from 'react-icons/fa6';
+import { FaArrowLeft, FaHeart, FaCheck, FaTruckFast, FaShieldHalved, FaRotateLeft, FaUsers, FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import api from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useFavoritos } from '@utils/favoritos';
@@ -155,11 +155,13 @@ const ProductoDetalle = () => {
   const [color, setColor] = useState('');
   const [tamano, setTamano] = useState('');
   const [cantidad, setCantidad] = useState(1);
-  const [displayValue, setDisplayValue] = useState('');
+  const [displayValue, setDisplayValue] = useState('1');
   const [metros, setMetros] = useState(10);
   const [unidadesMetros, setUnidadesMetros] = useState(1);
-  const [displayUnidades, setDisplayUnidades] = useState('');
+  const [displayUnidades, setDisplayUnidades] = useState('1');
   const [toast, setToast] = useState('');
+  const [recomendados, setRecomendados] = useState<Producto[]>([]);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -213,6 +215,33 @@ const ProductoDetalle = () => {
     fetchProducto();
   }, [id]);
 
+  // Cargar productos recomendados: misma categoría primero, luego las demás
+  useEffect(() => {
+    if (!producto?.id_cate_pr) return;
+    api
+      .get('/productos/?limit=100')
+      .then((res) => {
+        const todos: Producto[] = res.data.data || [];
+        const mismosCat = todos.filter(
+          (p) => p.id_cate_pr === producto.id_cate_pr && p.id_producto !== producto.id_producto,
+        );
+        const otrosCat = todos.filter(
+          (p) => p.id_cate_pr !== producto.id_cate_pr && p.id_producto !== producto.id_producto,
+        );
+        setRecomendados([...mismosCat, ...otrosCat].slice(0, 15));
+      })
+      .catch(() => {});
+  }, [producto?.id_cate_pr, producto?.id_producto]);
+
+  const scrollCarousel = (direccion: 'izq' | 'der') => {
+    if (!carouselRef.current) return;
+    const amount = 300;
+    carouselRef.current.scrollBy({
+      left: direccion === 'izq' ? -amount : amount,
+      behavior: 'smooth',
+    });
+  };
+
   useEffect(() => {
     const refetch = () => {
       api.get(`/productos/${id}`).then((res) => setProducto(res.data)).catch(() => undefined);
@@ -229,6 +258,16 @@ const ProductoDetalle = () => {
       window.clearInterval(interval);
     };
   }, [id]);
+
+  // Clamp cantidad when stock changes (e.g. variant switch)
+  useEffect(() => {
+    if (!producto?.venta_por_metros && stockDisponible > 0) {
+      if (cantidad > stockDisponible) {
+        setCantidad(stockDisponible);
+        setDisplayValue(String(stockDisponible));
+      }
+    }
+  }, [stockDisponible, producto?.venta_por_metros]);
 
   useEffect(() => {
     if (producto) {
@@ -251,12 +290,20 @@ const ProductoDetalle = () => {
       if (producto.venta_por_metros) {
         if (paramMetros) setMetros(METROS_OPCIONES.includes(Number(paramMetros)) ? Number(paramMetros) : 10);
         const paramUnidades = searchParams.get('unidades') || searchParams.get('cantidad');
-        if (paramUnidades) setUnidadesMetros(Math.max(1, Number(paramUnidades) || 1));
-        else setUnidadesMetros(1);
+        if (paramUnidades) {
+          const u = Math.max(1, Number(paramUnidades) || 1);
+          setUnidadesMetros(u);
+          setDisplayUnidades(String(u));
+        } else {
+          setUnidadesMetros(1);
+          setDisplayUnidades('1');
+        }
       }
       const paramCantidad = searchParams.get('cantidad');
       if (!producto.venta_por_metros && paramCantidad) {
-        setCantidad(Math.max(1, Number(paramCantidad) || 1));
+        const c = Math.max(1, Number(paramCantidad) || 1);
+        setCantidad(c);
+        setDisplayValue(String(c));
       }
     }
   }, [producto, searchParams]);
@@ -345,6 +392,7 @@ const ProductoDetalle = () => {
       return;
     }
     if (editarKey) removeItem(editarKey);
+    const cantidadFinal = Math.min(Math.max(1, cantidad), stockDisponible);
     const error = addItem(
       {
         id_producto: producto.id_producto,
@@ -358,13 +406,13 @@ const ProductoDetalle = () => {
         tecnicos_requeridos: producto.tecnicos_requeridos || 1,
         stock_maximo: stockDisponible,
       },
-      cantidad
+      cantidadFinal
     );
     if (error) { showToast(error); return; }
     if (editarKey) {
       navigate('/carrito');
     } else {
-      showToast(`${cantidad} x ${producto.nombre_producto} ${t('productos.agregadoAlCarrito')}`);
+      showToast(`${cantidadFinal} x ${producto.nombre_producto} ${t('productos.agregadoAlCarrito')}`);
     }
   };
 
@@ -595,7 +643,11 @@ const ProductoDetalle = () => {
                         <div className="detalle-cantidad detalle-cantidad--compact">
                           <button
                             type="button"
-                            onClick={() => setUnidadesMetros(Math.max(1, unidadesMetros - 1))}
+                            onClick={() => {
+                              const nueva = Math.max(1, unidadesMetros - 1);
+                              setUnidadesMetros(nueva);
+                              setDisplayUnidades(String(nueva));
+                            }}
                             aria-label="Reducir unidades"
                           >
                             −
@@ -604,7 +656,7 @@ const ProductoDetalle = () => {
                             type="text"
                             inputMode="numeric"
                             className="cantidad-input"
-                            value={displayUnidades || String(unidadesMetros)}
+                            value={displayUnidades}
                             onChange={(e) => {
                               const val = e.target.value.replace(/[^0-9]/g, '');
                               setDisplayUnidades(val);
@@ -613,17 +665,23 @@ const ProductoDetalle = () => {
                               const num = parseInt(e.target.value, 10);
                               if (isNaN(num) || num < 1) {
                                 setUnidadesMetros(1);
+                                setDisplayUnidades('1');
                               } else {
                                 const maxU = Math.max(1, Math.floor(stockDisponible / metros) || 99);
-                                setUnidadesMetros(num > maxU ? maxU : num);
+                                const newUnidades = num > maxU ? maxU : num;
+                                setUnidadesMetros(newUnidades);
+                                setDisplayUnidades(String(newUnidades));
                               }
-                              setDisplayUnidades('');
                             }}
                             aria-label="Unidades"
                           />
                           <button
                             type="button"
-                            onClick={() => setUnidadesMetros(Math.min(unidadesMetros + 1, maxUnidades))}
+                            onClick={() => {
+                              const nueva = Math.min(unidadesMetros + 1, maxUnidades);
+                              setUnidadesMetros(nueva);
+                              setDisplayUnidades(String(nueva));
+                            }}
                             disabled={unidadesMetros >= maxUnidades}
                             aria-label="Aumentar unidades"
                           >
@@ -652,7 +710,11 @@ const ProductoDetalle = () => {
                   <div className="detalle-cantidad">
                     <button
                       type="button"
-                      onClick={() => setCantidad(Math.max(1, cantidad - 1))}
+                      onClick={() => {
+                        const nueva = Math.max(1, cantidad - 1);
+                        setCantidad(nueva);
+                        setDisplayValue(String(nueva));
+                      }}
                       aria-label="Reducir cantidad"
                     >
                       −
@@ -661,7 +723,7 @@ const ProductoDetalle = () => {
                       type="text"
                       inputMode="numeric"
                       className="cantidad-input"
-                      value={displayValue || String(cantidad)}
+                      value={displayValue}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9]/g, '');
                         setDisplayValue(val);
@@ -670,16 +732,22 @@ const ProductoDetalle = () => {
                         const num = parseInt(e.target.value, 10);
                         if (isNaN(num) || num < 1) {
                           setCantidad(1);
+                          setDisplayValue('1');
                         } else {
-                          setCantidad(num > stockDisponible ? stockDisponible : num);
+                          const newCantidad = num > stockDisponible ? stockDisponible : num;
+                          setCantidad(newCantidad);
+                          setDisplayValue(String(newCantidad));
                         }
-                        setDisplayValue('');
                       }}
                       aria-label="Cantidad"
                     />
                     <button
                       type="button"
-                      onClick={() => setCantidad(Math.min(cantidad + 1, stockDisponible))}
+                      onClick={() => {
+                        const nueva = Math.min(cantidad + 1, stockDisponible);
+                        setCantidad(nueva);
+                        setDisplayValue(String(nueva));
+                      }}
                       disabled={cantidad >= stockDisponible}
                       aria-label="Aumentar cantidad"
                     >
@@ -782,6 +850,42 @@ const ProductoDetalle = () => {
             </div>
           </div>
         </div>
+
+        {/* Recomendados — solo en pantallas grandes */}
+        {recomendados.length > 0 && (
+          <div className="detalle-recomendados">
+            <h3 className="detalle-recomendados-titulo">También te puede interesar</h3>
+            <div className="detalle-recomendados-wrap">
+              <button className="carousel-flecha" onClick={() => scrollCarousel('izq')} aria-label="Anterior">
+                <FaChevronLeft />
+              </button>
+              <div className="detalle-recomendados-carousel" ref={carouselRef}>
+                {recomendados.map((p) => {
+                  const img = p.imagen_url || `/productos/${p.id_producto}.jpg`;
+                  const precio = p.precio_final ?? p.precio_venta_producto;
+                  return (
+                    <Link key={p.id_producto} to={`/producto/${p.id_producto}`} className="recomendado-card">
+                      <div className="recomendado-img-wrap">
+                        <img src={img} alt={p.nombre_producto} className="recomendado-img" loading="lazy" />
+                        {p.descuento_activo != null && p.descuento_activo > 0 && (
+                          <span className="recomendado-badge">-{p.descuento_activo}%</span>
+                        )}
+                      </div>
+                      <div className="recomendado-info">
+                        <span className="recomendado-nombre">{p.nombre_producto}</span>
+                        <span className="recomendado-precio">${precio?.toLocaleString('es-CO')}</span>
+                        {p.stock_estado === 'agotado' && <span className="recomendado-agotado">Agotado</span>}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              <button className="carousel-flecha" onClick={() => scrollCarousel('der')} aria-label="Siguiente">
+                <FaChevronRight />
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

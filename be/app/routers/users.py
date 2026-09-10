@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -384,6 +384,32 @@ async def desactivar_empleado(
     await _notificar_estado_empleado(usuario, False, usuario.desactivado_hasta)
     _proceso_desactivacion_tecnico(db, usuario)
     return {"msg": "Usuario desactivado", "id": user_id}
+
+
+@router.post("/me/foto", response_model=PerfilEmpleadoResponse)
+async def subir_foto_perfil(
+    archivo: UploadFile = File(...),
+    current_user: User = Depends(get_current_employee),
+    db: Session = Depends(get_db),
+):
+    """Sube una foto de perfil del empleado a MinIO y la asocia a su cuenta."""
+    if not archivo.content_type or not archivo.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+    contenido = await archivo.read()
+    if len(contenido) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB")
+    ext = archivo.filename.rsplit(".", 1)[-1] if archivo.filename and "." in archivo.filename else "jpg"
+    nombre = f"perfil_usuario_{current_user.id_usuario}.{ext}"
+    from app.services.minio_service import subir_imagen, eliminar_objeto
+    if current_user.foto_url:
+        prefijo = f"{current_user.foto_url.split('/minio/')[-1]}" if "/minio/" in current_user.foto_url else None
+        if prefijo:
+            eliminar_objeto(prefijo)
+    url = subir_imagen("perfiles", nombre, contenido)
+    current_user.foto_url = url
+    db.commit()
+    db.refresh(current_user)
+    return _perfil_empleado(current_user, db)
 
 
 

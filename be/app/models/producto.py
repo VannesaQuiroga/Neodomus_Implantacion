@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Date, Text, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
+# ProductoMedida fue eliminado; las medidas se gestionan en ProductoVariante.
 
 class Producto(Base):
     __tablename__ = "productos"

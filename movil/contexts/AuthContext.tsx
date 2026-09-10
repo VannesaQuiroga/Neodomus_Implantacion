@@ -44,6 +44,7 @@ interface PerfilBackend {
   id_usuario?: number;
   first_name?: string;
   last_name?: string;
+  foto_url?: string | null;
 }
 
 interface AuthContextValue {
@@ -72,13 +73,14 @@ async function construirUsuario(
   correo: string,
   userType: UserType,
   rol?: string | null,
-): Promise<UsuarioActual> {
-  const base: UsuarioActual = {
+): Promise<UsuarioActual & { foto_url?: string | null }> {
+  const base: UsuarioActual & { foto_url?: string | null } = {
     id: 0,
     nombre: correo ? correo.split("@")[0] : "Usuario",
     correo,
     userType,
     rol: rol ?? null,
+    foto_url: null,
   };
   try {
     const endpoint = userType === "client" ? "/clients/me" : "/users/me";
@@ -91,6 +93,7 @@ async function construirUsuario(
       correo: correo || base.nombre,
       nombre: nombreCompleto || base.nombre,
       rol: rol ?? base.rol,
+      foto_url: perfil.foto_url ?? null,
     };
   } catch {
     return base;
@@ -101,13 +104,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [usuario, setUsuario] = useState<UsuarioActual | null>(null);
   const [avatar, setAvatarEstado] = useState<string | null>(null);
-
-  // Cargar foto de perfil local (clave de la web: clientAvatar).
-  useEffect(() => {
-    AsyncStorage.getItem("clientAvatar")
-      .then((v) => setAvatarEstado(v))
-      .catch(() => {});
-  }, []);
 
   const setAvatar = useCallback((dataUrl: string | null) => {
     setAvatarEstado(dataUrl);
@@ -125,7 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     obtenerSesion()
       .then(async (sesion) => {
         if (!activo || !sesion) return null;
-        // Intentar refrescar rol desde /auth/session si no está guardado (migración)
         let rol = sesion.rol ?? null;
         if (!rol) {
           try {
@@ -139,7 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return construirUsuario(sesion.correo ?? "", sesion.userType, rol);
       })
       .then((restaurado) => {
-        if (activo && restaurado && restaurado.correo) setUsuario(restaurado);
+        if (activo && restaurado && restaurado.correo) {
+          setUsuario(restaurado);
+          setAvatarEstado(restaurado.foto_url ?? null);
+        }
       })
       .catch(() => {
         // Sesión corrupta/inválida → limpiar y continuar como invitado.
@@ -168,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const perfil = await construirUsuario(email, respuesta.user_type, rol);
     setUsuario(perfil);
+    setAvatarEstado(perfil.foto_url ?? null);
   }, []);
 
   const cerrarSesion = useCallback(async () => {
@@ -192,7 +191,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sesion.userType,
         sesion.rol ?? null,
       );
-      if (actualizado.correo) setUsuario(actualizado);
+      if (actualizado.correo) {
+        setUsuario(actualizado);
+        setAvatarEstado(actualizado.foto_url ?? null);
+      }
     } catch {
       // Si falla la consulta, se conserva el estado actual.
     }

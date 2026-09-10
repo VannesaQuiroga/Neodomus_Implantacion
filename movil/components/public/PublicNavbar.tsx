@@ -63,14 +63,6 @@ export default function PublicNavbar() {
       {!autenticado ? (
         <View style={styles.acciones}>
           <Pressable
-            style={({ pressed }) => [styles.botonLogin, pressed && styles.presionado]}
-            onPress={() => router.push("/login")}
-            hitSlop={6}
-          >
-            <Text style={styles.textoBotonClaro}>Iniciar sesión</Text>
-          </Pressable>
-
-          <Pressable
             style={({ pressed }) => [
               styles.botonRegistro,
               pressed && styles.presionado,
@@ -79,6 +71,14 @@ export default function PublicNavbar() {
             hitSlop={6}
           >
             <Text style={styles.textoBotonOro}>Registrarse</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.botonLogin, pressed && styles.presionado]}
+            onPress={() => router.push("/login")}
+            hitSlop={6}
+          >
+            <Text style={styles.textoBotonClaro}>Iniciar sesión</Text>
           </Pressable>
         </View>
       ) : (

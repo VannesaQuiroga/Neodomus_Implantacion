@@ -22,7 +22,7 @@ const AuthModalHost = () => {
   if (!step) return null;
 
   return (
-    <div className="auth-modal-overlay" onClick={closeAuth}>
+    <div className="auth-modal-overlay">
       <button
         type="button"
         className="auth-modal-close"
