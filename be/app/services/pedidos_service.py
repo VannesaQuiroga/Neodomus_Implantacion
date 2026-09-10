@@ -1180,6 +1180,7 @@ async def crear_pedido(
     servicios: list[dict] | None,
     metodo_pago: str,
     datos_pago: dict,
+    codigo_cupon: str | None = None,
 ) -> dict:
     """Crea un pedido con sus detalles y procesa el pago simulado."""
     lineas_producto = _validar_y_preparar_items(db, items)
@@ -1195,6 +1196,27 @@ async def crear_pedido(
         + sum(s["precio"] for s in lineas_servicio),
         2,
     )
+
+    # Aplicar cupón de descuento si se proporcionó.
+    descuento_cupon = 0.0
+    cupon = None
+    if codigo_cupon:
+        from app.services import novedades_service
+        cupon = novedades_service.validar_cupon(db, codigo_cupon, cliente.id_cliente)
+        if not cupon:
+            raise HTTPException(400, "Cupón no válido o expirado")
+        if cupon.compra_minima and total < cupon.compra_minima:
+            raise HTTPException(
+                400,
+                f"El cupón requiere una compra mínima de ${cupon.compra_minima:,.0f}",
+            )
+        if cupon.tipo_descuento == "porcentaje":
+            descuento_cupon = round(total * cupon.valor_descuento / 100, 2)
+        else:
+            descuento_cupon = min(cupon.valor_descuento, total)
+        total = round(total - descuento_cupon, 2)
+        cupon.usos_realizados += 1
+        db.add(cupon)
 
     # Procesar pago con el simulador.
     resultado_pago = pagos_service.procesar_pago(

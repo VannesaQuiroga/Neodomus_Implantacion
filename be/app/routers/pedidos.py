@@ -72,6 +72,7 @@ class CheckoutRequest(BaseModel):
     items: List[ItemCarrito]
     servicios: List[ServicioCheckout] = []
     pago: DatosPago
+    codigo_cupon: Optional[str] = None
 
 
 # ── Helpers de serialización ────────────────────────────────────
@@ -210,6 +211,7 @@ async def checkout(
         [s.model_dump() for s in data.servicios],
         data.pago.metodo,
         data.pago.model_dump(exclude={"metodo"}),
+        codigo_cupon=data.codigo_cupon,
     )
     pedido = result["pedido"]
     pago = result["pago"]

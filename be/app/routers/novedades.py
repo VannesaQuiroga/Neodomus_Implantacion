@@ -23,7 +23,7 @@ from app.models.cliente import Cliente
 from app.models.roles_usuario import RolesUsuario
 from app.models.tecnico import Tecnico
 from app.models.user import User
-from app.utils.security import get_current_employee
+from app.utils.security import get_current_client, get_current_employee
 from app.services import novedades_service, minio_service
 
 router = APIRouter(prefix="/novedades", tags=["Novedades"])
@@ -792,6 +792,25 @@ class CrearCuponRequest(BaseModel):
     usos_maximos: int = 1
     aplica_tienda_completa: bool = True
     categorias_aplicables: Optional[str] = None
+
+
+@router.get("/cupones/validar")
+def validar_cupon_endpoint(
+    codigo: str,
+    cliente: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Valida un código de cupón y retorna su información si es válido."""
+    cupon = novedades_service.validar_cupon(db, codigo, cliente.id_cliente)
+    if not cupon:
+        raise HTTPException(status_code=404, detail="Cupón no válido o expirado")
+    return {
+        "id_cupon": cupon.id_cupon,
+        "codigo": cupon.codigo,
+        "tipo_descuento": cupon.tipo_descuento,
+        "valor_descuento": cupon.valor_descuento,
+        "fecha_vencimiento": cupon.fecha_vencimiento.isoformat() if cupon.fecha_vencimiento else None,
+    }
 
 
 @router.post("/{novedad_id}/cupon")
