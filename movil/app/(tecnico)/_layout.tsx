@@ -37,6 +37,7 @@ export default function TecnicoLayout() {
             <Stack.Screen name="cambiar-password" />
             <Stack.Screen name="idioma" />
             <Stack.Screen name="notificaciones" />
+            <Stack.Screen name="novedades" />
           </Stack>
         </View>
         <TechnicianBottomTabs />

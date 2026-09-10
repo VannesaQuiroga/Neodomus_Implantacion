@@ -3,7 +3,7 @@ Módulo: models/novedad.py
 
 Tablas: novedades, novedad_historial
 Descripción: Sistema de novedades e incidencias reportadas por técnicos
-sobre entregas, citas, productos y clientes. El administrador revisa,
+sobre entregas, citas, devoluciones y clientes. El administrador revisa,
 aprobar/rechaza y genera compensaciones cuando corresponde.
 """
 from datetime import datetime
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.models.pedido import Pedido
     from app.models.cita import Cita
     from app.models.cliente import Cliente
+    from app.models.devolucion import Devolucion
 
 
 class Novedad(Base):
@@ -37,6 +38,9 @@ class Novedad(Base):
     )
     id_cliente: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("clientes.id_cliente"), nullable=True, index=True,
+    )
+    id_devolucion: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("devoluciones.id_devolucion"), nullable=True, index=True,
     )
     fecha_reporte_novedad: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False,
@@ -62,11 +66,17 @@ class Novedad(Base):
     pedido = relationship("Pedido", foreign_keys=[id_pedido], lazy="selectin")
     cita = relationship("Cita", foreign_keys=[id_cita], lazy="selectin")
     cliente = relationship("Cliente", foreign_keys=[id_cliente], lazy="selectin")
+    devolucion = relationship("Devolucion", foreign_keys=[id_devolucion], lazy="selectin")
     historial: Mapped[List["NovedadHistorial"]] = relationship(
         "NovedadHistorial",
         back_populates="novedad",
         cascade="all, delete-orphan",
         order_by="NovedadHistorial.fecha",
+    )
+    evidencias: Mapped[List["EvidenciaNovedad"]] = relationship(
+        "EvidenciaNovedad",
+        back_populates="novedad",
+        cascade="all, delete-orphan",
     )
 
 
@@ -89,6 +99,24 @@ class NovedadHistorial(Base):
 
     novedad = relationship("Novedad", back_populates="historial")
     usuario = relationship("User", lazy="selectin")
+
+
+class EvidenciaNovedad(Base):
+    """Evidencias (fotos/archivos) asociadas a una novedad."""
+    __tablename__ = "evidencias_novedad"
+
+    id_evidencia_n: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_novedad: Mapped[int] = mapped_column(
+        Integer, ForeignKey("novedades.id_novedad", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    url_archivo: Mapped[str] = mapped_column(String(500), nullable=False)
+    descripcion: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    fecha_subida: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False,
+    )
+
+    novedad = relationship("Novedad", back_populates="evidencias")
 
 
 class CuponDescuento(Base):

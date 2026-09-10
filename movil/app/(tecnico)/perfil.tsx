@@ -212,8 +212,28 @@ export default function TecnicoPerfilScreen() {
       base64: false,
     });
     if (!result.canceled && result.assets[0]?.uri) {
-      setAvatar(result.assets[0].uri);
-      mostrarToast(t("perfil.fotoActualizada"));
+      const asset = result.assets[0];
+      try {
+        const formData = new FormData();
+        const ext = (asset.mimeType?.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+        formData.append("archivo", {
+          uri: asset.uri,
+          name: `perfil.${ext}`,
+          type: asset.mimeType || "image/jpeg",
+        } as any);
+        const actualizado = await apiFetch<any>("/users/me/foto", {
+          method: "POST",
+          body: formData,
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (actualizado?.foto_url) {
+          setAvatar(actualizado.foto_url);
+        }
+        await actualizarUsuario();
+        mostrarToast(t("perfil.fotoActualizada"));
+      } catch {
+        mostrarToast("No se pudo subir la foto");
+      }
     }
   };
 

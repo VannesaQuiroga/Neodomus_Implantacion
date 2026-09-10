@@ -89,6 +89,7 @@ export default function TecnicoDashboard() {
   const [entregas, setEntregas] = useState<Entrega[]>([]);
   const [recogidas, setRecogidas] = useState<Recogida[]>([]);
   const [calificaciones, setCalificaciones] = useState<any>({});
+  const [novedades, setNovedades] = useState<any[]>([]);
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCita, setSelectedCita] = useState<Cita | null>(null);
@@ -103,17 +104,19 @@ export default function TecnicoDashboard() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [citasRes, entregasRes, califRes, recogRes, notifRes] = await Promise.allSettled([
+      const [citasRes, entregasRes, califRes, recogRes, novedRes, notifRes] = await Promise.allSettled([
         apiFetch<Cita[]>("/tecnicos/mis-citas"),
         apiFetch<Entrega[]>("/tecnicos/mis-entregas"),
         apiFetch<any>("/calificaciones/mis"),
         apiFetch<Recogida[]>("/devoluciones/mis-recogidas"),
+        apiFetch<any[]>("/novedades/mis-novedades").catch(() => []),
         apiFetch<any[]>("/notificaciones/mias").catch(() => []),
       ]);
       if (citasRes.status === "fulfilled") setCitas(citasRes.value || []);
       if (entregasRes.status === "fulfilled") setEntregas(entregasRes.value || []);
       if (califRes.status === "fulfilled") setCalificaciones(califRes.value || {});
       if (recogRes.status === "fulfilled") setRecogidas((recogRes.value as any) || []);
+      if (novedRes.status === "fulfilled") setNovedades((novedRes.value as any) || []);
       if (notifRes.status === "fulfilled") setNotificaciones((notifRes.value as any) || []);
     } catch {}
     setLoading(false);
@@ -364,6 +367,51 @@ export default function TecnicoDashboard() {
           )}
         </Seccion>
 
+        <Seccion titulo="Novedades" icono="shield-halved" count={novedades.length}>
+          {novedades.length === 0 ? (
+            <View style={styles.empty}>
+              <FontAwesome6 name="shield-halved" size={22} color="#5a5a5a" />
+              <Text style={styles.emptyTitle}>Sin novedades</Text>
+              <Text style={styles.emptyHint}>No has reportado incidencias recientes.</Text>
+            </View>
+          ) : (
+            <>
+              {novedades.slice(0, 5).map((n: any) => {
+                const icono = n.tipo_novedad?.includes("retraso") || n.tipo_novedad?.includes("Retraso") ? "clock"
+                  : n.tipo_novedad?.includes("daño") || n.tipo_novedad?.includes("Dañado") ? "triangle-exclamation"
+                  : n.tipo_novedad?.includes("robo") || n.tipo_novedad?.includes("Robo") ? "shield-halved"
+                  : "clipboard-list";
+                const colorEstado = n.estado_novedad === "Pendiente" ? styles.badgePend
+                  : n.estado_novedad === "Resuelta" || n.estado_novedad === "Cerrada" ? styles.badgeOk
+                  : n.estado_novedad === "Rechazada" ? styles.badgeErr : styles.badgeInfo;
+                return (
+                  <View key={n.id_novedad} style={styles.itemCard}>
+                    <View style={styles.itemLeft}>
+                      <View style={styles.iconCircle}>
+                        <FontAwesome6 name={icono as any} size={14} color="#f0c96f" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.itemTitulo}>{n.tipo_novedad}</Text>
+                        <Text style={styles.itemSub} numberOfLines={1}>{n.descripcion_novedad}</Text>
+                        <Text style={styles.itemSub}>
+                          {n.id_pedido ? `Pedido #${n.id_pedido}` : ""}{n.id_cita ? ` · Cita #${n.id_cita}` : ""}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.badge, colorEstado]}>
+                      <Text style={styles.badgeTxt}>{n.estado_novedad}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+              <Pressable onPress={() => router.push("/(tecnico)/novedades" as any)} style={styles.verTodasBtn}>
+                <Text style={styles.verTodasTxt}>Ver todas</Text>
+                <FontAwesome6 name="chevron-right" size={10} color="#f0c96f" />
+              </Pressable>
+            </>
+          )}
+        </Seccion>
+
           <Seccion titulo={t("tecnico.misCalificaciones")} icono="star">
           {calificaciones.promedio != null ? (
             <View style={styles.califHead}>
@@ -382,12 +430,18 @@ export default function TecnicoDashboard() {
           ))}
         </Seccion>
 
-        <Seccion titulo={t("tecnico.notificaciones")} icono="bell" count={notificaciones.length}>
+        <Seccion titulo={t("tecnico.notificaciones")} icono="bell" count={notificaciones.filter((n: any) => !n.leida).length}>
           {notificaciones.length === 0 ? (
             <View style={styles.empty}>
               <FontAwesome6 name="bell" size={22} color="#5a5a5a" />
               <Text style={styles.emptyTitle}>{t("tecnico.sinNotificaciones")}</Text>
               <Text style={styles.emptyHint}>{t("tecnico.sinNotificacionesHint")}</Text>
+            </View>
+          ) : notificaciones.filter((n: any) => !n.leida).length === 0 ? (
+            <View style={styles.empty}>
+              <FontAwesome6 name="bell-slash" size={22} color="#5a5a5a" />
+              <Text style={styles.emptyTitle}>Todo al día</Text>
+              <Text style={styles.emptyHint}>No tienes notificaciones sin leer</Text>
             </View>
           ) : (
             <>
@@ -401,7 +455,7 @@ export default function TecnicoDashboard() {
                   <Text style={styles.btnMarcarTxt}>{marcandoLeidas ? t("notificaciones.marcando") : t("notificaciones.marcarLeidas")}</Text>
                 </Pressable>
               </View>
-              {notificaciones.slice(0, 5).map((n: any) => {
+              {notificaciones.filter((n: any) => !n.leida).slice(0, 5).map((n: any) => {
                 const titulo = n.titulo || n.title || "Notificación";
                 const mensaje = n.mensaje || n.message || "";
                 const fechaRaw = n.fecha || n.created_at || n.fecha_creacion;

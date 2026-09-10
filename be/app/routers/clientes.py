@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from typing import List
@@ -330,6 +330,32 @@ def update_my_profile(
         update_data["email"] = email
     for field, value in update_data.items():
         setattr(current_client, field, value)
+    db.commit()
+    db.refresh(current_client)
+    return current_client
+
+
+@router.post("/me/foto", response_model=ClientResponse)
+async def subir_foto_perfil(
+    archivo: UploadFile = File(...),
+    current_client: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Sube una foto de perfil del cliente a MinIO y la asocia a su cuenta."""
+    if not archivo.content_type or not archivo.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+    contenido = await archivo.read()
+    if len(contenido) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB")
+    ext = archivo.filename.rsplit(".", 1)[-1] if archivo.filename and "." in archivo.filename else "jpg"
+    nombre = f"perfil_cliente_{current_client.id_cliente}.{ext}"
+    from app.services.minio_service import subir_imagen, eliminar_objeto
+    if current_client.foto_url:
+        prefijo = f"{current_client.foto_url.split('/minio/')[-1]}" if "/minio/" in current_client.foto_url else None
+        if prefijo:
+            eliminar_objeto(prefijo)
+    url = subir_imagen("perfiles", nombre, contenido)
+    current_client.foto_url = url
     db.commit()
     db.refresh(current_client)
     return current_client

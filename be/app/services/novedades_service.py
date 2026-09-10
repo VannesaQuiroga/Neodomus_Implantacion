@@ -35,6 +35,13 @@ TIPOS_NOVEDAD = [
     "Problema con instalación",
     "Retraso que afecta cita",
     "Otro",
+    # Tipos de devolución
+    "Producto recibido con daños",
+    "Producto incompleto",
+    "Cliente no tenía el producto disponible",
+    "Producto diferente al solicitado",
+    "Devolución no realizada",
+    "Problema durante la recogida",
 ]
 
 ESTADOS_NOVEDAD = ["Pendiente", "En revisión", "Aprobada", "Rechazada", "Resuelta", "Cerrada"]
@@ -53,6 +60,7 @@ def crear_novedad(
     id_pedido: Optional[int] = None,
     id_cita: Optional[int] = None,
     id_cliente: Optional[int] = None,
+    id_devolucion: Optional[int] = None,
     lugar_ocurrencia: Optional[str] = None,
     evidencia_url: Optional[str] = None,
 ) -> Novedad:
@@ -66,6 +74,7 @@ def crear_novedad(
         id_pedido=id_pedido,
         id_cita=id_cita,
         id_cliente=id_cliente,
+        id_devolucion=id_devolucion,
         lugar_ocurrencia=lugar_ocurrencia,
         evidencia_url=evidencia_url,
     )
@@ -179,6 +188,64 @@ def agregar_accion_admin(
         detalle=detalle,
     ))
     db.commit()
+
+
+def responder_novedad(
+    db: Session,
+    *,
+    id_novedad: int,
+    id_admin: int,
+    respuesta: str,
+) -> Novedad:
+    """El admin responde a una novedad del técnico."""
+    novedad = db.query(Novedad).filter(Novedad.id_novedad == id_novedad).first()
+    if not novedad:
+        raise ValueError("Novedad no encontrada")
+
+    novedad.accion_admin = respuesta
+    novedad.id_admin_resuelve = id_admin
+    novedad.estado_novedad = "En revisión"
+
+    db.add(NovedadHistorial(
+        id_novedad=id_novedad,
+        id_usuario=id_admin,
+        accion="Respuesta del administrador",
+        detalle=respuesta,
+    ))
+    db.commit()
+    db.refresh(novedad)
+    return novedad
+
+
+def cambiar_tecnico_novedad(
+    db: Session,
+    *,
+    id_novedad: int,
+    id_nuevo_tecnico: int,
+    id_admin: int,
+    motivo: Optional[str] = None,
+) -> Novedad:
+    """Cambia el técnico asignado al pedido/cita de una novedad."""
+    novedad = db.query(Novedad).filter(Novedad.id_novedad == id_novedad).first()
+    if not novedad:
+        raise ValueError("Novedad no encontrada")
+
+    tecnico_anterior_id = novedad.id_tecnico_n
+    novedad.id_tecnico_n = id_nuevo_tecnico
+
+    detalle_parts = [f"Técnico anterior: {tecnico_anterior_id}", f"Nuevo técnico: {id_nuevo_tecnico}"]
+    if motivo:
+        detalle_parts.append(f"Motivo: {motivo}")
+
+    db.add(NovedadHistorial(
+        id_novedad=id_novedad,
+        id_usuario=id_admin,
+        accion="Cambio de técnico",
+        detalle=" | ".join(detalle_parts),
+    ))
+    db.commit()
+    db.refresh(novedad)
+    return novedad
 
 
 # ── Cupones ─────────────────────────────────────────────────────────

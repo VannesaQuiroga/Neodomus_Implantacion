@@ -46,7 +46,6 @@ const ProductoCard = ({ producto }: Props) => {
   const { favoritos, toggleFavorito } = useFavoritos();
 
   const [cantidad, setCantidad] = useState(1);
-  const [displayCantidad, setDisplayCantidad] = useState<string | undefined>(undefined);
   const [metros, setMetros] = useState(10);
   const [unidades, setUnidades] = useState(1);
   const [displayUnidades, setDisplayUnidades] = useState<string | undefined>(undefined);
@@ -337,33 +336,13 @@ const ProductoCard = ({ producto }: Props) => {
                 <div className="cantidad-row">
                   <span className="cantidad-label">Cantidad:</span>
                   <div className="cantidad-control">
-                    <button type="button" onClick={disminuirCantidad} aria-label="Reducir cantidad">−</button>
+                    <button type="button" onClick={disminuirCantidad} disabled={cantidad <= 1} aria-label="Reducir cantidad">−</button>
                     <input
                       type="text"
                       inputMode="numeric"
                       className="cantidad-input"
-                      value={displayCantidad !== undefined ? displayCantidad : String(cantidad)}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setDisplayCantidad(val);
-                      }}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        const num = parseInt(raw, 10);
-                        const max = Number.isFinite(stockTotal) ? stockTotal : Infinity;
-                        if (raw === '' || isNaN(num) || num < 1) {
-                          setCantidad(1);
-                        } else {
-                          setCantidad(num > max ? max : num);
-                        }
-                        setDisplayCantidad(undefined);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
+                      value={String(cantidad)}
+                      readOnly
                       aria-label="Cantidad"
                     />
                     <button

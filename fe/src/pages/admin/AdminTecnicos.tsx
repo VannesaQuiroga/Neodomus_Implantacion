@@ -774,7 +774,7 @@ const AdminTecnicos = () => {
 
       {/* ── Modal Historial del Técnico ── */}
       {historialTecnico && (
-        <div className="modal-overlay" onClick={cerrarHistorial}>
+        <div className="modal-overlay">
           <div
             className="modal-content ap-modal"
             onClick={(e) => e.stopPropagation()}

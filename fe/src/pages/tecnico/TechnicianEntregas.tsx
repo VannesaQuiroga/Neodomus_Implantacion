@@ -10,6 +10,7 @@ import {
   FaEnvelope,
   FaLocationDot,
   FaPhone,
+  FaPlus,
   FaTruckFast,
   FaUsers,
 } from 'react-icons/fa6';
@@ -17,6 +18,7 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
+import NuevaNovedadModal from '@components/tecnico/NuevaNovedadModal';
 
 interface CitaEntrega {
   id_cita: number;
@@ -76,6 +78,9 @@ const TechnicianEntregas = () => {
   const [toast, setToast] = useState<Toast>(null);
   const watchIdRef = useRef<number | null>(null);
   const recogidaRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // Novedad modal state
+  const [novedadPedido, setNovedadPedido] = useState<Entrega | null>(null);
 
   const notificar = (msg: string, tipo: 'success' | 'error' = 'success') => {
     setToast({ msg, tipo });
@@ -410,6 +415,14 @@ const TechnicianEntregas = () => {
                     <FaCamera /> Agregar más fotos
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="ap-btn ap-btn-ghost"
+                  style={{ fontSize: '0.78rem', padding: '5px 12px', border: '1px solid rgba(212,165,75,0.3)', color: '#d4a54b' }}
+                  onClick={() => setNovedadPedido(e)}
+                >
+                  <FaPlus /> Agregar novedad
+                </button>
                 {/* Input oculto compartido: lo abre el botón Entregado para
                     adjuntar las fotos obligatorias antes de cambiar el estado */}
                 <input
@@ -516,6 +529,16 @@ const TechnicianEntregas = () => {
           {toast.msg}
         </div>
       )}
+
+      <NuevaNovedadModal
+        abierto={!!novedadPedido}
+        onCerrar={() => setNovedadPedido(null)}
+        onCreado={cargar}
+        tipoOrigen="pedido"
+        idPedido={novedadPedido?.id_pedido}
+        nombreCliente={novedadPedido?.cliente}
+        referenciaLabel={`#${novedadPedido?.id_pedido}`}
+      />
     </motion.div>
   );
 };

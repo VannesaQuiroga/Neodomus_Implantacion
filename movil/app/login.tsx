@@ -232,6 +232,13 @@ export default function LoginScreen() {
         </View>
       )}
 
+      <View style={styles.filaRegistro}>
+        <Text style={styles.textoRegistro}>¿No tienes una cuenta?</Text>
+        <Pressable onPress={() => router.push("/registro")} hitSlop={6}>
+          <Text style={styles.enlaceRegistro}>Registrarse</Text>
+        </Pressable>
+      </View>
+
       <Pressable
         style={({ pressed }) => [
           styles.boton,
@@ -241,15 +248,8 @@ export default function LoginScreen() {
         onPress={() => void ingresar()}
         disabled={cargando}
       >
-        <Text style={styles.textoBoton}>{cargando ? "Ingresando..." : "Ingresar"}</Text>
+        <Text style={styles.textoBoton}>{cargando ? "Ingresando..." : "Iniciar sesión"}</Text>
       </Pressable>
-
-      <View style={styles.filaRegistro}>
-        <Text style={styles.textoRegistro}>¿No tienes una cuenta?</Text>
-        <Pressable onPress={() => router.push("/registro")} hitSlop={6}>
-          <Text style={styles.enlaceRegistro}>Registrarse</Text>
-        </Pressable>
-      </View>
     </AuthScreen>
   );
 }

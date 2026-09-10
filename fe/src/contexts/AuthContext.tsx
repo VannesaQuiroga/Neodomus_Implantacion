@@ -117,18 +117,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let firstName = '';
       let lastName = '';
       let email = base?.correo || '';
+      let fotoUrl: string | null = null;
       if (isEmployee) {
         const res = await api.get<EmployeeProfile>('/users/me');
         const profile = res.data;
         firstName = profile.first_name || '';
         lastName = profile.last_name || '';
         email = profile.email || email;
+        fotoUrl = (profile as any).foto_url ?? null;
       } else {
         const res = await api.get<ClientProfile>('/clients/me');
         const profile = res.data;
         firstName = profile.first_name || '';
         lastName = profile.last_name || '';
         email = profile.email || email;
+        fotoUrl = (profile as any).foto_url ?? null;
         // Datos obligatorios que faltan (cuentas creadas con Google)
         const incompleto = !(
           profile.id_tipo_documento_c &&
@@ -137,6 +140,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           (profile.address || '').trim()
         );
         setPerfilIncompleto(incompleto);
+      }
+      // Sincronizar foto de perfil desde el backend (fuente de verdad)
+      if (fotoUrl) {
+        const key = isEmployee ? 'technicalAvatar' : 'clientAvatar';
+        const current = localStorage.getItem(key);
+        if (current !== fotoUrl) {
+          localStorage.setItem(key, fotoUrl);
+          window.dispatchEvent(new CustomEvent(isEmployee ? 'technical-profile-updated' : 'client-profile-updated'));
+        }
       }
       const firstNameResolved = firstName || base?.nombre?.split(' ')[0] || '';
       const lastNameResolved = lastName || (base?.nombre?.split(' ').slice(1).join(' ') || '');

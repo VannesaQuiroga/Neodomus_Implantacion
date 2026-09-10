@@ -40,12 +40,15 @@ export default function VerificarCorreoScreen() {
 
     setCargando(true);
     setError(null);
+    setMensaje(null);
     try {
       await verificarCorreo(codigo);
       setEsExito(true);
-      setMensaje("¡Email verificado correctamente! Volviendo al inicio de sesión...");
-      setTimeout(() => router.replace("/login"), 2000);
+      setMensaje("¡Email verificado correctamente!");
+      setTimeout(() => router.replace("/login"), 2500);
     } catch (e) {
+      setEsExito(false);
+      setMensaje(null);
       setError(
         e instanceof ApiError ? e.message : "Código inválido o expirado",
       );

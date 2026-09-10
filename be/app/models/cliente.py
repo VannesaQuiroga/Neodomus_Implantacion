@@ -25,6 +25,7 @@ class Cliente(Base):
     verification_token: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
     auth_provider: Mapped[str] = mapped_column(String(20), default="local", nullable=False)
     google_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=True)
+    foto_url: Mapped[str] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     # Solo se mantiene la relación con EmailVerificationToken si se usa

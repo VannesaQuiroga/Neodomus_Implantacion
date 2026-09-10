@@ -55,25 +55,6 @@ INSERT IGNORE INTO proveedores (nombre_proveedor, contacto_proveedor, telefono_p
 ('FitEquipos SAS', 'Andrés Peña', '3178899001', 'andres@fitequipos.com', 'Cl 45 #23-10, Manizales'),
 ('GymPro Distribuciones', 'Carolina Ríos', '3164455667', 'carolina@gympro.com', 'Cra 15 #30-20, Ibagué');
 
-CREATE TABLE IF NOT EXISTS sucursales (
-    id_sucursal INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_sucursal VARCHAR(100) UNIQUE,
-    direccion_sucursal VARCHAR(150),
-    telefono_sucursal VARCHAR(20) UNIQUE
-);
-
-INSERT IGNORE INTO sucursales (nombre_sucursal, direccion_sucursal, telefono_sucursal) VALUES
-('Sucursal Centro Bogotá', 'Cra 7 #12-34, Bogotá', '6013456789'),
-('Sucursal Norte Bogotá', 'Av. 19 #120-45, Bogotá', '6019876543'),
-('Sucursal Medellín Poblado', 'Cra 43A #6-50, Medellín', '6043112233'),
-('Sucursal Medellín Centro', 'Calle 50 #45-10, Medellín', '6044567890'),
-('Sucursal Cali Norte', 'Av. 3N #34-67, Cali', '6023211122'),
-('Sucursal Cali Sur', 'Cra 66 #13-45, Cali', '6026547890'),
-('Sucursal Barranquilla Centro', 'Carrera 45 #50-22, Barranquilla', '6053556677'),
-('Sucursal Bucaramanga Cabecera', 'Calle 36 #33-40, Bucaramanga', '6076123456'),
-('Sucursal Cartagena Bocagrande', 'Cra 1 #8-12, Cartagena', '6056789012'),
-('Sucursal Pereira Circunvalar', 'Av. Circunvalar #15-20, Pereira', '6063456789');
-
 CREATE TABLE IF NOT EXISTS categorias (
     id_categoria INT AUTO_INCREMENT PRIMARY KEY,
     nombre_categoria VARCHAR(50) NOT NULL UNIQUE,
@@ -198,6 +179,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     verification_token VARCHAR(100) UNIQUE,
     auth_provider VARCHAR(20) DEFAULT 'local',
     google_id VARCHAR(255) UNIQUE,
+    foto_url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_tipo_documento_c) REFERENCES tipos_documento(id_tipo_documento)
 );
@@ -304,7 +286,67 @@ CREATE TABLE IF NOT EXISTS novedades (
     tipo_novedad VARCHAR(100),
     descripcion_novedad TEXT,
     estado_novedad VARCHAR(50),
-    FOREIGN KEY (id_tecnico_n) REFERENCES tecnicos(id_tecnico)
+    prioridad VARCHAR(20) DEFAULT 'normal',
+    lugar_ocurrencia VARCHAR(255),
+    evidencia_url VARCHAR(255),
+    id_pedido INT,
+    id_cita INT,
+    id_cliente INT,
+    accion_admin TEXT,
+    fecha_resolucion DATETIME,
+    id_admin_resuelve INT,
+    FOREIGN KEY (id_tecnico_n) REFERENCES tecnicos(id_tecnico),
+    FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido),
+    FOREIGN KEY (id_cita) REFERENCES citas(id_cita),
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)
+);
+
+-- Historial de cambios de novedades
+CREATE TABLE IF NOT EXISTS novedad_historial (
+    id_historial INT AUTO_INCREMENT PRIMARY KEY,
+    id_novedad INT NOT NULL,
+    id_usuario INT,
+    accion VARCHAR(100) NOT NULL,
+    detalle TEXT,
+    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
+    INDEX idx_novedad (id_novedad)
+);
+
+-- Evidencias múltiples por novedad (fotos subidas a MinIO)
+CREATE TABLE IF NOT EXISTS evidencias_novedad (
+    id_evidencia_n INT AUTO_INCREMENT PRIMARY KEY,
+    id_novedad INT NOT NULL,
+    url_archivo VARCHAR(255) NOT NULL,
+    descripcion VARCHAR(255),
+    fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad) ON DELETE CASCADE,
+    INDEX idx_novedad (id_novedad)
+);
+
+-- Cupones de descuento generados por novedades
+CREATE TABLE IF NOT EXISTS cupones_descuento (
+    id_cupon INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(50) NOT NULL UNIQUE,
+    tipo_descuento VARCHAR(20) NOT NULL DEFAULT 'porcentaje',
+    valor_descuento FLOAT NOT NULL,
+    fecha_vencimiento DATE,
+    compra_minima FLOAT DEFAULT 0,
+    usos_maximos INT DEFAULT 1,
+    usos_realizados INT DEFAULT 0,
+    aplica_tienda_completa BOOLEAN DEFAULT TRUE,
+    categorias_aplicables TEXT,
+    id_cliente INT,
+    id_novedad INT,
+    id_admin_crea INT,
+    activo BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente),
+    FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad),
+    FOREIGN KEY (id_admin_crea) REFERENCES usuarios(id_usuario),
+    INDEX idx_cliente (id_cliente),
+    INDEX idx_codigo (codigo)
 );
 
 INSERT INTO novedades (id_tecnico_n, fecha_reporte_novedad, tipo_novedad, descripcion_novedad, estado_novedad)
@@ -322,56 +364,8 @@ SELECT id_tecnico_n, fecha_reporte_novedad, tipo_novedad, descripcion_novedad, e
 ) t
 WHERE NOT EXISTS (SELECT 1 FROM novedades);
 
-CREATE TABLE IF NOT EXISTS detalle_ruta (
-    id_detaruta INT PRIMARY KEY AUTO_INCREMENT,
-    id_ruta_dr INT,
-    id_tecnico INT,
-    id_bodega_et INT
-);
-
-INSERT INTO detalle_ruta (id_ruta_dr, id_tecnico, id_bodega_et)
-SELECT id_ruta_dr, id_tecnico, id_bodega_et FROM (
-    SELECT 1 AS id_ruta_dr, 1 AS id_tecnico, 1 AS id_bodega_et
-    UNION ALL SELECT 2, 2, 2
-    UNION ALL SELECT 3, 3, 3
-    UNION ALL SELECT 4, 4, 4
-    UNION ALL SELECT 5, 5, 5
-    UNION ALL SELECT 6, 6, 6
-    UNION ALL SELECT 7, 7, 7
-    UNION ALL SELECT 8, 8, 8
-    UNION ALL SELECT 9, 9, 9
-    UNION ALL SELECT 10, 10, 10
-) t
-WHERE NOT EXISTS (SELECT 1 FROM detalle_ruta);
-
-CREATE TABLE IF NOT EXISTS rutero (
-    id_ruta INT AUTO_INCREMENT PRIMARY KEY,
-    id_detalle_r INT,
-    fecha_ruta DATE,
-    hora_ruta TIME,
-    direccion_ruta VARCHAR(255),
-    estado_ruta VARCHAR(50) DEFAULT 'Pendiente',
-    observaciones_ruta TEXT,
-    FOREIGN KEY (id_detalle_r) REFERENCES detalle_ruta(id_detaruta)
-);
-
-INSERT INTO rutero (id_detalle_r, fecha_ruta, hora_ruta, direccion_ruta, estado_ruta, observaciones_ruta)
-SELECT id_detalle_r, fecha_ruta, hora_ruta, direccion_ruta, estado_ruta, observaciones_ruta FROM (
-    SELECT 1 AS id_detalle_r, CURDATE() AS fecha_ruta, '09:00:00' AS hora_ruta, 'Cra 10 #12-34' AS direccion_ruta, 'Pendiente' AS estado_ruta, 'Revisión inicial del sistema' AS observaciones_ruta
-    UNION ALL SELECT 2, CURDATE(), '10:00:00', 'Av 30 #15-09', 'Pendiente', 'Instalación de sensores'
-    UNION ALL SELECT 3, CURDATE(), '11:00:00', 'Mz A Casa 10', 'Pendiente', 'Mantenimiento de cámaras'
-    UNION ALL SELECT 4, CURDATE(), '12:00:00', 'Cl 8B #20-45', 'Pendiente', 'Configuración de red WiFi'
-    UNION ALL SELECT 5, CURDATE(), '13:00:00', 'Cl 19 #13-55', 'Pendiente', 'Prueba de sensores de puerta'
-    UNION ALL SELECT 6, CURDATE(), '14:00:00', 'Av 68 #54-23', 'Pendiente', 'Programación de PLC'
-    UNION ALL SELECT 7, CURDATE(), '15:00:00', 'Cl 100 #25-10', 'Pendiente', 'Mantenimiento general'
-    UNION ALL SELECT 8, CURDATE(), '16:00:00', 'Cra 7 #89-12', 'Pendiente', 'Asesoría técnica en domótica'
-    UNION ALL SELECT 9, CURDATE(), '17:00:00', 'Carrera 9 #80-22', 'Pendiente', 'Instalación de cámaras IP'
-    UNION ALL SELECT 10, CURDATE(), '18:00:00', 'Av. 30 de Agosto #45-67', 'Pendiente', 'Revisión de baterías y fuentes'
-) t
-WHERE NOT EXISTS (SELECT 1 FROM rutero);
-
 -- ------------------------------
--- Tablas de productos, inventarios, bodegas
+-- Tablas de productos, inventarios
 -- ------------------------------
 CREATE TABLE IF NOT EXISTS productos (
     id_producto INT AUTO_INCREMENT PRIMARY KEY,
@@ -428,105 +422,6 @@ CREATE TABLE IF NOT EXISTS producto_especializacion (
     FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON DELETE CASCADE,
     FOREIGN KEY (id_especializacion) REFERENCES especializaciones(id_especializacion) ON DELETE CASCADE
 );
-
-CREATE TABLE IF NOT EXISTS bodega_f (
-    id_bodega_f INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_bodega_f VARCHAR(100) UNIQUE,
-    ubicacion_bodega_f VARCHAR(150),
-    capacidad_bodega_f INT,
-    id_sucursal_f INT,
-    FOREIGN KEY (id_sucursal_f) REFERENCES sucursales(id_sucursal)
-);
-
-INSERT IGNORE INTO bodega_f (nombre_bodega_f, ubicacion_bodega_f, capacidad_bodega_f, id_sucursal_f) VALUES
-('Bodega Central Bogotá', 'Cra 7 #12-34, Bogotá', 1000, 1),
-('Bodega Norte Bogotá', 'Av. 19 #120-45, Bogotá', 800, 2),
-('Bodega Medellín Poblado', 'Cra 43A #6-50, Medellín', 600, 3),
-('Bodega Medellín Centro', 'Calle 50 #45-10, Medellín', 500, 4),
-('Bodega Cali Norte', 'Av. 3N #34-67, Cali', 700, 5),
-('Bodega Cali Sur', 'Cra 66 #13-45, Cali', 650, 6),
-('Bodega Barranquilla Centro', 'Carrera 45 #50-22, Barranquilla', 400, 7),
-('Bodega Bucaramanga Cabecera', 'Calle 36 #33-40, Bucaramanga', 550, 8),
-('Bodega Cartagena Bocagrande', 'Cra 1 #8-12, Cartagena', 450, 9),
-('Bodega Pereira Circunvalar', 'Av. Circunvalar #15-20, Pereira', 500, 10);
-
-CREATE TABLE IF NOT EXISTS inventario_f (
-    id_inventario_f INT AUTO_INCREMENT PRIMARY KEY,
-    id_producto_if INT,
-    id_bodega_if INT,
-    cantidad_if INT,
-    fecha_registro_if DATETIME,
-    UNIQUE KEY uq_inventario (id_producto_if, id_bodega_if),
-    FOREIGN KEY (id_producto_if) REFERENCES productos(id_producto),
-    FOREIGN KEY (id_bodega_if) REFERENCES bodega_f(id_bodega_f)
-);
-
-INSERT INTO inventario_f (id_producto_if, id_bodega_if, cantidad_if, fecha_registro_if)
-SELECT id_producto_if, id_bodega_if, cantidad_if, fecha_registro_if FROM (
-    SELECT 1 AS id_producto_if, 1 AS id_bodega_if, 50 AS cantidad_if, NOW() AS fecha_registro_if
-    UNION ALL SELECT 2, 2, 20, NOW()
-    UNION ALL SELECT 3, 3, 100, NOW()
-    UNION ALL SELECT 4, 4, 15, NOW()
-    UNION ALL SELECT 5, 5, 300, NOW()
-    UNION ALL SELECT 6, 6, 75, NOW()
-    UNION ALL SELECT 7, 7, 40, NOW()
-    UNION ALL SELECT 8, 8, 60, NOW()
-    UNION ALL SELECT 9, 9, 25, NOW()
-    UNION ALL SELECT 10, 10, 120, NOW()
-    UNION ALL SELECT 11, 1, 40, NOW()
-    UNION ALL SELECT 12, 2, 35, NOW()
-    UNION ALL SELECT 13, 3, 30, NOW()
-    UNION ALL SELECT 14, 4, 45, NOW()
-    UNION ALL SELECT 15, 5, 20, NOW()
-    UNION ALL SELECT 16, 6, 12, NOW()
-) t
-WHERE NOT EXISTS (SELECT 1 FROM inventario_f);
-
-CREATE TABLE IF NOT EXISTS insumos (
-    id_insumo INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_insumo VARCHAR(100) UNIQUE,
-    ubicacion_insumo VARCHAR(150),
-    capacidad_insumo INT,
-    id_tecnico_insumo INT,
-    FOREIGN KEY (id_tecnico_insumo) REFERENCES tecnicos(id_tecnico)
-);
-
-INSERT IGNORE INTO insumos (nombre_insumo, ubicacion_insumo, capacidad_insumo, id_tecnico_insumo) VALUES
-('Bodega Técnico 1', 'Cra 7 #12-34, Bogotá', 100, 1),
-('Bodega Técnico 2', 'Av. 19 #120-45, Bogotá', 80, 2),
-('Bodega Técnico 3', 'Cra 43A #6-50, Medellín', 60, 3),
-('Bodega Técnico 4', 'Calle 50 #45-10, Medellín', 50, 4),
-('Bodega Técnico 5', 'Av. 3N #34-67, Cali', 70, 5),
-('Bodega Técnico 6', 'Cra 66 #13-45, Cali', 65, 6),
-('Bodega Técnico 7', 'Carrera 45 #50-22, Barranquilla', 40, 7),
-('Bodega Técnico 8', 'Calle 36 #33-40, Bucaramanga', 55, 8),
-('Bodega Técnico 9', 'Cra 1 #8-12, Cartagena', 45, 9),
-('Bodega Técnico 10', 'Av. Circunvalar #15-20, Pereira', 50, 10);
-
-CREATE TABLE IF NOT EXISTS bodega_et (
-    id_insumo_et INT AUTO_INCREMENT PRIMARY KEY,
-    id_producto_et INT,
-    id_insumos_et INT,
-    cantidad_et INT,
-    fecha_registro_et DATETIME,
-    UNIQUE KEY uq_bodega_et (id_producto_et, id_insumos_et),
-    FOREIGN KEY (id_producto_et) REFERENCES productos(id_producto)
-);
-
-INSERT INTO bodega_et (id_producto_et, id_insumos_et, cantidad_et, fecha_registro_et)
-SELECT id_producto_et, id_insumos_et, cantidad_et, fecha_registro_et FROM (
-    SELECT 1 AS id_producto_et, 1 AS id_insumos_et, 10 AS cantidad_et, NOW() AS fecha_registro_et
-    UNION ALL SELECT 2, 2, 5, NOW()
-    UNION ALL SELECT 3, 3, 30, NOW()
-    UNION ALL SELECT 4, 4, 2, NOW()
-    UNION ALL SELECT 5, 5, 100, NOW()
-    UNION ALL SELECT 6, 6, 15, NOW()
-    UNION ALL SELECT 7, 7, 8, NOW()
-    UNION ALL SELECT 8, 8, 20, NOW()
-    UNION ALL SELECT 9, 9, 4, NOW()
-    UNION ALL SELECT 10, 10, 50, NOW()
-) t
-WHERE NOT EXISTS (SELECT 1 FROM bodega_et);
 
 -- ------------------------------
 -- Variantes de color de productos
@@ -1312,29 +1207,31 @@ UPDATE productos SET precio_compra_producto = 600000.00,  precio_venta_producto 
 -- =====================================================
 
 INSERT IGNORE INTO clientes (id_cliente, first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token, created_at) VALUES
-(1, 'LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2b$12$Gtiis4UK/pnlRq1p4lI5JeRFVPNa8OknrfRRupQmKeW0Ux8vTJ2Ee', 1, NULL, '2026-08-27 01:24:56'),
-(2, 'DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2b$12$VlP11I6s.6NFHFDR.Ysi8uxq/FEOzAmgGTdFdx1kTLv7acKhHvNCi', 1, NULL, '2026-08-27 01:24:56'),
-(3, 'ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2b$12$2hIo6A4kXB68ffu5meFf5uoTeUo5.8Rpp/elXhmz10Mk.vprKzcDi', 1, NULL, '2026-08-27 01:24:56'),
-(4, 'MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2b$12$hu870Sf3QBj.xTV95N/.YuxdME98JH6qGtoAijc1UWJRV9Wuf3hWu', 1, NULL, '2026-08-27 01:24:56'),
-(5, 'NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2b$12$CA8N2FQt6kMmIywBCjFLBuBaKWObQ0fwhGHAwgvrdDzi0l7XFryfm', 1, NULL, '2026-08-27 01:24:56'),
-(6, 'FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2b$12$/Dx2EH27sjxmKwVAF6vS2OmAfq7HRZLaTabmWOCj0cAiEjQBIyY8y', 1, NULL, '2026-08-27 01:24:56'),
-(7, 'CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2b$12$2q.SoVizBqvjhVJPcXKEueCMehTm6VgJc9.0LbQwt/crOopKlhsQ.', 1, NULL, '2026-08-27 01:24:56'),
-(8, 'SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2b$12$7QMg/iyP.ASWGvC0/131feY5LmFQFeVgQJqMe.ogtVVJ8icMJaoLm', 1, NULL, '2026-08-27 01:24:56'),
-(9, 'SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', '$2b$12$P2mYpfkAzIbQMzpuzKss1uyESjjztLMt5x0hFsDKi6mvIrP8RoZim', 1, NULL, '2026-08-27 01:24:56'),
-(10, 'MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', '$2b$12$JVg78gAapWrm9PMB76pay.l5693DvixxyxK6wq7GTbB7cxd3hII1C', 1, NULL, '2026-08-27 01:24:56'),
-(11, 'CRISTIAN', 'GONZALEZ', 2, 2626854231, 3154158462, 'criscam1611@gmail.com', 'fnufhjkm', '$2b$12$jlLZKaeBo03ax3OJe93vM.5fmNNWWgj.0Kc/SwwxVf9UswM5waRRW', 1, NULL, '2026-08-27 21:07:23');
+(1, 'LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2b$12$gJgs2uDT2VshKhJ9Z7PY2Oag6q0wd3MjF1gzrvy3nzdXUBpmD75gG', 1, NULL, '2026-08-30 03:15:53'),
+(2, 'DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2b$12$t1GAvyzsTAZJWWRVMJIAuejKJew5Gauxuk2J2QBrgTh0Gn6M6uNc6', 1, NULL, '2026-08-30 03:15:53'),
+(3, 'ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2b$12$MXJJEdISF.5GJ99hA5ify.A8qEzLZxKVDemTxujD1dQk1ebh0.mm6', 1, NULL, '2026-08-30 03:15:53'),
+(4, 'MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2b$12$rFNk3/v/8gxb0LQv/tuH7uCEdqei.lQtnO5oI4x9bys/8WdHyvrUa', 1, NULL, '2026-08-30 03:15:53'),
+(5, 'NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2b$12$tTkQKrJh/pzvqFoXxXopQeonZst4m66AnSWyZSxlswGpjGIsaoQgW', 1, NULL, '2026-08-30 03:15:53'),
+(6, 'FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2b$12$LvRtfR2zahVK6a2iGCWeSumsK63qG/KUsKbwcj5bB4OVK7sINRkZu', 1, NULL, '2026-08-30 03:15:53'),
+(7, 'CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2b$12$T9otvfxnanh0GyWOP9lFn.sV2KUApK1SR8ijw1gZMfoqc2Oes62Ni', 1, NULL, '2026-08-30 03:15:53'),
+(8, 'SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2b$12$E7eYim9aRmIzF8OFQ2PMrui.NQjrT/1WwLpYNAqrWfW3itX3ZZUbO', 1, NULL, '2026-08-30 03:15:53'),
+(9, 'SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', '$2b$12$4Bv3HBLnbskF6UmWLrCtA.SBkbOtTnB/Ts5gZKfZIOPQLPVaRv1su', 1, NULL, '2026-08-30 03:15:53'),
+(10, 'MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', '$2b$12$h9Og16vZUK4Y/swVCjq/5.F833WJ4oXX59y9mtaBu3WDYyPeCbzVS', 1, NULL, '2026-08-30 03:15:53'),
+(11, 'NEODOMUS', 'GOOGLE', 1, 9547856485, 6584671584, 'neodomus29@gmail.com', '}841525877}}', '$2b$12$S/f8CnRZulpiXlvxJAiejehIOE/mJKK1988SQVV8KUHohSMhF5eYi', 1, NULL, '2026-08-30 06:21:06'),
+(12, 'DANNA', 'VILLAMIL', 1, 6155561946, 3195584646, 'villamildanna731@gmail.com', 'Hdjekendnebb', '$2b$12$Bxr/u92WUobYVghK0vss7.5QjZ9GmBMt3cEoKpac8DAZtYcc8KPe2', 1, NULL, '2026-09-09 21:25:54'),
+(14, 'NICOL', 'ROMERO', 2, 4223456788, 3511954566, 'nicol@gmail.com', 'defrgthyu7j8', '$2b$12$E75Nie2bmR1NZMQ0EMN9IuXL2.Ir7LM0fZ29.tqte1l0/FtR.6ovi', 1, NULL, '2026-09-10 01:55:52');
 
 INSERT IGNORE INTO usuarios (id_usuario, first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active, created_at) VALUES
-(1, 'CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2b$12$CMG2PBfVfqGDbcSUQBDlwOOlB8bk7k6F8MeDH/qHXEk5f5fZWX.qu', 2, 1, '2026-08-27 01:24:56'),
-(2, 'JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2b$12$cBcQc2xxQdxDTO6tP2Vqa..sYzwetAVioiHF6WKnoTUmcsSUaHFLG', 2, 1, '2026-08-27 01:24:56'),
-(3, 'JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2b$12$zS1yxnSukhLK/D4RORM3Oe4T8TDup/T7hSHcFaxrQ9ifrMkE5d4sq', 2, 1, '2026-08-27 01:24:56'),
-(4, 'LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2b$12$h6/jzztEywVgQelWd4wAku0E2vWdknyVDHvxVOlo4PHqNYHtQ7h8m', 1, 1, '2026-08-27 01:24:56'),
-(5, 'ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2b$12$xdSMQKlH8.T.JRoG0hWhEOM9/4.ERqvsujghuuzQRvGO9S7Hk3fE.', 2, 1, '2026-08-27 01:24:56'),
-(6, 'CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2b$12$szRKpfTnioL1JWULsLIgveViUHZTXk7wT/8qYdbmz/2MWE7zpNBjm', 1, 1, '2026-08-27 01:24:56'),
-(7, 'NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2b$12$z8z/8.KX9NE1xsNllavI3.xpuiG8U4KG9E6gyJrDfhPq8EoJcoLMO', 1, 1, '2026-08-27 01:24:56'),
-(8, 'LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2b$12$pC1UbqIFAF6h.ONfitIaI.JKmRH.novwgfg3W.hPRAEOTLAK6a0je', 2, 1, '2026-08-27 01:24:56'),
-(9, 'JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2b$12$7czzADQak4ULK3haoZJ54u6JRIAHT6VKHEtObel17RW2poDFCZkfq', 2, 1, '2026-08-27 01:24:56'),
-(10, 'MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2b$12$h5dylH4V8t9M9Vc.Elnp2egVksKZnDwcp837bOwky0EXCicgCMDX.', 2, 1, '2026-08-27 01:24:56');
+(1, 'CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2b$12$bZfD0v/bTv.besqKLQKo.ud06.YB5dv8nXVekqC/IEk6ARmmMPG5.', 2, 1, '2026-08-30 03:15:53'),
+(2, 'JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2b$12$mnOF36n0REqjalIF2dOeJu6ecZiCYIAwAZKTcxac/lnFPckfBN9ye', 2, 1, '2026-08-30 03:15:53'),
+(3, 'JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2b$12$kjbMvvwsft2V54v/xZgfGO3lPxQN79FeGvsSOrK932ZJJa4uUSxeu', 2, 1, '2026-08-30 03:15:53'),
+(4, 'LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2b$12$rdg20F/NT73CJahOnz4OjeMot6y97xGK9f4PP5Sceom0NBwlKlFD.', 1, 1, '2026-08-30 03:15:53'),
+(5, 'ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2b$12$.MFn7xecuwh1XaGepyETmuqKmPRYFYBEJJSTUl0tKKEcUVFhyGbGG', 2, 1, '2026-08-30 03:15:53'),
+(6, 'CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2b$12$cFY9q/1bI6OMEGiMIAdw1uNokqnU4KSh8BBdobXmZZGZkpeEkfJZ.', 1, 1, '2026-08-30 03:15:53'),
+(7, 'NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2b$12$CHzT1oPgHbVvPg5kVpgrp.117t2z2udrhiQyNdO4x.YBaDfWdTGD6', 1, 1, '2026-08-30 03:15:53'),
+(8, 'LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2b$12$sK3SjzLob2m8VDXg0vXDjeGT2K.j2rC2e/MJ9aWZNamIvE44mkis2', 2, 1, '2026-08-30 03:15:53'),
+(9, 'JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2b$12$cT3RFi6vLLh4OVBpjXOm0OFe7y5LaSgSb4PKLDyNxWDjPG0ABNQga', 2, 1, '2026-08-30 03:15:53'),
+(10, 'MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2b$12$XTYtWCvGJkMsVrtY8t5pBuH12qn7kZLY.oU9viZC6h7bL1GG7zH9a', 2, 1, '2026-08-30 03:15:53');
 
 INSERT IGNORE INTO tecnicos (id_tecnico, id_usuario_t, certificacion_t) VALUES
 (1, 1, 'Certificación en Redes y Cableado Estructurado'),

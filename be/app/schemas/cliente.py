@@ -11,6 +11,7 @@ class ClientResponse(BaseModel):
     email: EmailStr
     address: Optional[str] = None
     is_active: bool
+    foto_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

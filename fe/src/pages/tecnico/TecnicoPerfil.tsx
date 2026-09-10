@@ -178,21 +178,28 @@ const TechnicalPerfil = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       notify(t('tec.fotoPesada'), 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setAvatar(dataUrl);
-      setTechnicalAvatar(dataUrl);
+    try {
+      const formData = new FormData();
+      formData.append('archivo', file);
+      const res = await api.post('/users/me/foto', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data?.foto_url;
+      if (url) {
+        setAvatar(url);
+        setTechnicalAvatar(url);
+      }
       notify(t('tec.fotoActualizada'));
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'No se pudo subir la foto', 'error');
+    }
   };
 
   const handleEliminarFoto = () => {

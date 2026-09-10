@@ -23,6 +23,7 @@ const SECCIONES = [
       { to: "/(tecnico)/citas", icon: "calendar-check", label: "Mis Citas" },
       { to: "/(tecnico)/entregas", icon: "truck-fast", label: "Entregas" },
       { to: "/(tecnico)/devoluciones", icon: "box-open", label: "Devoluciones" },
+      { to: "/(tecnico)/novedades", icon: "shield-halved", label: "Novedades" },
       { to: "/(tecnico)/historial", icon: "clock-rotate-left", label: "Historial" },
     ],
   },
