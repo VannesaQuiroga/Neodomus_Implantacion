@@ -134,6 +134,7 @@ export default function TabLayout() {
       <Tabs.Screen name="reembolsos" options={{ href: null }} />
       <Tabs.Screen name="resenas" options={{ href: null }} />
       <Tabs.Screen name="checkout" options={{ href: null }} />
+      <Tabs.Screen name="novedades-cliente" options={{ href: null }} />
 
       {/* Públicas apiladas dentro de los tabs */}
       <Tabs.Screen name="info" options={{ href: null }} />

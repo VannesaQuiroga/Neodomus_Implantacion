@@ -583,6 +583,68 @@ def filtros_admin_novedades(
     }
 
 
+# ── Cliente: ver sus novedades ──────────────────────────────
+
+@router.get("/cliente/novedades")
+def novedades_cliente(
+    current_user: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Lista las novedades visibles para el cliente autenticado."""
+    novedades = novedades_service.listar_novedades_cliente(db, current_user.id_cliente)
+    return _serializar_novedades(novedades, db)
+
+
+# ── Admin/Técnico: escribir mensaje/solución para el cliente ──
+
+class MensajeClienteRequest(BaseModel):
+    mensaje_cliente: str
+    solucion_cliente: Optional[str] = None
+    cliente_visible: bool = True
+
+
+@router.post("/{novedad_id}/mensaje-cliente")
+def enviar_mensaje_cliente(
+    novedad_id: int,
+    data: MensajeClienteRequest,
+    admin_user: User = Depends(get_current_employee),
+    db: Session = Depends(get_db),
+):
+    """El admin o técnico escribe un mensaje visible para el cliente.
+    Puede incluir una solución y decidir si el cliente puede verla."""
+    try:
+        novedad = novedades_service.actualizar_mensaje_cliente(
+            db,
+            id_novedad=novedad_id,
+            id_admin=admin_user.id_usuario,
+            mensaje_cliente=data.mensaje_cliente,
+            solucion_cliente=data.solucion_cliente,
+            cliente_visible=data.cliente_visible,
+        )
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+    from app.services.notificaciones import crear_notificacion
+    if novedad.id_cliente:
+        try:
+            crear_notificacion(
+                db,
+                id_cliente=novedad.id_cliente,
+                tipo="novedad",
+                titulo=f"Novedad #{novedad_id} — Actualización",
+                mensaje=(
+                    f"Se ha actualizado la novedad"
+                    f"{f' del pedido #{novedad.id_pedido}' if novedad.id_pedido else ''}"
+                    f"{f' de la cita #{novedad.id_cita}' if novedad.id_cita else ''}"
+                    f". {data.mensaje_cliente[:300]}"
+                ),
+            )
+        except Exception:
+            pass
+
+    return {"mensaje": "Mensaje al cliente enviado", "cliente_visible": data.cliente_visible}
+
+
 @router.get("/cliente/{cliente_id}/cupones")
 def cupones_cliente(
     cliente_id: int,
@@ -939,6 +1001,9 @@ def _serializar_novedades(novedades, db):
             "tecnico_nombre": tecnico_nombre,
             "cliente_nombre": cliente_nombre,
             "accion_admin": n.accion_admin,
+            "mensaje_cliente": n.mensaje_cliente,
+            "solucion_cliente": n.solucion_cliente,
+            "cliente_visible": n.cliente_visible,
             "fecha_resolucion": n.fecha_resolucion.isoformat() if n.fecha_resolucion else None,
             "evidencias": evidencias,
             "pedido_info": pedido_info,
@@ -978,6 +1043,11 @@ def _serializar_novedad_detalle(novedad, db):
             "documento": c.documento_cliente,
             "direccion": c.address,
         }
+
+    # Mensaje y solución para el cliente
+    item["mensaje_cliente"] = novedad.mensaje_cliente
+    item["solucion_cliente"] = novedad.solucion_cliente
+    item["cliente_visible"] = novedad.cliente_visible
 
     # Info completa del pedido
     if novedad.pedido:

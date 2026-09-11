@@ -49,6 +49,9 @@ interface Novedad {
   tecnico_nombre: string | null;
   cliente_nombre: string | null;
   accion_admin: string | null;
+  mensaje_cliente: string | null;
+  solucion_cliente: string | null;
+  cliente_visible: boolean;
   fecha_resolucion: string | null;
   evidencias: EvidenciaNovedad[];
 }
@@ -137,6 +140,12 @@ const AdminNovedades = () => {
   // Responder novedad
   const [respuestaAdmin, setRespuestaAdmin] = useState('');
   const [enviandoRespuesta, setEnviandoRespuesta] = useState(false);
+
+  // Mensaje/solución al cliente
+  const [mensajeCliente, setMensajeCliente] = useState('');
+  const [solucionCliente, setSolucionCliente] = useState('');
+  const [clienteVisible, setClienteVisible] = useState(false);
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false);
 
   // Cambiar técnico
   const [mostrarCambioTecnico, setMostrarCambioTecnico] = useState(false);
@@ -295,6 +304,31 @@ const AdminNovedades = () => {
       setToast({ msg: err?.response?.data?.detail || 'Error al responder', tipo: 'err' });
     } finally {
       setEnviandoRespuesta(false);
+    }
+  };
+
+  const enviarMensajeCliente = async () => {
+    if (!detalle || !mensajeCliente.trim()) {
+      setToast({ msg: 'Escribe un mensaje para el cliente', tipo: 'err' });
+      return;
+    }
+    setEnviandoMensaje(true);
+    try {
+      await api.post(`/novedades/${detalle.id_novedad}/mensaje-cliente`, {
+        mensaje_cliente: mensajeCliente.trim(),
+        solucion_cliente: solucionCliente.trim() || undefined,
+        cliente_visible: clienteVisible,
+      });
+      setToast({ msg: 'Mensaje y solución enviados al cliente', tipo: 'ok' });
+      setMensajeCliente('');
+      setSolucionCliente('');
+      setClienteVisible(false);
+      await abrirDetalle(detalle.id_novedad);
+      await cargar();
+    } catch (err: any) {
+      setToast({ msg: err?.response?.data?.detail || 'Error al enviar mensaje', tipo: 'err' });
+    } finally {
+      setEnviandoMensaje(false);
     }
   };
 
@@ -491,6 +525,8 @@ const AdminNovedades = () => {
                 <th>Prioridad</th>
                 <th>Estado</th>
                 <th>Fecha</th>
+                <th>Mensaje</th>
+                <th>Solución</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -543,6 +579,20 @@ const AdminNovedades = () => {
                   </td>
                   <td style={{ fontSize: '0.82rem', color: '#9f9f9f', whiteSpace: 'nowrap' }}>
                     {formatFechaCorta(n.fecha_reporte)}
+                  </td>
+                  <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
+                    {n.mensaje_cliente ? (
+                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                        <FaPaperPlane style={{ marginRight: 4 }} /> Enviado
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td style={{ fontSize: '0.82rem', color: n.solucion_cliente ? '#46d06f' : '#8f8f8f' }}>
+                    {n.solucion_cliente ? (
+                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                        <FaCheck style={{ marginRight: 4 }} /> {n.cliente_visible ? 'Visible' : 'Oculta'}
+                      </span>
+                    ) : '—'}
                   </td>
                   <td>
                     <button
@@ -699,6 +749,29 @@ const AdminNovedades = () => {
                   </div>
                 )}
 
+                {/* Mensaje al cliente */}
+                {detalle.mensaje_cliente && (
+                  <div style={{ padding: '12px 14px', background: 'rgba(255, 200, 50, 0.08)', border: '1px solid rgba(255, 200, 50, 0.3)', borderRadius: 10, marginBottom: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <FaPaperPlane style={{ color: '#f5c542', fontSize: '0.8rem' }} />
+                      <strong style={{ fontSize: '0.82rem', color: '#f5c542' }}>Mensaje al cliente</strong>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9', lineHeight: 1.5 }}>{detalle.mensaje_cliente}</p>
+                    {detalle.solucion_cliente && (
+                      <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(46, 160, 67, 0.06)', borderRadius: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <FaCheck style={{ color: '#46d06f', fontSize: '0.75rem' }} />
+                          <strong style={{ fontSize: '0.8rem', color: '#46d06f' }}>Solución</strong>
+                          <span style={{ fontSize: '0.7rem', color: '#8f8f8f', marginLeft: 'auto' }}>
+                            {detalle.cliente_visible ? 'Visible para cliente' : 'Oculto'}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9', lineHeight: 1.5 }}>{detalle.solucion_cliente}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Cambiar estado */}
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -754,6 +827,46 @@ const AdminNovedades = () => {
                     style={{ height: 36 }}
                   >
                     <FaPaperPlane /> {enviandoRespuesta ? 'Enviando...' : 'Enviar respuesta'}
+                  </button>
+                </div>
+
+                {/* Enviar mensaje/solución al cliente */}
+                <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FaPaperPlane style={{ color: '#f5c542' }} /> Enviar solución al cliente
+                  </h4>
+                  <textarea
+                    className="ap-form-textarea"
+                    rows={2}
+                    placeholder="Mensaje para el cliente (obligatorio)"
+                    value={mensajeCliente}
+                    onChange={(e) => setMensajeCliente(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <textarea
+                    className="ap-form-textarea"
+                    rows={2}
+                    placeholder="Solución detallada (opcional)"
+                    value={solucionCliente}
+                    onChange={(e) => setSolucionCliente(e.target.value)}
+                    style={{ marginBottom: 10 }}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: '0.85rem', color: '#bdbdbd', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={clienteVisible}
+                      onChange={(e) => setClienteVisible(e.target.checked)}
+                    />
+                    Hacer visible para el cliente
+                  </label>
+                  <button
+                    type="button"
+                    className="ap-btn"
+                    style={{ background: '#f5c542', color: '#000', fontWeight: 600, height: 36 }}
+                    disabled={enviandoMensaje || !mensajeCliente.trim()}
+                    onClick={enviarMensajeCliente}
+                  >
+                    <FaPaperPlane /> {enviandoMensaje ? 'Enviando...' : 'Enviar al cliente'}
                   </button>
                 </div>
 

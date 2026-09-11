@@ -3,7 +3,7 @@
 // Flujo: Buscar cliente → Seleccionar pedido/cita → Registrar → Evidencia
 // ─────────────────────────────────────────────────────────────
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -43,11 +43,13 @@ import {
   EvidenciaNovedad,
   crearNovedad,
   listarMisNovedades,
+  listarNovedadesCliente,
   obtenerNovedad,
   buscarClientes,
   pedidosCliente,
   citasCliente,
   subirEvidencia,
+  enviarMensajeCliente,
 } from "@/services/novedades.service";
 
 // ── Colores de estado y prioridad ────────────────────────────
@@ -117,10 +119,13 @@ export default function NovedadesScreen() {
   const scrollRef = useRef(null);
   useScrollTopAlEntrar(scrollRef);
 
-  // ── Estado principal ─────────────────────────────────────
+  // ── Estado principal ─────────────────────────────────
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "err" } | null>(null);
+  const [vistaCliente, setVistaCliente] = useState(false);
+  const [novedadesCliente, setNovedadesCliente] = useState<Novedad[]>([]);
+  const [cargandoCliente, setCargandoCliente] = useState(false);
 
   // ── Filtros lista ────────────────────────────────────────
   const [busqueda, setBusqueda] = useState("");
@@ -160,6 +165,12 @@ export default function NovedadesScreen() {
 
   // ── Detalle novedad ──────────────────────────────────────
   const [detalle, setDetalle] = useState<NovedadDetalle | null>(null);
+  const [mostrarSolucion, setMostrarSolucion] = useState(false);
+
+  // ── Mensaje al cliente ──────────────────────────────────
+  const [mensajeCliente, setMensajeCliente] = useState("");
+  const [solucionCliente, setSolucionCliente] = useState("");
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false);
 
   // ── Carga de datos ───────────────────────────────────────
 
@@ -175,11 +186,31 @@ export default function NovedadesScreen() {
     }
   }, []);
 
+  const cargarNovedadesCliente = useCallback(async () => {
+    setCargandoCliente(true);
+    try {
+      const data = await listarNovedadesCliente();
+      setNovedadesCliente(data);
+    } catch {
+      setToast({ msg: "Error al cargar novedades del cliente", tipo: "err" });
+    } finally {
+      setCargandoCliente(false);
+    }
+  }, []);
+
   useEffect(() => {
     cargar();
     const i = setInterval(() => cargar(true), 30000);
     return () => clearInterval(i);
   }, [cargar]);
+
+  useEffect(() => {
+    if (vistaCliente) {
+      cargarNovedadesCliente();
+      const i = setInterval(() => cargarNovedadesCliente(), 30000);
+      return () => clearInterval(i);
+    }
+  }, [vistaCliente, cargarNovedadesCliente]);
 
   useEffect(() => {
     if (!toast) return;
@@ -421,6 +452,17 @@ export default function NovedadesScreen() {
         <Text style={s.headerTitle}>Historial de novedades</Text>
         <Text style={s.headerSub}>Consulta y registra novedades</Text>
       </View>
+
+      {/* Toggle vista cliente / técnico */}
+      <Pressable
+        style={[s.vistaToggle, vistaCliente && s.vistaToggleActive]}
+        onPress={() => { setVistaCliente(!vistaCliente); setMostrarSolucion(false); }}
+      >
+        <FontAwesome6 name={vistaCliente ? "user" : "user-tie"} size={14} color={vistaCliente ? "#000" : C.oro} />
+        <Text style={[s.vistaToggleText, vistaCliente && s.vistaToggleTextActive]}>
+          {vistaCliente ? "Mis novedades" : "Ver como cliente"}
+        </Text>
+      </Pressable>
 
       {/* Toast */}
       {toast && (
@@ -1031,6 +1073,93 @@ export default function NovedadesScreen() {
                   <Text style={s.detalleDesc}>{detalle.accion_admin}</Text>
                 </View>
               )}
+
+              {/* Mensaje al cliente */}
+              {detalle.mensaje_cliente && (
+                <View style={[s.detalleSection, { backgroundColor: "rgba(212,165,75,0.08)", borderRadius: 10, padding: 12 }]}>
+                  <Text style={[s.detalleSectionTitle, { color: "#d4a54b" }]}>Mensaje al cliente</Text>
+                  <Text style={s.detalleDesc}>{detalle.mensaje_cliente}</Text>
+                </View>
+              )}
+
+              {/* Solución para el cliente */}
+              {detalle.solucion_cliente && (
+                <View style={[s.detalleSection, { backgroundColor: "rgba(46,160,67,0.08)", borderRadius: 10, padding: 12 }]}>
+                  <Text style={[s.detalleSectionTitle, { color: "#46d06f" }]}>
+                    Solución para el cliente {detalle.cliente_visible ? "(visible)" : "(oculta)"}
+                  </Text>
+                  <Text style={s.detalleDesc}>{detalle.solucion_cliente}</Text>
+                </View>
+              )}
+
+              {/* Botón para enviar mensaje/solución (solo técnico) */}
+              <Pressable
+                style={[s.btnMensajeCliente, !mostrarSolucion && s.btnMensajeClienteActive]}
+                onPress={() => setMostrarSolucion(!mostrarSolucion)}
+              >
+                <FontAwesome6 name="paper-plane" size={14} color="#000" />
+                <Text style={s.btnMensajeClienteText}>
+                  {mostrarSolucion ? "Ocultar formulario" : "Enviar solución al cliente"}
+                </Text>
+              </Pressable>
+
+              {mostrarSolucion && (
+                <View style={s.mensajeForm}>
+                  <Text style={s.mensajeLabel}>Mensaje para el cliente *</Text>
+                  <TextInput
+                    style={s.mensajeInput}
+                    placeholder="Escribe un mensaje para el cliente..."
+                    placeholderTextColor="#555"
+                    value={mensajeCliente}
+                    onChangeText={setMensajeCliente}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                  <Text style={s.mensajeLabel}>Solución (opcional)</Text>
+                  <TextInput
+                    style={s.mensajeInput}
+                    placeholder="Describe la solución..."
+                    placeholderTextColor="#555"
+                    value={solucionCliente}
+                    onChangeText={setSolucionCliente}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                  <Pressable
+                    style={[s.btnEnviarMensaje, (enviandoMensaje || !mensajeCliente.trim()) && s.btnDisabled]}
+                    disabled={enviandoMensaje || !mensajeCliente.trim()}
+                    onPress={async () => {
+                      if (!detalle) return;
+                      setEnviandoMensaje(true);
+                      try {
+                        await enviarMensajeCliente(detalle.id_novedad, {
+                          mensaje_cliente: mensajeCliente.trim(),
+                          solucion_cliente: solucionCliente.trim() || undefined,
+                          cliente_visible: true,
+                        });
+                        setToast({ msg: "Mensaje enviado al cliente", tipo: "ok" });
+                        setMensajeCliente("");
+                        setSolucionCliente("");
+                        setMostrarSolucion(false);
+                        await cargar();
+                      } catch (err: any) {
+                        setToast({ msg: err?.message || "Error al enviar mensaje", tipo: "err" });
+                      } finally {
+                        setEnviandoMensaje(false);
+                      }
+                    }}
+                  >
+                    {enviandoMensaje ? (
+                      <ActivityIndicator size="small" color="#000" />
+                    ) : (
+                      <FontAwesome6 name="paper-plane" size={14} color="#000" />
+                    )}
+                    <Text style={s.btnEnviarMensajeText}>Enviar</Text>
+                  </Pressable>
+                </View>
+              )}
             </ScrollView>
           )}
         </View>
@@ -1206,4 +1335,20 @@ const s = StyleSheet.create({
   historialAccion: { fontFamily: FontFamilies.bodyBold, fontSize: 12, color: "#fff" },
   historialDetalle: { fontFamily: FontFamilies.body, fontSize: 11, color: "#aaa", marginTop: 2 },
   historialMeta: { fontFamily: FontFamilies.body, fontSize: 10, color: "#666", marginTop: 4 },
+
+  // Vista toggle
+  vistaToggle: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "rgba(212,165,75,0.3)", marginBottom: 12, alignSelf: "flex-start" },
+  vistaToggleActive: { backgroundColor: C.oro, borderColor: C.oro },
+  vistaToggleText: { fontFamily: FontFamilies.body, fontSize: 12, color: C.oro },
+  vistaToggleTextActive: { color: "#000", fontFamily: FontFamilies.bodyBold },
+
+  // Mensaje al cliente form
+  mensajeForm: { marginTop: 12, padding: 14, backgroundColor: "rgba(212,165,75,0.06)", borderWidth: 1, borderColor: "rgba(212,165,75,0.25)", borderRadius: 12 },
+  mensajeLabel: { fontFamily: FontFamilies.bodyBold, fontSize: 12, color: C.oro, marginBottom: 4, marginTop: 8 },
+  mensajeInput: { fontFamily: FontFamilies.body, fontSize: 13, color: "#fff", backgroundColor: "#161616", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4 },
+  btnMensajeCliente: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", marginTop: 12 },
+  btnMensajeClienteActive: { backgroundColor: C.oro, borderColor: C.oro },
+  btnMensajeClienteText: { fontFamily: FontFamilies.bodyBold, fontSize: 13, color: "#fff" },
+  btnEnviarMensaje: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, borderRadius: 10, backgroundColor: C.oro, marginTop: 8 },
+  btnEnviarMensajeText: { fontFamily: FontFamilies.bodyBold, fontSize: 13, color: "#000" },
 });

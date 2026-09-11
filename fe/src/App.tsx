@@ -42,6 +42,7 @@ import TechnicianEntregas from '@pages/tecnico/TechnicianEntregas';
 import AdminDevoluciones from '@pages/admin/AdminDevoluciones';
 import AdminNovedades from '@pages/admin/AdminNovedades';
 import TecnicoNovedades from '@pages/tecnico/TecnicoNovedades';
+import ClienteNovedades from '@pages/cliente/ClienteNovedades';
 import ProductosPublicos from '@pages/public/ProductosPublicos';
 import ProductoDetalle from '@pages/public/ProductoDetalle';
 import CarritoPage from '@pages/public/CarritoPage';
@@ -102,6 +103,7 @@ function App() {
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/cliente/tecnicos" element={<TecnicosPage />} />
             <Route path="/cliente/citas" element={<CitasPage />} />
+            <Route path="/cliente/novedades" element={<ClienteNovedades />} />
             <Route path="/cliente/ayuda" element={<AyudaPage />} />
             <Route path="/cambiar-password" element={<ChangePassword />} />
           </Route>

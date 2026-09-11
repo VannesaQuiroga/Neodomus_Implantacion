@@ -73,6 +73,9 @@ export interface Novedad {
   tecnico_nombre: string | null;
   cliente_nombre: string | null;
   accion_admin: string | null;
+  mensaje_cliente: string | null;
+  solucion_cliente: string | null;
+  cliente_visible: boolean;
   fecha_resolucion: string | null;
   evidencias: EvidenciaNovedad[];
   pedido_info: { id_pedido: number; estado: string | null; fecha_entrega: string | null } | null;
@@ -86,6 +89,9 @@ export interface NovedadDetalle extends Novedad {
   pedido_info_completo: { id_pedido: number; estado: string | null; fecha_pedido: string | null; total: number | null; fecha_entrega: string | null; hora_entrega: string | null; estado_entrega: string | null; nombre_tecnico: string | null } | null;
   cita_info_completo: { id_cita: number; tipo_servicio: string; fecha: string | null; hora: string; estado: string; direccion: string; especialidad: string | null } | null;
   devolucion_info_completo: { id_devolucion: number; estado: string | null; motivo: string | null; descripcion: string | null; fecha_solicitud: string | null } | null;
+  mensaje_cliente: string | null;
+  solucion_cliente: string | null;
+  cliente_visible: boolean;
 }
 
 export interface EvidenciaNovedad {
@@ -197,8 +203,25 @@ export function listarMisNovedades() {
   return apiFetch<Novedad[]>("/novedades/mis-novedades");
 }
 
+export function listarNovedadesCliente() {
+  return apiFetch<Novedad[]>("/novedades/cliente/novedades");
+}
+
 export function obtenerNovedad(id: number) {
   return apiFetch<NovedadDetalle>(`/novedades/${id}`);
+}
+
+export interface MensajeClientePayload {
+  mensaje_cliente: string;
+  solucion_cliente?: string;
+  cliente_visible?: boolean;
+}
+
+export function enviarMensajeCliente(novedadId: number, data: MensajeClientePayload) {
+  return apiFetch<{ mensaje: string; cliente_visible: boolean }>(
+    `/novedades/${novedadId}/mensaje-cliente`,
+    { method: "POST", body: JSON.stringify(data) },
+  );
 }
 
 export function obtenerEvidencias(novedadId: number) {

@@ -56,6 +56,9 @@ class Novedad(Base):
     lugar_ocurrencia: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     evidencia_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     accion_admin: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    mensaje_cliente: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    solucion_cliente: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cliente_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("0"))
     id_admin_resuelve: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("usuarios.id_usuario"), nullable=True,
     )

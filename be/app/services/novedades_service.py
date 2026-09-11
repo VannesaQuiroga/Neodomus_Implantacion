@@ -103,6 +103,16 @@ def listar_novedades_tecnico(db: Session, id_tecnico: int) -> list[Novedad]:
     )
 
 
+def listar_novedades_cliente(db: Session, id_cliente: int) -> list[Novedad]:
+    """Lista novedades visibles para un cliente (cliente_visible=True)."""
+    return (
+        db.query(Novedad)
+        .filter(Novedad.id_cliente == id_cliente, Novedad.cliente_visible == True)
+        .order_by(Novedad.fecha_reporte_novedad.desc())
+        .all()
+    )
+
+
 def listar_novedades_admin(
     db: Session,
     *,
@@ -211,6 +221,40 @@ def responder_novedad(
         id_usuario=id_admin,
         accion="Respuesta del administrador",
         detalle=respuesta,
+    ))
+    db.commit()
+    db.refresh(novedad)
+    return novedad
+
+
+def actualizar_mensaje_cliente(
+    db: Session,
+    *,
+    id_novedad: int,
+    id_admin: int,
+    mensaje_cliente: str,
+    solucion_cliente: Optional[str] = None,
+    cliente_visible: bool = True,
+) -> Novedad:
+    """El admin o técnico escribe un mensaje visible para el cliente."""
+    novedad = db.query(Novedad).filter(Novedad.id_novedad == id_novedad).first()
+    if not novedad:
+        raise ValueError("Novedad no encontrada")
+
+    novedad.mensaje_cliente = mensaje_cliente
+    if solucion_cliente is not None:
+        novedad.solucion_cliente = solucion_cliente
+    novedad.cliente_visible = cliente_visible
+    novedad.id_admin_resuelve = id_admin
+
+    if mensaje_cliente and not novedad.estado_novedad in ("Resuelta", "Cerrada"):
+        novedad.estado_novedad = "En revisión"
+
+    db.add(NovedadHistorial(
+        id_novedad=id_novedad,
+        id_usuario=id_admin,
+        accion="Mensaje al cliente",
+        detalle=mensaje_cliente[:200] if mensaje_cliente else None,
     ))
     db.commit()
     db.refresh(novedad)
