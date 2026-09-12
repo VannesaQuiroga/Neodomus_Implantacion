@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   welcome: { gap: 2, marginTop: 4 },
   welcomeTitle: { color: "#ffffff", fontSize: 18, fontFamily: FontFamilies.bodyBold },
   welcomeSub: { color: "#bdbdbd", fontSize: 13, lineHeight: 18 },
-  dropdownOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
+  dropdownOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "transparent" },
   dropdown: {
     position: "absolute",
     minWidth: 210,

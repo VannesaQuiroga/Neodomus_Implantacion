@@ -43,7 +43,7 @@ export default function TecnicoLayout() {
         <TechnicianBottomTabs />
         <TechnicianDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
       </GateTecnico>
-      <StatusBar style="light" translucent={false} backgroundColor="#000000" />
+      <StatusBar style="light" />
     </View>
   );
 }

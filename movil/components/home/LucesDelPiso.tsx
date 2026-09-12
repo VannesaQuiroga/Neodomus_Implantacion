@@ -94,7 +94,11 @@ export default function LucesDelPiso() {
 
 const styles = StyleSheet.create({
   contenedor: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     opacity: 0.75,
     overflow: "hidden",
     justifyContent: "flex-end",
