@@ -26,6 +26,4 @@ minimumReleaseAgeExclude:
   - expo-symbols@57.0.3
   - expo-system-ui@57.0.4
   - expo-web-browser@57.0.3
-
-overrides:
-  expo-constants: ~18.0.14
+  - expo-constants@57.0.18
