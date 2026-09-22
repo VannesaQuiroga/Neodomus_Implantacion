@@ -44,7 +44,7 @@ export default function AuthScreen({ children }: AuthScreenProps) {
       <BlurView
         intensity={80}
         tint="dark"
-        experimentalBlurMethod="dimezisBlurView"
+        blurMethod="dimezisBlurView"
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />

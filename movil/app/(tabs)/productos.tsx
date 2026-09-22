@@ -419,6 +419,7 @@ const styles = StyleSheet.create({
 
   cardWrap: {
     flex: 1,
+    maxWidth: "50%",
     minWidth: 0,
   },
 

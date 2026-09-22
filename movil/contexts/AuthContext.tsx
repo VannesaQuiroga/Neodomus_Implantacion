@@ -44,6 +44,7 @@ interface PerfilBackend {
   id_usuario?: number;
   first_name?: string;
   last_name?: string;
+  email?: string;
   foto_url?: string | null;
 }
 
@@ -74,9 +75,13 @@ async function construirUsuario(
   userType: UserType,
   rol?: string | null,
 ): Promise<UsuarioActual & { foto_url?: string | null }> {
+  const emailPrefix = correo ? correo.split("@")[0] : "";
+  const fallbackNombre = emailPrefix
+    ? emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+    : "Usuario";
   const base: UsuarioActual & { foto_url?: string | null } = {
     id: 0,
-    nombre: correo ? correo.split("@")[0] : "Usuario",
+    nombre: fallbackNombre,
     correo,
     userType,
     rol: rol ?? null,
@@ -90,7 +95,7 @@ async function construirUsuario(
     return {
       ...base,
       id: perfil.id_cliente ?? perfil.id_usuario ?? base.id,
-      correo: correo || base.nombre,
+      correo: perfil.email || correo,
       nombre: nombreCompleto || base.nombre,
       rol: rol ?? base.rol,
       foto_url: perfil.foto_url ?? null,

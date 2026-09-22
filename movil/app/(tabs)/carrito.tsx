@@ -177,7 +177,7 @@ export default function CarritoScreen() {
           <BlurView
             intensity={40}
             tint="dark"
-            experimentalBlurMethod="dimezisBlurView"
+            blurMethod="dimezisBlurView"
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />

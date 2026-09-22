@@ -38,6 +38,7 @@ export default function TecnicoLayout() {
             <Stack.Screen name="idioma" />
             <Stack.Screen name="notificaciones" />
             <Stack.Screen name="novedades" />
+            <Stack.Screen name="mensajes" />
           </Stack>
         </View>
         <TechnicianBottomTabs />

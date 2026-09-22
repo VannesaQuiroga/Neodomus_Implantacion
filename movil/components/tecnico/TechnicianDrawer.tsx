@@ -29,7 +29,10 @@ const SECCIONES = [
   },
   {
     titulo: "Clientes",
-    links: [{ to: "/(tecnico)/clientes", icon: "users", label: "Clientes" }],
+    links: [
+      { to: "/(tecnico)/clientes", icon: "users", label: "Clientes" },
+      { to: "/(tecnico)/mensajes", icon: "envelope", label: "Mensajes" },
+    ],
   },
   {
     titulo: "Calificaciones",
