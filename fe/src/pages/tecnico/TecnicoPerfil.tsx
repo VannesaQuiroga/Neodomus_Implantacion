@@ -10,7 +10,6 @@ import {
   FaLock,
   FaGlobe,
   FaCheck,
-  FaPlus,
   FaXmark,
   FaTrashCan,
 } from 'react-icons/fa6';
@@ -57,7 +56,6 @@ const TechnicalPerfil = () => {
   const [catalogo, setCatalogo] = useState<
     { id_especializacion: number; nombre: string; descripcion?: string | null }[]
   >([]);
-  const [nuevaEsp, setNuevaEsp] = useState('');
   const [gestionandoEsp, setGestionandoEsp] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' | 'info' } | null>(null);
@@ -102,38 +100,6 @@ const TechnicalPerfil = () => {
     };
     cargarCatalogo();
   }, []);
-
-  const agregarEspecializacion = async () => {
-    if (!nuevaEsp) return;
-    setGestionandoEsp(true);
-    try {
-      const res = await api.post<{ mensaje: string; especializaciones: typeof especializaciones }>(
-        `/tecnicos/mis-especializaciones/${nuevaEsp}`,
-      );
-      setEspecializaciones(res.data.especializaciones || []);
-      setNuevaEsp('');
-      notify(res.data.mensaje, 'success');
-    } catch (err: any) {
-      notify(err.response?.data?.detail || t('tec.errorGuardar'), 'error');
-    } finally {
-      setGestionandoEsp(false);
-    }
-  };
-
-  const quitarEspecializacion = async (id: number) => {
-    setGestionandoEsp(true);
-    try {
-      const res = await api.delete<{ mensaje: string; especializaciones: typeof especializaciones }>(
-        `/tecnicos/mis-especializaciones/${id}`,
-      );
-      setEspecializaciones(res.data.especializaciones || []);
-      notify(res.data.mensaje, 'info');
-    } catch (err: any) {
-      notify(err.response?.data?.detail || t('tec.errorGuardar'), 'error');
-    } finally {
-      setGestionandoEsp(false);
-    }
-  };
 
   const handleEspecializacionesChange = async (nuevosIds: number[]) => {
     const actuales = especializaciones.map(e => e.id_especializacion);

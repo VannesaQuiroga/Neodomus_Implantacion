@@ -142,11 +142,6 @@ const CheckoutPage = () => {
   const [cargandoHorasServicio, setCargandoHorasServicio] = useState<Record<number, boolean>>({});
   const [recomendacion, setRecomendacion] = useState<Recomendacion | null>(null);
   const hoyISO = new Date().toISOString().split('T')[0];
-  // Los servicios se agendan con al menos 3 horas de anticipación:
-  // HOY es posible si la hora elegida queda fuera de esa ventana y hay agenda.
-  const limiteAnticipacion = new Date(Date.now() + 3 * 60 * 60 * 1000);
-  const limiteEsHoy = limiteAnticipacion.getDate() === new Date().getDate();
-  const horaMinimaHoy = `${String(limiteAnticipacion.getHours()).padStart(2, '0')}:${String(limiteAnticipacion.getMinutes()).padStart(2, '0')}`;
 
   const totalServicios = servicios.reduce((acc, s) => acc + s.precio, 0);
   const total = totalPrice + totalServicios;

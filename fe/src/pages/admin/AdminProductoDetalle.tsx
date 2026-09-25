@@ -34,6 +34,9 @@ interface EstadoForm {
   promocion_hasta: string;
   descripcion_producto: string;
   caracteristicas_producto: string;
+  colores_producto: string;
+  color_hex: string;
+  tamaño: string;
   marca?: string;
   es_nuevo_producto: boolean;
   venta_por_metros: boolean;
@@ -83,6 +86,9 @@ const VACIO: EstadoForm = {
   promocion_hasta: '',
   descripcion_producto: '',
   caracteristicas_producto: '',
+  colores_producto: '',
+  color_hex: '#d4a54b',
+  tamaño: '',
   es_nuevo_producto: true,
   venta_por_metros: false,
   tecnicos_requeridos: '1',
@@ -113,7 +119,7 @@ const AdminProductoDetalle = () => {
     ...(proveedorInicial ? { id_proveedor_pr: proveedorInicial } : {}),
   }));
   const [caractLista, setCaractLista] = useState<string[]>([]);
-  const [variantesForm, setVariantesForm] = useState<VarianteForm[]>([]);
+  const [variantesForm, setVariantesForm] = useState<VarianteForm[]>(() => [VARIANTE_VACIA()]);
   const [editar, setEditar] = useState(esNuevo);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -189,19 +195,18 @@ const AdminProductoDetalle = () => {
       if (!esNuevo) {
         const res = await api.get<ProductoAdmin>(`/productos/${id}`);
         setProducto(res.data);
-        setVariantesForm(
-          (res.data.variantes || []).map((v: VarianteAdmin) => ({
-            id: v.id,
-            nombre: v.nombre,
-            hex: v.hex || '#d4a54b',
-            tamaño: v.tamaño || '',
-            ancho_cm: v.ancho_cm != null ? String(v.ancho_cm) : '',
-            alto_cm: v.alto_cm != null ? String(v.alto_cm) : '',
-            precio: v.precio != null ? String(v.precio) : '',
-            imagen_url: v.imagen_url || '',
-            stock: String(v.stock ?? 0),
-          })),
-        );
+        const variantesCargadas = (res.data.variantes || []).map((v: VarianteAdmin) => ({
+          id: v.id,
+          nombre: v.nombre,
+          hex: v.hex || '#d4a54b',
+          tamaño: v.tamaño || '',
+          ancho_cm: v.ancho_cm != null ? String(v.ancho_cm) : '',
+          alto_cm: v.alto_cm != null ? String(v.alto_cm) : '',
+          precio: v.precio != null ? String(v.precio) : '',
+          imagen_url: v.imagen_url || '',
+          stock: String(v.stock ?? 0),
+        }));
+        setVariantesForm(variantesCargadas.length ? variantesCargadas : [VARIANTE_VACIA()]);
         setForm({
           nombre_producto: res.data.nombre_producto || '',
           marca: res.data.marca || '',
@@ -217,6 +222,9 @@ const AdminProductoDetalle = () => {
           promocion_hasta: res.data.promocion_hasta || '',
           descripcion_producto: res.data.descripcion_producto || '',
           caracteristicas_producto: res.data.caracteristicas_producto || '',
+          colores_producto: res.data.colores_producto || '',
+          color_hex: res.data.color_hex || '#d4a54b',
+          tamaño: res.data.tamaño || '',
           es_nuevo_producto: !!res.data.es_nuevo,
           venta_por_metros: !!res.data.venta_por_metros,
           tecnicos_requeridos: String(res.data.tecnicos_requeridos ?? 0),
@@ -377,8 +385,9 @@ const AdminProductoDetalle = () => {
         id_cate_pr: form.id_cate_pr ? parseInt(form.id_cate_pr, 10) : null,
         id_proveedor_pr: form.id_proveedor_pr ? parseInt(form.id_proveedor_pr, 10) : null,
         imagen_url: form.imagen_url.trim() || null,
-        colores_producto:
-          variantesForm.map((v) => v.nombre.trim()).filter(Boolean).join(', ') || null,
+        colores_producto: form.colores_producto.trim() || null,
+        color_hex: /^#[0-9a-fA-F]{6}$/.test(form.color_hex) ? form.color_hex : null,
+        tamaño: form.tamaño.trim() || null,
         stock_producto: parseInt(form.stock_producto, 10),
         estado_producto: form.estado_producto,
         descuento_activo: form.descuento_activo.trim() === '' ? null : parseFloat(form.descuento_activo),
@@ -616,6 +625,91 @@ const AdminProductoDetalle = () => {
                 placeholder={t('adm.productoDetalle.phReferencia')}
               />
               <span className="ap-form-hint">{t('adm.productoDetalle.hintReferencia')}</span>
+            </div>
+
+            <div className="ap-form-group">
+              <label className="ap-form-label" htmlFor="apf-color">Color</label>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input
+                  id="apf-color"
+                  className="ap-form-input"
+                  type="text"
+                  value={form.colores_producto}
+                  onChange={(e) => setCampo('colores_producto', e.target.value)}
+                  placeholder="Ej: Blanco, Negro"
+                  style={{ flex: 1 }}
+                />
+                <input
+                  className="ap-form-input"
+                  type="color"
+                  title="Color del producto"
+                  value={/^#[0-9a-fA-F]{6}$/.test(form.color_hex) ? form.color_hex : '#d4a54b'}
+                  onChange={(e) => setCampo('color_hex', e.target.value)}
+                  style={{ width: 44, height: 40, padding: 4, cursor: 'pointer' }}
+                />
+              </div>
+              <span className="ap-form-hint">Color principal del producto</span>
+            </div>
+
+            <div className="ap-form-group full">
+              <label className="ap-form-label" htmlFor="apf-img">{t('adm.productoDetalle.labelImagen')}</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  id="apf-img"
+                  className="ap-form-input"
+                  type="url"
+                  value={form.imagen_url}
+                  onChange={(e) => setCampo('imagen_url', e.target.value)}
+                  placeholder={t('adm.productoDetalle.phImagenUrl')}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="ap-btn ap-btn-ghost"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={subiendoImg}
+                  title={t('adm.productoDetalle.subirTitle')}
+                >
+                  <FaUpload /> {subiendoImg ? t('adm.productoDetalle.subiendo') : t('adm.productoDetalle.subir')}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={subirImagen}
+                />
+              </div>
+              <span className="ap-form-hint">{t('adm.productoDetalle.hintImagen')}</span>
+              {(form.imagen_url || !esNuevo) && (
+                <img
+                  src={form.imagen_url || `/productos/${id}.jpg`}
+                  alt={t('adm.productoDetalle.altVistaPrevia')}
+                  className="ap-thumb"
+                  style={{ width: 80, height: 80, marginTop: 8, background: '#222' }}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.src.includes('default.png')) {
+                      img.style.display = 'none';
+                    } else {
+                      img.src = '/productos/default.png';
+                    }
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="ap-form-group">
+              <label className="ap-form-label" htmlFor="apf-tamano">Tamaño</label>
+              <input
+                id="apf-tamano"
+                className="ap-form-input"
+                type="text"
+                value={form.tamaño}
+                onChange={(e) => setCampo('tamaño', e.target.value)}
+                placeholder="Ej: S, M, 80cm"
+              />
+              <span className="ap-form-hint">Tamaño principal del producto</span>
             </div>
 
             <div className="ap-form-group">
@@ -901,7 +995,7 @@ const AdminProductoDetalle = () => {
         </section>
 
         <section className="apf-seccion">
-          <h3 className="apf-seccion-titulo">Promoción e imagen</h3>
+          <h3 className="apf-seccion-titulo">Promoción</h3>
           <div className="ap-form-grid">
             <div className="ap-form-group">
               <label className="ap-form-label" htmlFor="apf-dcto">{t('adm.productoDetalle.labelDescuento')}</label>
@@ -931,59 +1025,11 @@ const AdminProductoDetalle = () => {
               <span className="ap-form-hint">{t('adm.productoDetalle.hintPromoFin')}</span>
             </div>
 
-            <div className="ap-form-group full">
-              <label className="ap-form-label" htmlFor="apf-img">{t('adm.productoDetalle.labelImagen')}</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  id="apf-img"
-                  className="ap-form-input"
-                  type="url"
-                  value={form.imagen_url}
-                  onChange={(e) => setCampo('imagen_url', e.target.value)}
-                  placeholder={t('adm.productoDetalle.phImagenUrl')}
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="button"
-                  className="ap-btn ap-btn-ghost"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={subiendoImg}
-                  title={t('adm.productoDetalle.subirTitle')}
-                >
-                  <FaUpload /> {subiendoImg ? t('adm.productoDetalle.subiendo') : t('adm.productoDetalle.subir')}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={subirImagen}
-                />
-              </div>
-              <span className="ap-form-hint">{t('adm.productoDetalle.hintImagen')}</span>
-              {(form.imagen_url || !esNuevo) && (
-                <img
-                  src={form.imagen_url || `/productos/${id}.jpg`}
-                  alt={t('adm.productoDetalle.altVistaPrevia')}
-                  className="ap-thumb"
-                  style={{ width: 80, height: 80, marginTop: 8, background: '#222' }}
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    if (img.src.includes('default.png')) {
-                      img.style.display = 'none';
-                    } else {
-                      img.src = '/productos/default.png';
-                    }
-                  }}
-                />
-              )}
-            </div>
-
           </div>
         </section>
 
         <section className="apf-seccion">
-          <h3 className="apf-seccion-titulo">Variantes por color y medida</h3>
+          <h3 className="apf-seccion-titulo">Color y tamaño (variantes)</h3>
           <div className="ap-form-grid">
             <div className="ap-form-group full">
               <label className="ap-form-label">{t('adm.productoDetalle.labelVariantes')}</label>
@@ -1001,65 +1047,122 @@ const AdminProductoDetalle = () => {
                 )}
                 {variantesForm.map((v, i) => (
                   <div className="ap-variante-row" key={i}>
-                    <input
-                      className="ap-form-input"
-                      type="text"
-                      placeholder={t('adm.productoDetalle.phVarianteColor')}
-                      value={v.nombre}
-                      onChange={(e) => setVariante(i, 'nombre', e.target.value)}
-                    />
-                    <input
-                      className="ap-form-input"
-                      type="color"
-                      title={t('adm.productoDetalle.titleVarianteHex')}
-                      value={/^#[0-9a-fA-F]{6}$/.test(v.hex) ? v.hex : '#d4a54b'}
-                      onChange={(e) => setVariante(i, 'hex', e.target.value)}
-                    />
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div className="ap-var-campo">
+                      <span className="ap-var-label">Color</span>
+                      <div className="ap-var-color">
+                        <input
+                          className="ap-form-input"
+                          type="text"
+                          placeholder={t('adm.productoDetalle.phVarianteColor')}
+                          value={v.nombre}
+                          onChange={(e) => setVariante(i, 'nombre', e.target.value)}
+                        />
+                        <input
+                          className="ap-form-input"
+                          type="color"
+                          title={t('adm.productoDetalle.titleVarianteHex')}
+                          value={/^#[0-9a-fA-F]{6}$/.test(v.hex) ? v.hex : '#d4a54b'}
+                          onChange={(e) => setVariante(i, 'hex', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="ap-var-campo">
+                      <span className="ap-var-label">Tamaño</span>
                       <input
                         className="ap-form-input"
                         type="text"
-                        placeholder={t('adm.productoDetalle.phVarianteUrl')}
-                        value={v.imagen_url}
-                        onChange={(e) => setVariante(i, 'imagen_url', e.target.value)}
-                        style={{ flex: 1, minWidth: 0 }}
-                      />
-                      <button
-                        type="button"
-                        className="ap-btn ap-btn-ghost"
-                        disabled={subiendoImg}
-                        title={t('adm.productoDetalle.subirTitle')}
-                        onClick={() => varianteFileRefs.current[i]?.click()}
-                      >
-                        <FaUpload />
-                      </button>
-                      <input
-                        ref={(el) => { varianteFileRefs.current[i] = el; }}
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => subirImagenVariante(i, e)}
+                        placeholder="S, M, 80cm…"
+                        value={v.tamaño}
+                        onChange={(e) => setVariante(i, 'tamaño', e.target.value)}
                       />
                     </div>
-                    {v.imagen_url && (
-                      <img
-                        src={v.imagen_url}
-                        alt={t('adm.productoDetalle.altVariante')}
-                        className="ap-thumb"
-                        style={{ width: 48, height: 48, background: '#222', objectFit: 'cover' }}
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                      />
+                    {form.tiene_medidas && (
+                      <>
+                        <div className="ap-var-campo">
+                          <span className="ap-var-label">Ancho (cm)</span>
+                          <input
+                            className="ap-form-input"
+                            type="number"
+                            min="1"
+                            placeholder="150"
+                            value={v.ancho_cm}
+                            onChange={(e) => setVariante(i, 'ancho_cm', e.target.value)}
+                          />
+                        </div>
+                        <div className="ap-var-campo">
+                          <span className="ap-var-label">Alto (cm)</span>
+                          <input
+                            className="ap-form-input"
+                            type="number"
+                            min="1"
+                            placeholder="100"
+                            value={v.alto_cm}
+                            onChange={(e) => setVariante(i, 'alto_cm', e.target.value)}
+                          />
+                        </div>
+                      </>
                     )}
-                    <input
-                      className="ap-form-input"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="Precio variante ($)"
-                      value={v.precio}
-                      onChange={(e) => setVariante(i, 'precio', e.target.value)}
-                      title="Vacío = usa el precio del producto"
-                    />
+                    <div className="ap-var-campo">
+                      <span className="ap-var-label">Precio ($)</span>
+                      <input
+                        className="ap-form-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Vacío = usa el precio del producto"
+                        value={v.precio}
+                        onChange={(e) => setVariante(i, 'precio', e.target.value)}
+                        title="Vacío = usa el precio del producto"
+                      />
+                    </div>
+                    <div className="ap-var-campo">
+                      <span className="ap-var-label">Stock</span>
+                      <input
+                        className="ap-form-input"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={v.stock}
+                        onChange={(e) => setVariante(i, 'stock', e.target.value)}
+                      />
+                    </div>
+                    <div className="ap-var-campo ap-var-imagen">
+                      <span className="ap-var-label">Imagen (se conecta a este color)</span>
+                      <div className="ap-var-imagen-row">
+                        <input
+                          className="ap-form-input"
+                          type="text"
+                          placeholder={t('adm.productoDetalle.phVarianteUrl')}
+                          value={v.imagen_url}
+                          onChange={(e) => setVariante(i, 'imagen_url', e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="ap-btn ap-btn-ghost"
+                          disabled={subiendoImg}
+                          title={t('adm.productoDetalle.subirTitle')}
+                          onClick={() => varianteFileRefs.current[i]?.click()}
+                        >
+                          <FaUpload />
+                        </button>
+                        <input
+                          ref={(el) => { varianteFileRefs.current[i] = el; }}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => subirImagenVariante(i, e)}
+                        />
+                      </div>
+                      {v.imagen_url && (
+                        <img
+                          src={v.imagen_url}
+                          alt={t('adm.productoDetalle.altVariante')}
+                          className="ap-thumb"
+                          style={{ width: 56, height: 56, marginTop: 6, background: '#222', objectFit: 'cover', borderRadius: 8 }}
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                      )}
+                    </div>
                     <div className="ap-variante-acciones">
                       <button
                         type="button"
@@ -1078,56 +1181,6 @@ const AdminProductoDetalle = () => {
                       >
                         <FaTrash />
                       </button>
-                    </div>
-                    <div className="ap-variante-medidas">
-                      <span className="ap-variante-medidas-label">Medidas</span>
-                      <div className="ap-med-campo">
-                        <label>Tamaño</label>
-                        <input
-                          className="ap-form-input"
-                          type="text"
-                          placeholder="S, M, 80cm…"
-                          value={v.tamaño}
-                          onChange={(e) => setVariante(i, 'tamaño', e.target.value)}
-                        />
-                      </div>
-                      {form.tiene_medidas && (
-                        <>
-                          <div className="ap-med-campo">
-                            <label>Ancho (cm)</label>
-                            <input
-                              className="ap-form-input"
-                              type="number"
-                              min="1"
-                              placeholder="150"
-                              value={v.ancho_cm}
-                              onChange={(e) => setVariante(i, 'ancho_cm', e.target.value)}
-                            />
-                          </div>
-                          <div className="ap-med-campo">
-                            <label>Alto (cm)</label>
-                            <input
-                              className="ap-form-input"
-                              type="number"
-                              min="1"
-                              placeholder="100"
-                              value={v.alto_cm}
-                              onChange={(e) => setVariante(i, 'alto_cm', e.target.value)}
-                            />
-                          </div>
-                        </>
-                      )}
-                      <div className="ap-med-campo">
-                        <label>Stock</label>
-                        <input
-                          className="ap-form-input"
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={v.stock}
-                          onChange={(e) => setVariante(i, 'stock', e.target.value)}
-                        />
-                      </div>
                     </div>
                   </div>
                 ))}

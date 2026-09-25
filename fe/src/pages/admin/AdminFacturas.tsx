@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FaFileInvoice, FaFilePdf, FaEnvelope } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
-import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/admin-panel.css';
 
 interface FacturaAdmin {
@@ -38,7 +37,6 @@ const formatearFecha = (fecha?: string | null) => {
 };
 
 const AdminFacturas = () => {
-  const { t } = useIdioma();
   const [facturas, setFacturas] = useState<FacturaAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');

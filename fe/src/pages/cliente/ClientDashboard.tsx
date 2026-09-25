@@ -15,6 +15,8 @@ interface Producto {
   id_cate_pr?: number;
   nombre_categoria?: string;
   stock_producto?: number;
+  colores_producto?: string | null;
+  color_hex?: string | null;
   variantes?: { stock: number }[];
 }
 
@@ -220,6 +222,26 @@ const ClientDashboard = () => {
                       <div className="info-producto">
                         <h3>{producto.nombre_producto}</h3>
                         {producto.nombre_categoria && <span className="categoria-badge">{producto.nombre_categoria}</span>}
+                        {producto.colores_producto && (
+                          <span
+                            className="categoria-badge"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4 }}
+                          >
+                            {producto.color_hex && (
+                              <span
+                                style={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: '50%',
+                                  background: producto.color_hex,
+                                  border: '1px solid rgba(0,0,0,0.25)',
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )}
+                            {producto.colores_producto}
+                          </span>
+                        )}
                         <div className="precio">
                           {tieneDescuento ? (
                             <>

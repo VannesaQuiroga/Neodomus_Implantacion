@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaCheck, FaTruckFast, FaShieldHalved, FaRotateLeft, FaUsers, FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import api from '@services/api';
@@ -11,6 +11,9 @@ interface Producto {
   id_producto: number;
   nombre_producto: string;
   marca?: string | null;
+  colores_producto?: string | null;
+  color_hex?: string | null;
+  tamaño?: string | null;
   venta_por_metros?: boolean;
   precio_venta_producto: number;
   imagen_url?: string | null;
@@ -158,6 +161,7 @@ const ProductoDetalle = () => {
   const [displayValue, setDisplayValue] = useState('1');
   const [metros, setMetros] = useState(10);
   const [unidadesMetros, setUnidadesMetros] = useState(1);
+  const [imagenActiva, setImagenActiva] = useState<string | null>(null);
   const [displayUnidades, setDisplayUnidades] = useState('1');
   const [toast, setToast] = useState('');
   const [recomendados, setRecomendados] = useState<Producto[]>([]);
@@ -169,6 +173,20 @@ const ProductoDetalle = () => {
   };
 
   const variantes = producto?.variantes || [];
+  // Color principal del producto (primera opción del selector de color).
+  const colorPrincipal = (producto?.colores_producto || '').trim();
+  // Paleta combinada: color principal + colores de variantes (sin duplicados).
+  const paletaDe = (): string[] => {
+    const lista: string[] = [];
+    if (colorPrincipal) lista.push(colorPrincipal);
+    for (const v of variantes) {
+      if (!lista.includes(v.nombre)) lista.push(v.nombre);
+    }
+    if (lista.length === 0) {
+      return PALETAS[producto?.id_cate_pr ?? 0] || ['Blanco', 'Negro', 'Gris'];
+    }
+    return lista;
+  };
   // Etiqueta de medida de cada variante ("150 cm por 100 cm" o texto libre).
   const medidaDe = (v: { etiqueta_medida?: string | null; tamaño?: string | null }) =>
     (v.etiqueta_medida || v.tamaño || '').trim();
@@ -185,10 +203,9 @@ const ProductoDetalle = () => {
     ) ||
     variantes.find((v) => v.nombre === color) ||
     null;
-  const stockDisponible =
-    variantes.length > 0
-      ? (varianteActiva?.stock ?? 0)
-      : (producto?.stock_producto ?? 0);
+  const stockDisponible = varianteActiva
+    ? (varianteActiva.stock ?? 0)
+    : (producto?.stock_producto ?? 0);
   const precioBase = producto?.precio_final ?? producto?.precio_venta_producto ?? 0;
   // Precio de la variante elegida; si no define uno propio, el del producto.
   const precioUnitario = varianteActiva?.precio ?? precioBase;
@@ -197,7 +214,43 @@ const ProductoDetalle = () => {
   const totalMetros = (producto?.venta_por_metros ? metros * unidadesMetros : 0);
   const maxUnidades = producto?.venta_por_metros && metros > 0 ? Math.max(1, Math.floor((stockDisponible || 0) / metros) || 1) : 99;
   const imagen =
-    varianteActiva?.imagen_url || producto?.imagen_url || `/productos/${producto?.id_producto}.jpg`;
+    imagenActiva ||
+    varianteActiva?.imagen_url ||
+    producto?.imagen_url ||
+    `/productos/${producto?.id_producto}.jpg`;
+
+  // Galería: imagen principal siempre visible + imágenes propias de variantes.
+  // Cada imagen lleva su color asociado para el vínculo bidireccional color<->imagen.
+  const imagenesGaleria = useMemo(() => {
+    const lista: { url: string; key: string; etiqueta: string; color: string | null; tamano: string }[] = [];
+    if (producto?.imagen_url) {
+      lista.push({
+        url: producto.imagen_url,
+        key: 'principal',
+        etiqueta: 'Principal',
+        color: colorPrincipal || null,
+        tamano: '',
+      });
+    }
+    for (const v of variantes) {
+      if (v.imagen_url && !lista.some((x) => x.url === v.imagen_url)) {
+        lista.push({
+          url: v.imagen_url,
+          key: `v-${v.id}`,
+          etiqueta: medidaDe(v) ? `${v.nombre} · ${medidaDe(v)}` : v.nombre,
+          color: v.nombre,
+          tamano: medidaDe(v),
+        });
+      }
+    }
+    return lista;
+  }, [producto, variantes, colorPrincipal]);
+
+  // Al cambiar de color/medida se descarta la miniatura elegida a mano y se
+  // vuelve a la imagen que corresponda (variante activa o principal).
+  useEffect(() => {
+    setImagenActiva(null);
+  }, [color, tamano]);
 
   useEffect(() => {
     const fetchProducto = async () => {
@@ -271,7 +324,7 @@ const ProductoDetalle = () => {
 
   useEffect(() => {
     if (producto) {
-      const paleta = (producto.variantes?.length ? producto.variantes.map(v => v.nombre) : PALETAS[producto.id_cate_pr ?? 0]) || ['Blanco', 'Negro', 'Gris'];
+      const paleta = paletaDe();
       const paramColor = searchParams.get('color');
       const colorInicial = paramColor && paleta.includes(paramColor) ? paramColor : paleta[0];
       setColor(colorInicial);
@@ -319,9 +372,7 @@ const ProductoDetalle = () => {
       </div>
     );
 
-  const paleta = variantes.length
-    ? variantes.map(v => v.nombre)
-    : PALETAS[producto.id_cate_pr ?? 0] || ['Blanco', 'Negro', 'Gris'];
+  const paleta = paletaDe();
   const caracteristicas = (producto.caracteristicas_producto || '')
     .split('\n')
     .map((c) => c.replace(/^[-*\s]+/, '').trim())
@@ -433,32 +484,64 @@ const ProductoDetalle = () => {
         </nav>
 
         <div className="detalle-layout">
-          <div className="detalle-imagen-card">
-            <div className="detalle-corner-badges">
-              {tieneDescuento && (
-                <span className="detalle-promo-corner">Promoción -{producto.descuento_activo}%</span>
-              )}
+          <div className="detalle-galeria">
+            <div className="detalle-imagen-card">
+              <div className="detalle-corner-badges">
+                {tieneDescuento && (
+                  <span className="detalle-promo-corner">Promoción -{producto.descuento_activo}%</span>
+                )}
+              </div>
+              <button
+                type="button"
+                className={`detalle-fav-btn ${esFav ? 'activo' : ''}`}
+                onClick={handleToggleFavorito}
+                aria-label={esFav ? t('productos.quitarFavoritos') : t('productos.agregarFavoritos')}
+                title={esFav ? t('productos.quitarFavoritos') : t('productos.agregarFavoritos')}
+              >
+                <FaHeart />
+              </button>
+              <img
+                src={imagen}
+                alt={producto.nombre_producto}
+                onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+              />
             </div>
-            <button
-              type="button"
-              className={`detalle-fav-btn ${esFav ? 'activo' : ''}`}
-              onClick={handleToggleFavorito}
-              aria-label={esFav ? t('productos.quitarFavoritos') : t('productos.agregarFavoritos')}
-              title={esFav ? t('productos.quitarFavoritos') : t('productos.agregarFavoritos')}
-            >
-              <FaHeart />
-            </button>
-            <img
-              src={imagen}
-              alt={producto.nombre_producto}
-              onError={(e) => (e.currentTarget.src = '/productos/default.png')}
-            />
+
+            {imagenesGaleria.length > 1 && (
+              <div className="detalle-miniaturas">
+                {imagenesGaleria.map((g) => (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className={`detalle-miniatura ${imagen === g.url ? 'activa' : ''}`}
+                    onClick={() => {
+                      if (g.color) {
+                        setColor(g.color);
+                        if (g.tamano) setTamano(g.tamano);
+                        setImagenActiva(null);
+                      } else {
+                        setImagenActiva(g.url);
+                      }
+                    }}
+                    title={g.etiqueta}
+                    aria-label={g.etiqueta}
+                  >
+                    <img
+                      src={g.url}
+                      alt={g.etiqueta}
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="detalle-info">
             <span className="detalle-categoria">{categoria}</span>
             <h1 className="detalle-nombre">{producto.nombre_producto}</h1>
             {producto.marca && <span className="detalle-marca">Marca: {producto.marca}</span>}
+            {producto.tamaño && <span className="detalle-marca">Tamaño: {producto.tamaño}</span>}
 
             <div className={`detalle-precio ${producto.venta_por_metros ? 'detalle-precio--metros' : ''}`}>
               {producto.venta_por_metros ? (
@@ -544,6 +627,7 @@ const ProductoDetalle = () => {
                           className={`detalle-metro-chip ${tamano === t ? 'activo' : ''}`}
                           onClick={() => {
                             setTamano(t);
+                            setImagenActiva(null);
                             // Si el color actual no existe en esa medida, cambia
                             // al primer color disponible con esa medida.
                             const compatible = variantes.find(
@@ -580,20 +664,29 @@ const ProductoDetalle = () => {
                 <span className="detalle-label">Color: <strong>{color}</strong></span>
                 <div className="detalle-colores-swatches">
                   {paleta.map(c => {
+                    const esColorPrincipal = c === colorPrincipal;
                     const variante = usaTamanos
                       ? variantes.find(v => v.nombre === c && medidaDe(v) === tamano)
                       : variantes.find(v => v.nombre === c);
-                    const fondo = (variante?.hex || COLOR_HEX[c] || '#ccc').trim();
+                    const fondo = (
+                      (esColorPrincipal ? producto.color_hex : null) ||
+                      variante?.hex ||
+                      COLOR_HEX[c] ||
+                      '#ccc'
+                    ).trim();
                     const esDegradado = fondo.startsWith('linear');
-                    const agotado = !variantes.length
-                      ? false
-                      : (variante?.stock ?? 0) <= 0;
+                    let agotado = false;
+                    if (variante) {
+                      agotado = (variante.stock ?? 0) <= 0;
+                    } else if (esColorPrincipal) {
+                      agotado = (producto.stock_producto ?? 0) <= 0;
+                    }
                     return (
                       <button
                         key={c}
                         type="button"
                         className={`detalle-swatch ${color === c ? 'activo' : ''} ${agotado ? 'agotado' : ''}`}
-                        onClick={() => setColor(c)}
+                        onClick={() => { setColor(c); setImagenActiva(null); }}
                         disabled={agotado}
                         aria-label={`Color ${c}${agotado ? ' (sin stock)' : ''}`}
                         title={agotado ? `${c} — sin stock` : c}

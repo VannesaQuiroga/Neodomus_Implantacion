@@ -148,7 +148,6 @@ def _crear_empleado(db, email, first_name, last_name, nombre_rol) -> bool:
             Tecnico(
                 id_usuario_t=empleado.id_usuario,
                 certificacion_t=certificacion,
-                cargo_t="Tecnico de campo",
             )
         )
     return True

@@ -140,6 +140,8 @@ export interface ProductoAdmin {
   descripcion_producto?: string | null;
   caracteristicas_producto?: string | null;
   colores_producto?: string | null;
+  color_hex?: string | null;
+  tamaño?: string | null;
   estado_producto: string;
   stock_producto: number;
   stock_estado: 'disponible' | 'bajo' | 'agotado';

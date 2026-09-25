@@ -82,6 +82,8 @@ class ProductoResponse(BaseModel):
     descripcion_producto: Optional[str] = None
     caracteristicas_producto: Optional[str] = None
     colores_producto: Optional[str] = None
+    color_hex: Optional[str] = None
+    tamaño: Optional[str] = None
     estado_producto: str = "activo"
     stock_producto: int = 0
     stock_estado: str = "disponible"
@@ -112,6 +114,8 @@ class ProductoCreate(BaseModel):
     descripcion_producto: Optional[str] = None
     caracteristicas_producto: Optional[str] = None
     colores_producto: Optional[str] = None
+    color_hex: Optional[str] = None
+    tamaño: Optional[str] = None
     estado_producto: Optional[str] = "activo"
     stock_producto: int = 0
     descuento_activo: Optional[float] = None
@@ -239,6 +243,8 @@ def _serializar(p: Producto) -> ProductoResponse:
         descripcion_producto=p.descripcion_producto,
         caracteristicas_producto=p.caracteristicas_producto,
         colores_producto=p.colores_producto,
+        color_hex=p.color_hex,
+        tamaño=p.tamaño,
         estado_producto=p.estado_producto or "activo",
         stock_producto=p.stock_producto or 0,
         stock_estado=_estado_stock(p.stock_producto or 0),
@@ -823,6 +829,8 @@ def crear_producto(
         descripcion_producto=data.descripcion_producto,
         caracteristicas_producto=data.caracteristicas_producto,
         colores_producto=data.colores_producto,
+        color_hex=(data.color_hex or "").strip() or None,
+        tamaño=(data.tamaño or "").strip() or None,
         estado_producto=data.estado_producto or "activo",
         stock_producto=data.stock_producto or 0,
         descuento_activo=data.descuento_activo,
@@ -887,6 +895,8 @@ def editar_producto(
             else producto.caracteristicas_producto
         ),
         "colores_producto": data.colores_producto,
+        "color_hex": (data.color_hex or "").strip() or None,
+        "tamaño": (data.tamaño or "").strip() or None,
         "estado_producto": data.estado_producto or "activo",
         "stock_producto": data.stock_producto or 0,
         "descuento_activo": data.descuento_activo,

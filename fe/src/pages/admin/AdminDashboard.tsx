@@ -17,7 +17,6 @@ import {
   FaBolt,
   FaEnvelopeOpenText,
   FaTruckField,
-  FaTriangleExclamation,
   FaUserShield,
 } from 'react-icons/fa6';
 import '@styles/admin-panel.css';
@@ -86,25 +85,11 @@ const AccesosRapidos = [
 
 const formatoPesos = (v: number) => `$${Math.round(v).toLocaleString('es-CO')}`;
 
-interface OperativoMetricas {
-  citas_pendientes_asignacion: number;
-  citas_reprogramadas: number;
-  citas_canceladas: number;
-  citas_problemas_disponibilidad: number;
-  tecnicos_disponibles_hoy: number;
-  tecnicos_ocupados_hoy: number;
-  reembolsos_pendientes_citas: number;
-  entregas_sin_tecnico: number;
-  entregas_asignadas: number;
-  entregas_con_tecnico_alternativo: number;
-}
-
 const AdminDashboard = () => {
   const { t, idioma } = useIdioma();
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [datos, setDatos] = useState<ReporteResumen | null>(null);
-  const [operativo, setOperativo] = useState<OperativoMetricas | null>(null);
 
   const cargar = async (silencioso = false) => {
     if (!silencioso) {
@@ -118,12 +103,6 @@ const AdminDashboard = () => {
       if (!silencioso) setError(true);
     } finally {
       setCargando(false);
-    }
-    try {
-      const op = await api.get<OperativoMetricas>('/reports/operativo');
-      setOperativo(op.data);
-    } catch {
-      setOperativo(null);
     }
   };
 

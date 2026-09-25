@@ -19,6 +19,8 @@ class Producto(Base):
     descripcion_producto = Column(Text, nullable=True)
     caracteristicas_producto = Column(Text, nullable=True)
     colores_producto = Column(String(255), nullable=True)
+    color_hex = Column(String(10), nullable=True)  # #RRGGBB del color principal
+    tamaño = Column(String(60), nullable=True)
     estado_producto = Column(String(20), nullable=False, default="activo")
     stock_producto = Column(Integer, nullable=False, default=0)
     descuento_activo = Column(Float, nullable=True)

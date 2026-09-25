@@ -13,7 +13,7 @@ import '@styles/productos-publicos.css';
 const CarritoPage = () => {
   const navigate = useNavigate();
   const { t } = useIdioma();
-  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente, addItem } = useCart();
+  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente } = useCart();
   const { isAuthenticated, rol } = useAuth();
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
   const [displayValues, setDisplayValues] = useState<Record<string, string>>({});
