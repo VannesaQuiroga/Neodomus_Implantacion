@@ -61,6 +61,7 @@ backups/
 
 # Informes internos no publicados en este repositorio
 docs/informe-semana-*.md
+/INFORME_FINAL_EVALUACION_NEODOMUS.md
 
 # MinIO — datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
