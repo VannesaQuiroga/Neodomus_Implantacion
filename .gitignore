@@ -56,5 +56,8 @@ __pycache__/
 backup_neodomus.sql
 evidencias_backup/
 
+# Respaldos locales generados por scripts/respaldar.sh
+backups/
+
 # MinIO — datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
