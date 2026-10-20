@@ -1,3 +1,4 @@
+// Componente reutilizable NuevaNovedadModal para componer la interfaz de Neodomus.
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -71,6 +72,7 @@ interface NuevaNovedadModalProps {
 
 type PasoFormulario = 'detalle' | 'evidencia';
 
+// Comunica con el backend mediante POST '/novedades', POST `/novedades/${res.data.id_novedad}/evidencia`; prepara FormData para enviar campos y archivos; crea una URL temporal para acceder al archivo recibido.
 const NuevaNovedadModal = ({
   abierto,
   onCerrar,
@@ -115,6 +117,7 @@ const NuevaNovedadModal = ({
     onCerrar();
   };
 
+  // crea una URL temporal para acceder al archivo recibido.
   const onEvidenciaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -140,6 +143,7 @@ const NuevaNovedadModal = ({
   const tiposDisponibles = tipoOrigen === 'devolucion' ? TIPOS_DEVOLUCION : TIPOS_NOVEDAD;
   const canSubmit = tipoSeleccion && descripcion.trim();
 
+  // Comunica con el backend mediante POST '/novedades', POST `/novedades/${res.data.id_novedad}/evidencia`; prepara FormData para enviar campos y archivos.
   const enviarNovedad = async () => {
     if (!tipoSeleccion || !descripcion.trim()) {
       setToast({ msg: 'Completa el tipo y la descripcion', tipo: 'err' });

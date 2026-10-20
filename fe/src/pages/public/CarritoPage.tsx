@@ -1,3 +1,4 @@
+// Pantalla CarritoPage de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaTrashCan, FaCartShopping, FaCircleCheck, FaExclamation, FaPen, FaTriangleExclamation } from 'react-icons/fa6';
@@ -5,16 +6,17 @@ import { useCart, type CartItem } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
+import { formatMetros } from '@utils/metros';
 import api from '@services/api';
 import ProductoCard from '@components/productos/ProductoCard';
 import '@styles/carrito.css';
 import '@styles/productos-publicos.css';
 
+// Comunica con el backend mediante GET `/productos/${item.id_producto}`, GET '/productos/?limit=100'; accede a sessionStorage para conservar o recuperar datos locales.
 const CarritoPage = () => {
   const navigate = useNavigate();
   const { t } = useIdioma();
-  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente } = useCart();
-  const { isAuthenticated, rol } = useAuth();
+  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente } = useCart();  const { isAuthenticated, rol } = useAuth();
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
   const [displayValues, setDisplayValues] = useState<Record<string, string>>({});
   const [sugeridos, setSugeridos] = useState<any[]>([]);
@@ -26,7 +28,6 @@ const CarritoPage = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const METROS_OPCIONES = [10, 20, 30, 40, 50];
   const itemKey = (item: { id_producto: number; color?: string; medida?: string; tamaño?: string; metros?: number; venta_por_metros?: boolean }) =>
     [item.id_producto, item.color?.toLowerCase(), (item.medida || item.tamaño || '').toLowerCase(), item.venta_por_metros && item.metros ? `${item.metros}m` : null].filter(Boolean).join('-');
 
@@ -54,6 +55,7 @@ const CarritoPage = () => {
 
   // Productos sugeridos (WEB): disponibles, no en carrito, reales del sistema
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/?limit=100'.
     const cargarSugeridos = async () => {
       try {
         const res = await api.get('/productos/?limit=100');
@@ -91,6 +93,7 @@ const CarritoPage = () => {
     navigate(`/producto/${item.id_producto}?${params.toString()}`);
   };
 
+  // accede a sessionStorage para conservar o recuperar datos locales.
   const handleFinalizar = () => {
     if (items.length === 0) {
       showToast(t('carrito.toastVacio'), 'error');
@@ -120,7 +123,7 @@ const CarritoPage = () => {
     if (error) showToast(error, 'error');
   };
 
-  const handleMetrosChange = (item: CartItem, nuevoMetros: number) => {
+  const handleMetrosChange = (item: CartItem, nuevoMetros: number | string) => {
     const key = itemKey(item);
     const error = updateMetros(key, nuevoMetros);
     if (error) showToast(error, 'error');
@@ -203,16 +206,18 @@ const CarritoPage = () => {
                     <div className="carrito-cantidad">
                       {item.venta_por_metros ? (
                         <div className="carrito-metros-unidades">
-                          <select
+                          <input
+                            type="text"
+                            inputMode="decimal"
                             className="carrito-metros-select"
-                            value={item.metros}
-                            onChange={(e) => handleMetrosChange(item, Number(e.target.value))}
+                            defaultValue={formatMetros(item.metros)}
+                            key={`metros-${itemKey(item)}-${item.metros}`}
+                            onBlur={(e) => handleMetrosChange(item, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                            }}
                             aria-label="Metros por unidad"
-                          >
-                            {METROS_OPCIONES.map(m => (
-                              <option key={m} value={m}>{m} m</option>
-                            ))}
-                          </select>
+                          />
                           <div className="carrito-unidades-control">
                             <button
                               type="button"

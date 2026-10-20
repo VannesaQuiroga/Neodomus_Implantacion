@@ -32,6 +32,7 @@ PAGOS_CITA_VALIDOS = ("aprobado", "pagado")
 REEMBOLSOS_ACTIVOS = ("Pendiente", "Procesando", "Reembolsado")
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -44,6 +45,7 @@ def _admin(
     return current_user
 
 
+# Consulta Cliente.
 def _nombre_cliente(db: Session, id_cliente: Optional[int]) -> Optional[str]:
     if id_cliente is None:
         return None
@@ -53,6 +55,7 @@ def _nombre_cliente(db: Session, id_cliente: Optional[int]) -> Optional[str]:
     return f"{cliente.first_name} {cliente.last_name}".strip()
 
 
+# Consulta Cita, Pedido.
 def _serializar_reembolso(db: Session, r: Reembolso) -> dict:
     cita = db.query(Cita).filter(Cita.id_cita == r.id_cita).first() if r.id_cita else None
     pedido = (
@@ -234,6 +237,7 @@ def _validar_pedido_reembolsable(db: Session, id_pedido: int) -> tuple[float, st
     return monto, pago.numero_transaccion, pedido
 
 
+# Agrupa los campos de ReembolsoCreate: id_cita, id_pedido, monto, motivo.
 class ReembolsoCreate(BaseModel):
     id_cita: Optional[int] = None
     id_pedido: Optional[int] = None
@@ -401,6 +405,7 @@ def crear_reembolso_manual(
     return _serializar_reembolso(db, reembolso)
 
 
+# Agrupa los campos de ReembolsoPedidoSolicitud: motivo.
 class ReembolsoPedidoSolicitud(BaseModel):
     motivo: Optional[str] = None
 
@@ -436,6 +441,7 @@ def solicitar_reembolso_pedido(
     return _serializar_reembolso(db, reembolso)
 
 
+# Agrupa los campos de ProcesarReembolsoIn: porcentaje_cliente.
 class ProcesarReembolsoIn(BaseModel):
     porcentaje_cliente: Optional[float] = Field(default=None, ge=0, le=100)
 

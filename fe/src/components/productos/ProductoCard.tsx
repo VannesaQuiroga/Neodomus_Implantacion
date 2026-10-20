@@ -1,8 +1,10 @@
+// Tarjeta de producto usada en las listas del catálogo web.
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@contexts/CartContext';
 import { useFavoritos } from '@utils/favoritos';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { parseMetros, formatMetros } from '@utils/metros';
 import '@styles/productos-publicos.css';
 
 interface ProductoVariante {
@@ -38,8 +40,6 @@ interface Props {
   producto: ProductoCardData;
 }
 
-const METROS_OPCIONES = [10, 20, 30, 40, 50];
-
 const ProductoCard = ({ producto }: Props) => {
   const { addItem } = useCart();
   const { t } = useIdioma();
@@ -49,6 +49,8 @@ const ProductoCard = ({ producto }: Props) => {
   const [metros, setMetros] = useState(10);
   const [unidades, setUnidades] = useState(1);
   const [displayUnidades, setDisplayUnidades] = useState<string | undefined>(undefined);
+  const [displayMetros, setDisplayMetros] = useState('10');
+  const [metrosError, setMetrosError] = useState<string | null>(null);
   const [toast, setToast] = useState('');
 
   const esFavorito = favoritos.has(producto.id_producto);
@@ -150,15 +152,6 @@ const ProductoCard = ({ producto }: Props) => {
     const stock = stockDe(producto);
     const maxU = Number.isFinite(stock) ? Math.max(1, Math.floor(stock / metros) || 1) : Infinity;
     setUnidades(prev => (prev >= maxU ? prev : prev + 1));
-  };
-
-  const handleMetrosChange = (m: number) => {
-    setMetros(m);
-    const stock = stockDe(producto);
-    if (Number.isFinite(stock) && m * unidades > stock) {
-      const maxU = Math.max(1, Math.floor(stock / m) || 1);
-      if (unidades > maxU) setUnidades(maxU);
-    }
   };
 
   return (
@@ -283,16 +276,36 @@ const ProductoCard = ({ producto }: Props) => {
             <div className="selectores-bloque">
               {esPorMetros ? (
                 <div className="metros-control-grid">
-                  <select
+                  <input
+                    type="text"
+                    inputMode="decimal"
                     className="metros-select"
-                    value={metros}
-                    onChange={(e) => handleMetrosChange(Number(e.target.value))}
+                    value={displayMetros}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^0-9.,]/g, '');
+                      setDisplayMetros(v);
+                      setMetrosError(null);
+                    }}
+                    onBlur={() => {
+                      const r = parseMetros(displayMetros);
+                      if (r.valor == null) {
+                        setMetrosError(r.error ?? 'Cantidad inválida');
+                        setDisplayMetros(formatMetros(metros));
+                        return;
+                      }
+                      const m = r.valor;
+                      setMetros(m);
+                      setDisplayMetros(formatMetros(m));
+                      setMetrosError(null);
+                      const stock = stockDe(producto);
+                      if (Number.isFinite(stock) && m * unidades > stock) {
+                        const maxU = Math.max(1, Math.floor(stock / m) || 1);
+                        if (unidades > maxU) setUnidades(maxU);
+                      }
+                    }}
                     aria-label="Metros"
-                  >
-                    {METROS_OPCIONES.map(m => (
-                      <option key={m} value={m}>{m} m</option>
-                    ))}
-                  </select>
+                  />
+                  {metrosError && <span className="muted">{metrosError}</span>}
                   <div className="cantidad-row">
                     <span className="cantidad-label">Cantidad:</span>
                     <div className="cantidad-control">

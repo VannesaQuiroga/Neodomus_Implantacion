@@ -1,3 +1,4 @@
+# Persistencia de cliente. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, func
@@ -7,6 +8,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.email_verification_token import EmailVerificationToken
 
+# Mapea la tabla «clientes».
 class Cliente(Base):
     __tablename__ = "clientes"
 

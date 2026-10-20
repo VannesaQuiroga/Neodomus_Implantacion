@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianSidebar. Se reutiliza en las pantallas de su área.
 import { NavLink } from "react-router-dom";
 import { useIdioma } from "@i18n/IdiomaContext";
 import {

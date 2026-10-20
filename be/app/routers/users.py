@@ -1,3 +1,4 @@
+# Rutas de users. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,6 +18,7 @@ from app.utils.security import get_current_employee, hash_password
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+# Agrupa los campos de EmployeeCreate: first_name, last_name, email, password, telefono_usuario y los demás declarados abajo.
 class EmployeeCreate(BaseModel):
     first_name: str
     last_name: str
@@ -29,6 +31,7 @@ class EmployeeCreate(BaseModel):
     especializaciones_ids: Optional[List[int]] = None
 
 
+# Agrupa los campos de EmployeeUpdate: first_name, last_name, email, password, telefono_usuario y los demás declarados abajo.
 class EmployeeUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -144,6 +147,7 @@ def _aplicar_especializaciones(db: Session, ficha: Tecnico, ids: List[int]) -> N
     ficha.especializaciones = encontradas
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -241,6 +245,7 @@ def get_roles(_admin_user: User = Depends(_admin), db: Session = Depends(get_db)
     return [{"id": r.id_rol, "nombre": r.nombre_rol} for r in roles]
 
 
+# Consulta User.
 @router.get("/", response_model=List[EmployeeResponse])
 def get_users(
     _admin_user: User = Depends(_admin),
@@ -302,6 +307,7 @@ def crear_empleado(
     return {"msg": "Usuario registrado correctamente", "id": usuario.id_usuario, "email": email}
 
 
+# Consulta User, Tecnico; confirma los cambios con la sesión de base de datos.
 @router.put("/{user_id}", response_model=dict)
 async def editar_empleado(
     user_id: int,
@@ -329,11 +335,9 @@ async def editar_empleado(
     especializaciones_ids = upd.pop("especializaciones_ids", None)
     motivo = upd.pop("motivo", None)
     nueva_password = upd.pop("password", None)
-    if nueva_password:
-        if len(nueva_password) < 6:
-            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
-        usuario.password_hash = hash_password(nueva_password)
-        usuario.password_reset_required = True
+
+    # Detectar la intención de desactivación ANTES de mutar cualquier campo,
+    # para poder rechazarla sin aplicar cambios parciales.
     cambio_estado = False
     activo = usuario.is_active
     desactivado_hasta = usuario.desactivado_hasta
@@ -344,6 +348,25 @@ async def editar_empleado(
             desactivado_hasta = upd["desactivado_hasta"]
         if activo:
             upd["desactivado_hasta"] = None
+
+    # Guarda de custodia: un técnico con entregas Recogido/En camino no puede
+    # desactivarse. Se valida (con bloqueo de fila) antes de aplicar cambios,
+    # enviar notificaciones o iniciar reasignaciones. Se bloquea primero el
+    # técnico para coordinar con reservas concurrentes (orden Tecnico → Pedido).
+    if cambio_estado and not activo:
+        ficha = db.query(Tecnico).filter(Tecnico.id_usuario_t == user_id).first()
+        if ficha:
+            from app.services.asignacion_service import validar_desactivacion_sin_custodia
+            from app.services.especialidades import bloquear_tecnicos
+
+            bloquear_tecnicos(db, [ficha.id_tecnico])
+            validar_desactivacion_sin_custodia(db, ficha.id_tecnico)
+
+    if nueva_password:
+        if len(nueva_password) < 6:
+            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+        usuario.password_hash = hash_password(nueva_password)
+        usuario.password_reset_required = True
     for campo, valor in upd.items():
         setattr(usuario, campo, valor)
     if certificacion is not None or especializaciones_ids is not None:
@@ -368,6 +391,7 @@ async def editar_empleado(
     return {"msg": "Usuario actualizado correctamente", "id": user_id}
 
 
+# Consulta User, Tecnico; confirma los cambios con la sesión de base de datos.
 @router.delete("/{user_id}", response_model=dict)
 async def desactivar_empleado(
     user_id: int,
@@ -379,6 +403,15 @@ async def desactivar_empleado(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     if usuario.id_usuario == _admin_user.id_usuario:
         raise HTTPException(status_code=400, detail="No puedes desactivar tu propia cuenta")
+    # Guarda de custodia antes de guardar cualquier cambio. Se bloquea primero
+    # el técnico para coordinar con reservas concurrentes (Tecnico → Pedido).
+    ficha = db.query(Tecnico).filter(Tecnico.id_usuario_t == user_id).first()
+    if ficha:
+        from app.services.asignacion_service import validar_desactivacion_sin_custodia
+        from app.services.especialidades import bloquear_tecnicos
+
+        bloquear_tecnicos(db, [ficha.id_tecnico])
+        validar_desactivacion_sin_custodia(db, ficha.id_tecnico)
     usuario.is_active = False
     db.commit()
     await _notificar_estado_empleado(usuario, False, usuario.desactivado_hasta)

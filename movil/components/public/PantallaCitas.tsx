@@ -72,6 +72,7 @@ export default function PantallaCitas({
   })();
   const nombreTecnico = params.nombre ? decodeURIComponent(params.nombre) : null;
   const [horasDisponibles, setHorasDisponibles] = useState<string[]>([]);
+  const [horasRefreshKey, setHorasRefreshKey] = useState(0);
     const [tarifas, setTarifas] = useState<Tarifa[]>([]);
   const [bancos, setBancos] = useState<string[]>([]);
 
@@ -144,7 +145,7 @@ export default function PantallaCitas({
     return () => {
       activo = false;
     };
-  }, [fecha, tecnicoId, tipoServicio]);
+  }, [fecha, tecnicoId, tipoServicio, horasRefreshKey]);
 
 
   const esFinDeSemana = fecha
@@ -289,6 +290,9 @@ export default function PantallaCitas({
       cargarMisCitas();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Error al procesar la cita");
+      // Ante un conflicto de capacidad (409) se recarga la disponibilidad sin
+      // perder los demás datos del formulario.
+      setHorasRefreshKey((k) => k + 1);
     } finally {
       setEnviando(false);
     }

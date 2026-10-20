@@ -1,3 +1,4 @@
+# Rutas de citas. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, or_, text
 from sqlalchemy.orm import Session
@@ -13,6 +14,16 @@ try:
     _BOGOTA_TZ = ZoneInfo("America/Bogota")
 except Exception:
     _BOGOTA_TZ = None
+
+
+def _ahora_bogota() -> datetime:
+    """Hora actual en America/Bogota, sin depender de la zona del servidor.
+
+    Devuelve un datetime NAIVE (sin tzinfo) con la hora de Bogotá, para poder
+    compararlo con ``datetime.combine(fecha, hora)``."""
+    if _BOGOTA_TZ is not None:
+        return datetime.now(_BOGOTA_TZ).replace(tzinfo=None)
+    return datetime.now() - timedelta(hours=5)
 
 from app.database import get_db
 from app.models.cliente import Cliente
@@ -34,12 +45,10 @@ from app.schemas.cita import (
 )
 from app.services.especialidades import (
     tecnico_ocupado,
-    slot_tomado,
     horas_laborales,
     _dia_es_laboral,
     _hora_a_minutos,
     _se_solapan,
-    _tecnicos_activos,
     HORA_INICIO,
     HORA_FIN,
     duracion_estimada_cita,
@@ -48,6 +57,15 @@ from app.services.especialidades import (
     DURACION_MIN,
     ESTADOS_OCUPAN,
     ESTADOS_ENTREGA_OCUPAN,
+    tecnico_disponible,
+    hay_disponibilidad,
+    bloquear_tecnicos,
+    tecnico_cubre,
+    ids_equipo_cita,
+    requisitos_cita,
+    validar_equipo_tecnicos,
+    especializaciones_requeridas_cita,
+    cantidad_tecnicos_requerida,
 )
 from app.services import pagos_service
 from app.services.notificaciones import crear_notificacion, notificar_cita_asignada_tecnico, notificar_cita_reagendada_tecnico, notificar_recordatorio_cita, notificar_cita_reasignada_cliente
@@ -235,6 +253,7 @@ def _generar_ofertas_por_cancelacion(
     return creadas
 
 
+# Agrupa los campos de AdminCitaUpdate: estado, id_tecnico, nombre_tecnico, id_tecnico_2, nombre_tecnico_2 y los demás declarados abajo.
 class AdminCitaUpdate(BaseModel):
     estado: Optional[str] = None
     id_tecnico: Optional[int] = None
@@ -258,6 +277,7 @@ class AdminCitaResponse(CitaResponse):
     reembolso: Optional[dict] = None
 
 
+# Agrupa los campos de ReasignarCitaRequest: id_tecnico, fecha, hora, id_tecnico_2, id_tecnico_3 y los demás declarados abajo.
 class ReasignarCitaRequest(BaseModel):
     id_tecnico: int
     fecha: Optional[date] = None
@@ -279,6 +299,7 @@ class ClienteCitaResponse(CitaResponse):
     calificada: Optional[bool] = None
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -413,6 +434,7 @@ def _verificar_recordatorio_cita(db: Session, cliente: Cliente, cita: Cita) -> N
     enviar_recordatorio_si_corresponde(db, cliente, cita)
 
 
+# Consulta Calificacion.
 def _serializar_cita_cliente(db: Session, cita: Cita) -> ClienteCitaResponse:
     telefono, email, foto, nombre, certificacion = _datos_tecnico(db, cita.id_tecnico)
     telefono_2, _, _, nombre_2, _ = _datos_tecnico(db, cita.id_tecnico_2)
@@ -462,11 +484,11 @@ def _validar_tecnico_cita(
     hora: str,
     excluir_cita_id: Optional[int] = None,
     duracion_horas: float = DURACION_MIN,
+    ids_especializacion: Optional[list[int]] = None,
 ) -> None:
-    """Valida que el técnico exista y esté libre durante el intervalo que
-    ocupa el servicio en la fecha y hora indicadas. Lanza HTTPException si
-    no. No se restringe por especialidad: cualquier técnico puede atender
-    cualquier servicio."""
+    """Valida que el técnico exista, esté activo, cubra las especializaciones
+    requeridas (si se indican) y esté libre durante el intervalo del servicio.
+    Lanza HTTPException si no."""
     if id_tecnico is None:
         return
     tecnico = db.query(Tecnico).filter(Tecnico.id_tecnico == id_tecnico).first()
@@ -477,6 +499,11 @@ def _validar_tecnico_cita(
         or tecnico.usuario.id_rol_u != 2
     ):
         raise HTTPException(status_code=400, detail="El técnico seleccionado no existe o no está activo")
+    if ids_especializacion and not tecnico_cubre(tecnico, ids_especializacion):
+        raise HTTPException(
+            status_code=400,
+            detail="El técnico seleccionado no tiene la especialización requerida para este servicio",
+        )
     if tecnico_ocupado(db, id_tecnico, fecha, hora, excluir_cita_id, duracion_horas=duracion_horas):
         raise HTTPException(
             status_code=400,
@@ -548,6 +575,7 @@ def _validar_franja_cita(
         )
 
 
+# Consulta Cita.
 def _es_cliente_con_cita(db: Session, cita_id: int, id_cliente: int) -> bool:
     return (
         db.query(Cita)
@@ -557,6 +585,7 @@ def _es_cliente_con_cita(db: Session, cita_id: int, id_cliente: int) -> bool:
     )
 
 
+# Consulta Cita.
 def _get_own_cita(cita_id: int, client: Cliente, db: Session) -> Cita:
     cita = (
         db.query(Cita)
@@ -578,11 +607,12 @@ def crear_cita(
 
     El costo se toma de la tarifa fija del servicio y se paga al agendar
     con el simulador académico local."""
-    if data.fecha < datetime.now().date():
+    ahora = _ahora_bogota()
+    if data.fecha < ahora.date():
         raise HTTPException(status_code=400, detail="La fecha de la cita no puede ser anterior a hoy")
     hora_cita = datetime.strptime(data.hora, "%H:%M").time() if ":" in data.hora else time(int(data.hora), 0)
     fecha_hora_cita = datetime.combine(data.fecha, hora_cita)
-    minimo = datetime.now() + timedelta(hours=3)
+    minimo = ahora + timedelta(hours=3)
     if fecha_hora_cita < minimo:
         raise HTTPException(
             status_code=400,
@@ -592,11 +622,6 @@ def crear_cita(
     _validar_franja_cita(data.fecha, data.hora, duracion_horas=duracion)
     # La calificación del técnico es voluntaria: ya no bloquea nuevas citas
     # (el scheduler envía recordatorios periódicos al cliente).
-    if slot_tomado(db, data.fecha, data.hora, duracion_horas=duracion):
-        raise HTTPException(
-            status_code=400,
-            detail="Esa fecha y hora ya fue reservada por otro cliente. Elige otra franja.",
-        )
     tarifa = (
         db.query(TarifaServicio)
         .filter(TarifaServicio.tipo_servicio == data.tipo_servicio.lower().strip())
@@ -609,25 +634,79 @@ def crear_cita(
         )
     if not data.metodo_pago:
         raise HTTPException(status_code=400, detail="Debes seleccionar un método de pago")
-    # El técnico debe ser uno real: se ignora el nombre enviado por el cliente
-    # y se valida especialidad + disponibilidad en la BD.
+    # Resolver y validar el equipo ANTES de confirmar o procesar el pago:
+    #   - Si el cliente no eligió técnico, se asigna el mejor apto disponible.
+    #   - Si lo eligió, se validan los integrantes (principal y segundo):
+    #     distintos, activos, aptos y libres.
+    # Se bloquea la fila de cada técnico para serializar reservas concurrentes.
     nombre_tecnico = None
-    if data.id_tecnico is not None:
-        _validar_tecnico_cita(
+    nombre_tecnico_2 = None
+    if data.id_tecnico is None:
+        if data.id_tecnico_2 is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="Debes seleccionar un técnico principal para asignar el equipo",
+            )
+        from app.services.especialidades import tecnicos_disponibles
+
+        disponibles = tecnicos_disponibles(
+            db, data.fecha, data.hora, ids_especializacion=None, duracion_horas=duracion
+        )
+        if not disponibles:
+            raise HTTPException(
+                status_code=409,
+                detail="No hay técnicos disponibles para esa fecha y hora. Elige otra franja.",
+            )
+        # Autoasignación con respaldo: se prueba cada candidato bajo bloqueo y
+        # con revalidación vigente (actividad, aptitud y ocupación). Si un
+        # candidato quedó ocupado/inactivo, se intenta el siguiente.
+        ids_disponibles = [c.id_tecnico for c in disponibles]
+        elegido_id = None
+        for tid in ids_disponibles:
+            bloquear_tecnicos(db, [tid])
+            try:
+                validar_equipo_tecnicos(
+                    db,
+                    [tid],
+                    data.fecha,
+                    data.hora,
+                    ids_especializacion=None,
+                    duracion_horas=duracion,
+                )
+                elegido_id = tid
+                break
+            except HTTPException:
+                db.rollback()
+                continue
+        if elegido_id is None:
+            raise HTTPException(
+                status_code=409,
+                detail="No hay técnicos disponibles para esa fecha y hora. Elige otra franja.",
+            )
+        data.id_tecnico = elegido_id
+        nombre_tecnico = _nombre_tecnico_real(db, elegido_id)
+    else:
+        ids_equipo = [t for t in (data.id_tecnico, data.id_tecnico_2) if t is not None]
+        bloquear_tecnicos(db, ids_equipo)
+        validar_equipo_tecnicos(
             db,
-            data.id_tecnico,
-            data.tipo_servicio,
+            ids_equipo,
             data.fecha,
             data.hora,
+            ids_especializacion=None,
             duracion_horas=duracion,
         )
         nombre_tecnico = _nombre_tecnico_real(db, data.id_tecnico)
+        if data.id_tecnico_2 is not None:
+            nombre_tecnico_2 = _nombre_tecnico_real(db, data.id_tecnico_2)
     cita = Cita(
         id_cliente=client.id_cliente,
         **data.model_dump(
             exclude={
                 "id_tecnico",
+                "id_tecnico_2",
                 "nombre_tecnico",
+                "nombre_tecnico_2",
                 "metodo_pago",
                 "datos_pago",
                 "costo_cita",
@@ -636,7 +715,9 @@ def crear_cita(
             }
         ),
         id_tecnico=data.id_tecnico,
+        id_tecnico_2=data.id_tecnico_2,
         nombre_tecnico=nombre_tecnico,
+        nombre_tecnico_2=nombre_tecnico_2,
         estado="Confirmada",
         costo_cita=tarifa.costo,
     )
@@ -715,10 +796,7 @@ def horas_disponibles_cita(
     usa la duración base del tipo de servicio. Vacío si la fecha es fin de
     semana o pasada."""
     # Hora actual en Colombia (America/Bogota) para filtrar franjas pasadas de hoy.
-    if _BOGOTA_TZ is not None:
-        ahora = datetime.now(_BOGOTA_TZ)
-    else:
-        ahora = datetime.now() - timedelta(hours=5)
+    ahora = _ahora_bogota()
     hoy = ahora.date()
     if not _dia_es_laboral(fecha) or fecha < hoy:
         return []
@@ -726,15 +804,29 @@ def horas_disponibles_cita(
     # 13:00 solo puede agendarse desde las 16:00 en adelante. También se
     # descartan las horas ya pasadas.
     duracion = DURACION_MIN
+    ids_especializacion: Optional[list[int]] = None
+    cantidad_tecnicos = 1
     if items:
         try:
-            duracion = duracion_desde_items(db, json.loads(items)) or duracion_base_tipo(tipo_servicio)
-        except ValueError:
+            datos_items = json.loads(items)
+            duracion = duracion_desde_items(db, datos_items) or duracion_base_tipo(tipo_servicio)
+            from app.services.especialidades import especializaciones_de_productos
+
+            productos = [
+                db.query(Producto)
+                .filter(Producto.id_producto == int(i.get("id_producto")))
+                .first()
+                for i in datos_items
+                if str(i.get("id_producto") or "").isdigit()
+            ]
+            productos_validos = [p for p in productos if p is not None]
+            ids_especializacion = especializaciones_de_productos(productos_validos) or None
+            cantidad_tecnicos = cantidad_tecnicos_requerida(tipo_servicio, productos_validos)
+        except (ValueError, TypeError):
             duracion = duracion_base_tipo(tipo_servicio)
+            ids_especializacion = None
     else:
         duracion = duracion_base_tipo(tipo_servicio)
-
-    tecnicos_activos = _tecnicos_activos(db)
 
     # Cliente opcional para exención 3h por oferta (no falla si no autenticado)
     # Se intenta obtener desde Authorization header / cookie sin exigir autenticación.
@@ -762,18 +854,6 @@ def horas_disponibles_cita(
                     cliente_oferta = None
     except Exception:
         cliente_oferta = None
-
-    def _hay_disponibilidad(hora: str) -> bool:
-        """True si el intervalo [hora, hora+duracion) es agendable."""
-        if tecnico_id is not None:
-            return not tecnico_ocupado(
-                db, tecnico_id, fecha, hora, excluir_cita_id, duracion_horas=duracion
-            )
-        # Sin técnico elegido aún: al menos uno debe estar libre.
-        return any(
-            not tecnico_ocupado(db, t.id_tecnico, fecha, hora, duracion_horas=duracion)
-            for t in tecnicos_activos
-        )
 
     def _es_hora_pasada(h: str) -> bool:
         """True si la franja 'h' ya no puede empezar hoy: requiere 3 h de
@@ -844,21 +924,36 @@ def horas_disponibles_cita(
             return True
         return False
 
-    # Si se filtra por técnico específico, la disponibilidad es solo si ESE técnico está libre
-    # (no se bloquea por citas de otros técnicos en ese horario).
+    # Si se filtra por técnico específico, la disponibilidad es solo si ESE
+    # técnico está libre y es apto (no se bloquea por citas de otros técnicos).
     if tecnico_id is not None:
         return [
             h
             for h in horas_laborales(fecha, duracion)
             if not _es_hora_pasada(h)
-            and not tecnico_ocupado(db, tecnico_id, fecha, h, excluir_cita_id, duracion_horas=duracion)
+            and tecnico_disponible(
+                db,
+                tecnico_id,
+                fecha,
+                h,
+                ids_especializacion=ids_especializacion,
+                excluir_cita_id=excluir_cita_id,
+                duracion_horas=duracion,
+            )
         ]
     return [
         h
         for h in horas_laborales(fecha, duracion)
         if not _es_hora_pasada(h)
-        and not slot_tomado(db, fecha, h, excluir_cita_id, duracion_horas=duracion)
-        and _hay_disponibilidad(h)
+        and hay_disponibilidad(
+            db,
+            fecha,
+            h,
+            ids_especializacion=ids_especializacion,
+            excluir_cita_id=excluir_cita_id,
+            duracion_horas=duracion,
+            cantidad=cantidad_tecnicos,
+        )
     ]
 
 
@@ -1034,6 +1129,10 @@ def gestionar_cita_admin(
             raise HTTPException(status_code=400, detail="La comisión indicada no existe")
         else:
             cita.id_comision_c = data.id_comision_c
+    # Equipo resultante: todos distintos (no puede repetirse el mismo técnico).
+    equipo = [t for t in (cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3) if t is not None]
+    if len(set(equipo)) != len(equipo):
+        raise HTTPException(status_code=400, detail="Los técnicos asignados deben ser distintos")
     db.commit()
     db.refresh(cita)
 
@@ -1476,22 +1575,17 @@ def reasignar_cita_admin(
     nueva_hora = data.hora or cita.hora
     duracion_cita = duracion_estimada_cita(db, cita)
     _validar_franja_cita(nueva_fecha, nueva_hora, duracion_horas=duracion_cita)
-    if slot_tomado(db, nueva_fecha, nueva_hora, excluir_cita_id=cita.id_cita, duracion_horas=duracion_cita):
-        raise HTTPException(status_code=400, detail="Esa fecha y hora ya están reservadas por otra cita")
 
     # Validación de especialización requerida por la cita.
     esp_requerida = especializacion_requerida_cita(db, cita)
-    tecnico_nuevo = db.query(Tecnico).filter(Tecnico.id_tecnico == data.id_tecnico).first()
-    if esp_requerida is not None and tecnico_nuevo is not None:
-        propias = {e.id_especializacion for e in (tecnico_nuevo.especializaciones or [])}
-        if esp_requerida.id_especializacion not in propias:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"El técnico no tiene la especialización requerida "
-                    f"'{esp_requerida.nombre}' para esta cita."
-                ),
-            )
+    ids_esp = [esp_requerida.id_especializacion] if esp_requerida is not None else None
+
+    # Equipo nuevo: todos distintos, activos, aptos y libres (bloqueo para
+    # serializar reservas concurrentes sobre la misma capacidad).
+    ids_equipo = [t for t in (data.id_tecnico, data.id_tecnico_2, data.id_tecnico_3) if t is not None]
+    if len(set(ids_equipo)) != len(ids_equipo):
+        raise HTTPException(status_code=400, detail="Los técnicos asignados deben ser distintos")
+    bloquear_tecnicos(db, ids_equipo)
 
     _validar_tecnico_cita(
         db,
@@ -1501,6 +1595,7 @@ def reasignar_cita_admin(
         nueva_hora,
         excluir_cita_id=cita.id_cita,
         duracion_horas=duracion_cita,
+        ids_especializacion=ids_esp,
     )
     if data.id_tecnico_2 is not None:
         _validar_tecnico_cita(
@@ -1511,6 +1606,7 @@ def reasignar_cita_admin(
             nueva_hora,
             excluir_cita_id=cita.id_cita,
             duracion_horas=duracion_cita,
+            ids_especializacion=ids_esp,
         )
     if data.id_tecnico_3 is not None:
         _validar_tecnico_cita(
@@ -1521,6 +1617,7 @@ def reasignar_cita_admin(
             nueva_hora,
             excluir_cita_id=cita.id_cita,
             duracion_horas=duracion_cita,
+            ids_especializacion=ids_esp,
         )
     # Recordar técnicos previos: el correo va solo a los recién asignados.
     tecnicos_previos = {cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3}
@@ -1680,6 +1777,7 @@ def editar_cita(
     update_data = data.model_dump(exclude_unset=True)
     nueva_fecha = update_data.get("fecha", cita.fecha)
     nueva_hora = update_data.get("hora", cita.hora)
+    nuevo_tipo = update_data.get("tipo_servicio", cita.tipo_servicio)
     hora_reag = datetime.strptime(nueva_hora, "%H:%M").time() if ":" in nueva_hora else time(int(nueva_hora), 0)
     fecha_hora_reag = datetime.combine(nueva_fecha, hora_reag)
     # Exención 3h para cliente preferencial con oferta activa vía reagendamiento:
@@ -1710,22 +1808,62 @@ def editar_cita(
                 exime_3h_reag = True
         except Exception:
             exime_3h_reag = False
-    if not exime_3h_reag and fecha_hora_reag < datetime.now() + timedelta(hours=3):
+    if not exime_3h_reag and fecha_hora_reag < _ahora_bogota() + timedelta(hours=3):
         raise HTTPException(status_code=400, detail="Las citas deben reagendarse con al menos 3 horas de anticipación")
-    duracion_cita = duracion_estimada_cita(db, cita)
+    # Duración real considerando el nuevo tipo de servicio (los productos no
+    # cambian al editar; si cambia el tipo, se valida la duración resultante).
+    if (cita.productos_asociados or []):
+        duracion_cita = duracion_estimada_cita(db, cita)
+    else:
+        duracion_cita = duracion_base_tipo(nuevo_tipo)
     _validar_franja_cita(nueva_fecha, nueva_hora, duracion_horas=duracion_cita)
-    if slot_tomado(db, nueva_fecha, nueva_hora, excluir_cita_id=cita.id_cita, duracion_horas=duracion_cita):
-        raise HTTPException(
-            status_code=400,
-            detail="Esa fecha y hora ya fue reservada por otro cliente. Elige otra franja.",
+
+    # Orden de bloqueo coherente: Tecnico → Cita. Se bloquea el equipo primero
+    # (capacidad) y después la cita. Si el equipo cambió mientras se esperaba el
+    # bloqueo, se reinicia la transacción de forma controlada con el conjunto
+    # vigente (sin retener la cita mientras se bloquean integrantes nuevos).
+    ids_equipo = None
+    for _intento in range(3):
+        ids_equipo = ids_equipo_cita(cita)
+        bloquear_tecnicos(db, ids_equipo)
+        cita = (
+            db.query(Cita)
+            .filter(Cita.id_cita == cita_id)
+            .with_for_update()
+            .populate_existing()
+            .first()
         )
-    if cita.id_tecnico is not None:
-        _validar_tecnico_cita(
+        if cita is None or cita.id_cliente != client.id_cliente:
+            raise HTTPException(status_code=404, detail="Cita no encontrada")
+        if cita.estado not in ESTADOS_EDITABLES:
+            raise HTTPException(status_code=400, detail="No se puede modificar una cita finalizada o cancelada")
+        ids_equipo_fresco = ids_equipo_cita(cita)
+        if set(ids_equipo_fresco) == set(ids_equipo):
+            ids_equipo = ids_equipo_fresco
+            break
+        # El equipo cambió: liberar bloqueos y reintentar con el conjunto nuevo.
+        db.rollback()
+        cita = (
+            db.query(Cita)
+            .filter(Cita.id_cita == cita_id, Cita.id_cliente == client.id_cliente)
+            .first()
+        )
+        if cita is None:
+            raise HTTPException(status_code=404, detail="Cita no encontrada")
+    else:
+        raise HTTPException(
+            status_code=409,
+            detail="La cita cambió repetidamente mientras se intentaba actualizar. Inténtalo de nuevo.",
+        )
+
+    ids_esp = especializaciones_requeridas_cita(db, cita)
+    if ids_equipo:
+        validar_equipo_tecnicos(
             db,
-            cita.id_tecnico,
-            update_data.get("tipo_servicio", cita.tipo_servicio),
-            update_data.get("fecha", cita.fecha),
-            update_data.get("hora", cita.hora),
+            ids_equipo,
+            nueva_fecha,
+            nueva_hora,
+            ids_especializacion=ids_esp,
             excluir_cita_id=cita.id_cita,
             duracion_horas=duracion_cita,
         )
@@ -2075,6 +2213,7 @@ def aceptar_oferta(
 # Productos asociados a una cita
 # ============================================================
 
+# Agrupa los campos de CitaProductoCreate: id_producto, id_variante, cantidad, notas.
 class CitaProductoCreate(BaseModel):
     id_producto: int
     id_variante: Optional[int] = None
@@ -2082,6 +2221,7 @@ class CitaProductoCreate(BaseModel):
     notas: Optional[str] = None
 
 
+# Agrupa los campos de CitaProductoResponse: id_cita_producto, id_producto, id_variante, cantidad, notas y los demás declarados abajo.
 class CitaProductoResponse(BaseModel):
     id_cita_producto: int
     id_producto: int
@@ -2095,6 +2235,7 @@ class CitaProductoResponse(BaseModel):
     variante_tamano: Optional[str] = None
 
 
+# Consulta Cita.
 def _cita_es_del_cliente(db: Session, cita_id: int, id_cliente: int) -> bool:
     return (
         db.query(Cita)
@@ -2104,6 +2245,7 @@ def _cita_es_del_cliente(db: Session, cita_id: int, id_cliente: int) -> bool:
     )
 
 
+# Consulta Producto, ProductoVariante.
 def _serializar_producto_cita(db: Session, cp: CitaProducto) -> CitaProductoResponse:
     producto = db.query(Producto).filter(Producto.id_producto == cp.id_producto).first()
     variante = None

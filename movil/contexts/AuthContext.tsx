@@ -105,6 +105,7 @@ async function construirUsuario(
   }
 }
 
+// Comunica con el backend mediante API "/auth/session"; accede a AsyncStorage para conservar o recuperar datos locales.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [usuario, setUsuario] = useState<UsuarioActual | null>(null);

@@ -42,6 +42,7 @@ import {
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Comunica con el backend mediante API "/clients/me/foto"; prepara FormData para enviar campos y archivos; programa una actualización periódica.
 export default function PerfilScreen() {
   const { usuario, avatar, setAvatar, actualizarUsuario } = useAuth();
   const { t } = useIdioma();
@@ -113,6 +114,7 @@ export default function PerfilScreen() {
     };
   }, [cooldown]);
 
+  // Comunica con el backend mediante API "/clients/me/foto"; prepara FormData para enviar campos y archivos.
   const cambiarFoto = async () => {
     const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permiso.granted) return;

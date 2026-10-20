@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de consultas. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_CONSULTAS: Record<string, { es: string; en: string }> = {
   'adm.consultas.titulo': { es: 'Solicitudes', en: 'Requests' },
   'adm.consultas.tituloCuentas': { es: 'Cuentas inhabilitadas', en: 'Disabled accounts' },

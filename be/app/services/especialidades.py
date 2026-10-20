@@ -12,6 +12,7 @@ Centraliza las reglas:
 from datetime import date
 from typing import Iterable, Optional
 
+from fastapi import HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -52,6 +53,26 @@ def horas_producto(producto) -> float:
 def duracion_base_tipo(tipo_servicio: Optional[str]) -> float:
     """Duración por defecto cuando la cita no tiene productos asociados."""
     return 1.5 if (tipo_servicio or "").strip().lower() == "instalacion" else 1.0
+
+
+def cantidad_tecnicos_requerida(tipo_servicio: Optional[str], productos: Iterable) -> int:
+    """Nº de técnicos que exige una instalación según los productos y el tipo
+    de servicio (misma regla que el checkout): solo «instalacion» escala con
+    ``tecnicos_requeridos``; el resto usa 1 técnico."""
+    import unicodedata
+
+    tipo_norm = "".join(
+        c for c in unicodedata.normalize("NFD", str(tipo_servicio or "").lower())
+        if unicodedata.category(c) != "Mn"
+    )
+    if tipo_norm != "instalacion":
+        return 1
+    requeridos = [
+        int(p.tecnicos_requeridos or 1)
+        for p in (productos or [])
+        if p is not None and getattr(p, "tecnicos_requeridos", None)
+    ]
+    return max(requeridos) if requeridos else 1
 
 
 def duracion_desde_items(db: Session, items: Optional[Iterable[dict]]) -> Optional[float]:
@@ -126,6 +147,7 @@ def tecnico_cubre(
     return requeridas.issubset(propias)
 
 
+# Consulta Tecnico.
 def _tecnicos_activos(db: Session) -> list:
     from app.models.tecnico import Tecnico
     from app.models.user import User
@@ -148,22 +170,15 @@ def candidatos_para_especializaciones(
 ) -> list:
     """Técnicos activos que cubren todas las especializaciones pedidas y están
     libres durante toda la duración del servicio (si se indica fecha/hora).
-    Ordenados por nombre."""
-    excluir = set(excluir_ids or [])
-    candidatos = [
-        t
-        for t in _tecnicos_activos(db)
-        if t.id_tecnico not in excluir and tecnico_cubre(t, ids_especializacion)
-    ]
-    if fecha is not None:
-        candidatos = [
-            t
-            for t in candidatos
-            if not tecnico_ocupado(
-                db, t.id_tecnico, fecha, hora, duracion_horas=duracion_horas
-            )
-        ]
-    return sorted(candidatos, key=lambda t: ((t.usuario.first_name + " " + t.usuario.last_name) if t.usuario else ""))
+    Ordenados por nombre. Delega en ``tecnicos_disponibles`` (fuente común)."""
+    if fecha is None:
+        return sorted(
+            [t for t in _tecnicos_activos(db) if tecnico_cubre(t, ids_especializacion)],
+            key=lambda t: ((t.usuario.first_name + " " + t.usuario.last_name) if t.usuario else ""),
+        )
+    return tecnicos_disponibles(
+        db, fecha, hora, ids_especializacion, excluir_ids, None, duracion_horas
+    )
 
 
 def mejor_tecnico_para(
@@ -187,15 +202,25 @@ def buscar_proximo_horario(
     excluir_ids: Optional[Iterable[int]] = None,
     duracion_horas: float = DURACION_MIN,
     max_dias: int = 10,
+    excluir_slots: Optional[Iterable[tuple]] = None,
+    excluir_propuestas: Optional[Iterable[tuple]] = None,
 ):
     """Busca el primer hueco disponible (día laborable, franja 08-18) a partir
     de `desde_fecha` para un técnico que cubra las especializaciones pedidas.
     El mismo día solo se aceptan horas posteriores a `desde_hora`.
 
+    ``excluir_slots``: conjunto de ``(fecha, hora)`` ya rechazadas (p. ej. por
+    un secundario ocupado) para no volver a proponerlas en llamadas sucesivas.
+
+    ``excluir_propuestas`` descarta (fecha, hora, técnico) sin eliminar otros
+    candidatos de esa misma franja. La confirmación debe revalidar bajo bloqueo.
+
     Devuelve (fecha, hora, tecnico) o None si no hay hueco en max_días."""
     from datetime import timedelta
 
     excluir = set(excluir_ids or [])
+    slots_excluidos = set(excluir_slots or [])
+    propuestas_excluidas = set(excluir_propuestas or [])
     horas = horas_laborales(desde_fecha, duracion_horas)
     try:
         idx = horas.index((desde_hora or "08:00")[:5]) if (desde_hora or "")[:5] in horas else 0
@@ -208,14 +233,17 @@ def buscar_proximo_horario(
             continue
         franjas = horas if delta > 0 else horas[idx:]
         for h in franjas:
-            candidato = mejor_tecnico_para(
+            if (f, h) in slots_excluidos:
+                continue
+            candidatos = candidatos_para_especializaciones(
                 db, ids_especializacion, fecha=f, hora=h,
-                excluir_ids=excluir, 
+                excluir_ids=excluir, duracion_horas=duracion_horas,
             )
-            if candidato is not None and not tecnico_ocupado(
-                db, candidato.id_tecnico, f, h, duracion_horas=duracion_horas
-            ):
-                return f, h, candidato
+            for candidato in candidatos:
+                if ((f, h, candidato.id_tecnico) not in propuestas_excluidas
+                        and not tecnico_ocupado(db, candidato.id_tecnico, f, h,
+                                               duracion_horas=duracion_horas)):
+                    return f, h, candidato
         horas = horas_laborales(f, duracion_horas)
     return None
 
@@ -235,93 +263,203 @@ def _dia_es_laboral(fecha: date) -> bool:
 
 
 def horas_laborales(fecha: date, duracion_horas: float = DURACION_MIN) -> list[str]:
-    """Franjas horarias de inicio válidas: 08:00, 11:00, 14:00 y 17:00
-    (cada 3 horas a partir de las 8; la última cita es a las 17:00)."""
-    paso = 3  # entre cita y cita transcurren 3 horas, hasta las 17 inclusive
-    return [f"{h:02d}:00" for h in range(HORA_INICIO, HORA_FIN, paso)]
+    """Inicios de franja válidos: 08:00, 11:00, 14:00 y 17:00, conservando la
+    cuadrícula actual. Solo se ofrecen los inicios cuyo servicio completo cabe
+    dentro de la jornada ([inicio, inicio+duracion) ≤ HORA_FIN)."""
+    paso = 3
+    fin_jornada = HORA_FIN * 60
+    inicios = [f"{h:02d}:00" for h in range(HORA_INICIO, HORA_FIN, paso)]
+    return [
+        h
+        for h in inicios
+        if _hora_a_minutos(h) + round(duracion_horas * 60) <= fin_jornada
+    ]
 
 
-def slot_tomado(
+def tecnico_disponible(
     db: Session,
+    id_tecnico: Optional[int],
     fecha: date,
     hora: str,
+    ids_especializacion: Optional[Iterable[int]] = None,
     excluir_cita_id: Optional[int] = None,
     duracion_horas: float = DURACION_MIN,
 ) -> bool:
-    """True si el intervalo [hora, hora+duracion) se cruza con alguna cita
-    activa de la fecha (sin contar `excluir_cita_id`). Una franja solo puede
-    ser reservada por un cliente a la vez."""
-    nueva_ini = _hora_a_minutos(hora)
-    if nueva_ini is None:
+    """Fuente común de disponibilidad por técnico: True si existe, está activo,
+    cubre las especializaciones requeridas (si las hay) y está libre durante
+    todo el intervalo [hora, hora+duracion). No restringe por especialidad si no
+    se pide ninguna."""
+    if id_tecnico is None:
         return False
-    nueva_fin = nueva_ini + round(duracion_horas * 60)
-    citas = db.query(Cita).filter(
-        Cita.fecha == fecha,
-        Cita.estado.in_(ESTADOS_OCUPAN),
+    from app.models.tecnico import Tecnico
+
+    tecnico = db.query(Tecnico).filter(Tecnico.id_tecnico == id_tecnico).first()
+    if (
+        not tecnico
+        or not tecnico.usuario
+        or not tecnico.usuario.is_active
+        or tecnico.usuario.id_rol_u != 2
+    ):
+        return False
+    if ids_especializacion and not tecnico_cubre(tecnico, ids_especializacion):
+        return False
+    return not tecnico_ocupado(
+        db, id_tecnico, fecha, hora, excluir_cita_id, duracion_horas=duracion_horas
     )
-    if excluir_cita_id is not None:
-        citas = citas.filter(Cita.id_cita != excluir_cita_id)
-    for cita in citas.all():
-        ini = _hora_a_minutos(cita.hora)
-        if ini is None:
+
+
+def tecnicos_disponibles(
+    db: Session,
+    fecha: date,
+    hora: str,
+    ids_especializacion: Optional[Iterable[int]] = None,
+    excluir_ids: Optional[Iterable[int]] = None,
+    excluir_cita_id: Optional[int] = None,
+    duracion_horas: float = DURACION_MIN,
+) -> list:
+    """Técnicos activos y aptos (cubren las especializaciones pedidas) que
+    están libres durante todo el intervalo, ordenados por nombre."""
+    excluir = set(excluir_ids or [])
+    resultado = []
+    for t in _tecnicos_activos(db):
+        if t.id_tecnico in excluir:
             continue
-        # Ventana fija de 3 h: una cita deja el hueco ocupado para OTROS
-        # clientes hasta 3 horas después de su inicio (el técnico puede
-        # desplazarse a otra agenda dentro de ese tiempo).
-        fin = ini + 180
-        if _se_solapan(nueva_ini, nueva_fin, ini, fin):
-            return True
-    return False
+        if ids_especializacion and not tecnico_cubre(t, ids_especializacion):
+            continue
+        if tecnico_ocupado(
+            db, t.id_tecnico, fecha, hora, excluir_cita_id, duracion_horas=duracion_horas
+        ):
+            continue
+        resultado.append(t)
+    return sorted(
+        resultado,
+        key=lambda t: ((t.usuario.first_name + " " + t.usuario.last_name) if t.usuario else ""),
+    )
 
 
-def auto_en_camino(db: Session, pedido) -> None:
-    """Regla automática de estado de entrega: cuando falten 5 minutos para
-    cumplirse las 3 horas desde el inicio de la franja, el pedido pasa a
-    'En camino'. Persiste el cambio (idempotente)."""
-    from datetime import datetime, time, timedelta
-
-    if getattr(pedido, "estado_entrega", None) != "Asignada":
-        return
-    if not getattr(pedido, "fecha_entrega", None):
-        return
-    try:
-        partes = (pedido.hora_entrega or "10:00").split(":")
-        inicio = datetime.combine(
-            pedido.fecha_entrega, time(int(partes[0]), int(partes[1]))
+def hay_disponibilidad(
+    db: Session,
+    fecha: date,
+    hora: str,
+    ids_especializacion: Optional[Iterable[int]] = None,
+    excluir_ids: Optional[Iterable[int]] = None,
+    excluir_cita_id: Optional[int] = None,
+    duracion_horas: float = DURACION_MIN,
+    cantidad: int = 1,
+) -> bool:
+    """True si existen al menos `cantidad` técnicos activos, aptos y libres
+    durante el intervalo (para reservar una cita que requiere ese equipo)."""
+    return (
+        len(
+            tecnicos_disponibles(
+                db, fecha, hora, ids_especializacion, excluir_ids,
+                excluir_cita_id, duracion_horas,
+            )
         )
-    except (TypeError, ValueError, IndexError):
-        return
-    ahora = datetime.now()
-    umbral = inicio + timedelta(hours=2, minutes=55)
-    fin_ventana = inicio + timedelta(hours=8)
-    if umbral <= ahora <= fin_ventana:
-        pedido.estado_entrega = "En camino"
-        db.commit()
+        >= cantidad
+    )
 
-        # Notificar al cliente que su pedido va en camino.
-        try:
-            from app.models.cliente import Cliente as ClienteModel
-            from app.services.notificaciones import notificar_en_camino_cliente
 
-            cliente = db.query(ClienteModel).filter(ClienteModel.id_cliente == pedido.id_cliente_pe).first()
-            if cliente and cliente.email:
-                nombre_cliente = f"{cliente.first_name} {cliente.last_name}".strip() or "Cliente"
-                notificar_en_camino_cliente(
-                    db,
-                    cliente_id=cliente.id_cliente,
-                    correo=cliente.email,
-                    cliente_nombre=nombre_cliente,
-                    datos={
-                        "pedido": pedido.id_pedido,
-                        "fecha": pedido.fecha_entrega.strftime("%d/%m/%Y") if pedido.fecha_entrega else "-",
-                        "hora": pedido.hora_entrega or "-",
-                        "tecnico": pedido.nombre_tecnico_entrega or "técnico",
-                        "telefono_tecnico": None,
-                    },
-                )
-                db.commit()
-        except Exception:
-            pass
+def bloquear_tecnicos(db: Session, ids_tecnicos: Iterable[int]) -> list:
+    """Bloquea (FOR UPDATE) las filas de los técnicos del equipo en orden
+    ascendente de id. Serializa reservas sobre la misma capacidad incluso
+    cuando aún no existe ninguna cita/entrega en ese horario. Debe invocarse
+    antes de validar y confirmar; el bloqueo se libera al commit/rollback."""
+    from app.models.tecnico import Tecnico
+
+    ids = sorted({int(i) for i in (ids_tecnicos or []) if i is not None})
+    if not ids:
+        return []
+    return (
+        db.query(Tecnico)
+        .filter(Tecnico.id_tecnico.in_(ids))
+        .order_by(Tecnico.id_tecnico)
+        .with_for_update()
+        .populate_existing()
+        .all()
+    )
+
+
+def ids_equipo_cita(cita) -> list[int]:
+    """Ids únicos de los técnicos del equipo de una cita (principal, segundo y
+    tercero), sin duplicados y sin None."""
+    return list(dict.fromkeys(
+        t for t in (getattr(cita, "id_tecnico", None), getattr(cita, "id_tecnico_2", None), getattr(cita, "id_tecnico_3", None)) if t is not None
+    ))
+
+
+def especializaciones_requeridas_cita(db: Session, cita) -> list[int]:
+    """Ids de especialización exigidos por una cita: la guardada en la cita o,
+    en su defecto, la derivada de sus productos asociados (unión)."""
+    if getattr(cita, "id_especializacion", None):
+        return [cita.id_especializacion]
+    productos = [cp.producto for cp in (getattr(cita, "productos_asociados", None) or []) if cp.producto is not None]
+    if not productos:
+        return []
+    return especializaciones_de_productos(productos)
+
+
+def requisitos_cita(db: Session, cita) -> tuple[float, list[int]]:
+    """(duración_horas, ids_especializacion) de una cita: duración real según
+    productos/tipo de servicio y especializaciones exigidas. Fuente común para
+    consultar y confirmar con las mismas reglas."""
+    return duracion_estimada_cita(db, cita), especializaciones_requeridas_cita(db, cita)
+
+
+def validar_equipo_tecnicos(
+    db: Session,
+    ids_tecnicos: Iterable[int],
+    fecha: date,
+    hora: str,
+    ids_especializacion: Optional[Iterable[int]] = None,
+    excluir_cita_id: Optional[int] = None,
+    duracion_horas: float = DURACION_MIN,
+) -> list:
+    """Valida un equipo completo: todos distintos, existentes, activos, aptos
+    (cubren las especializaciones requeridas) y libres durante el intervalo.
+    Devuelve los objetos Tecnico validados.
+
+    Estados: 400 para entradas inválidas (ids duplicados o inexistentes);
+    409 para conflictos de capacidad/disponibilidad (ocupado, inactivo, sin la
+    especialización requerida). No valida si la lista está vacía (sin equipo).
+
+    Orden de recursos para TODO el equipo y TODA la transacción (sin intercalar
+    User entre integrantes): Tecnico (ya bloqueado) → Cita/Pedido de todos →
+    User de todos. La cuenta se relee con bloqueo porque bloquear ``Tecnico`` no
+    actualiza ``usuarios``."""
+    from app.models.tecnico import Tecnico
+    from app.models.user import User
+
+    ids = [int(i) for i in (ids_tecnicos or []) if i is not None]
+    if len(set(ids)) != len(ids):
+        raise HTTPException(status_code=400, detail="Los técnicos asignados deben ser distintos")
+    ids = sorted(ids)
+
+    # Pasada 1: existencia + aptitud + ocupación (bloquea Cita/Pedido de todos).
+    tecnicos = []
+    for tid in ids:
+        tecnico = db.query(Tecnico).filter(Tecnico.id_tecnico == tid).first()
+        if not tecnico:
+            raise HTTPException(status_code=400, detail="Uno de los técnicos no existe")
+        if ids_especializacion and not tecnico_cubre(tecnico, ids_especializacion):
+            raise HTTPException(status_code=409, detail="Un técnico no tiene la especialización requerida para este servicio")
+        if tecnico_ocupado(db, tid, fecha, hora, excluir_cita_id, duracion_horas=duracion_horas, for_update=True):
+            raise HTTPException(status_code=409, detail="Un técnico no está disponible en esa fecha y hora")
+        tecnicos.append(tecnico)
+
+    # Pasada 2: cuenta activa vigente de todos (después de Cita/Pedido, para
+    # conservar el orden global Tecnico → Cita/Pedido → User).
+    for tecnico in tecnicos:
+        usuario = (
+            db.query(User)
+            .filter(User.id_usuario == tecnico.id_usuario_t)
+            .with_for_update()
+            .populate_existing()
+            .first()
+        )
+        if not usuario or not usuario.is_active or usuario.id_rol_u != 2:
+            raise HTTPException(status_code=409, detail="Uno de los técnicos ya no está disponible")
+    return tecnicos
 
 
 def tecnico_ocupado(
@@ -331,12 +469,18 @@ def tecnico_ocupado(
     hora: str | None = None,
     excluir_cita_id: Optional[int] = None,
     duracion_horas: float = DURACION_MIN,
+    for_update: bool = False,
 ) -> bool:
     """True si el técnico ya tiene una cita activa (Pendiente/Confirmada)
     que se cruce con el intervalo [hora, hora+duracion) en la fecha indicada
     (o cualquier cita ese día si no se pasa `hora`). También considera las
     entregas activas —por solapamiento de su rango horario— y las citas donde
-    es el segundo asignado."""
+    es el segundo asignado.
+
+    ``for_update=True`` convierte las lecturas de citas y entregas en lecturas
+    con bloqueo (current read), de modo que, tras adquirir el bloqueo del
+    técnico, se vean los cambios confirmados por otra sesión mientras se
+    esperaba; evita validar contra una instantánea antigua (REPEATABLE READ)."""
     if id_tecnico is None:
         return False
     q_citas = db.query(Cita).filter(
@@ -350,6 +494,8 @@ def tecnico_ocupado(
     )
     if excluir_cita_id is not None:
         q_citas = q_citas.filter(Cita.id_cita != excluir_cita_id)
+    if for_update:
+        q_citas = q_citas.with_for_update().populate_existing()
     nueva_ini = _hora_a_minutos(hora) if hora is not None else None
     for cita in q_citas.all():
         if nueva_ini is None:
@@ -368,6 +514,8 @@ def tecnico_ocupado(
         Pedido.fecha_entrega == fecha,
         Pedido.estado_entrega.in_(ESTADOS_ENTREGA_OCUPAN),
     )
+    if for_update:
+        q_entregas = q_entregas.with_for_update().populate_existing()
     if nueva_ini is None:
         return q_entregas.first() is not None
     nueva_fin = nueva_ini + round(duracion_horas * 60)
@@ -397,14 +545,19 @@ def tecnico_libre_en_rango(
     hora_ini: str,
     hora_fin: str | None = None,
     excluir_pedido_id: Optional[int] = None,
+    for_update: bool = False,
 ) -> bool:
     """True si el técnico puede cubrir la franja [hora_ini, hora_fin] de la
-    fecha: ninguna cita activa ni otra entrega activa debe solaparse."""
+    fecha: ninguna cita activa ni otra entrega activa debe solaparse.
+
+    ``for_update=True`` convierte las lecturas en lecturas con bloqueo (current
+    read) para ver los cambios confirmados por otra sesión mientras se esperaba
+    el bloqueo del técnico."""
     if id_tecnico is None:
         return False
     ini_n = _hora_a_minutos(hora_ini)
     if ini_n is None:
-        return True
+        return False
     fin_n = _hora_a_minutos(hora_fin)
     if fin_n is None or fin_n <= ini_n:
         fin_n = ini_n + 60
@@ -418,6 +571,8 @@ def tecnico_libre_en_rango(
         Cita.fecha == fecha,
         Cita.estado.in_(ESTADOS_OCUPAN),
     )
+    if for_update:
+        q_citas = q_citas.with_for_update().populate_existing()
     for cita in q_citas.all():
         ini = _hora_a_minutos(cita.hora)
         if ini is None:
@@ -435,6 +590,8 @@ def tecnico_libre_en_rango(
     )
     if excluir_pedido_id is not None:
         q_entregas = q_entregas.filter(Pedido.id_pedido != excluir_pedido_id)
+    if for_update:
+        q_entregas = q_entregas.with_for_update().populate_existing()
     for pedido in q_entregas.all():
         ini_e, fin_e = ventana_entrega(pedido)
         if _se_solapan(ini_n, fin_n, ini_e, fin_e):

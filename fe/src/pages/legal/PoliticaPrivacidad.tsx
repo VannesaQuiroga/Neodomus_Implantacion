@@ -1,3 +1,4 @@
+// Contenido de la política de privacidad dentro de la plantilla legal.
 import { FaShieldHalved } from 'react-icons/fa6';
 import LegalPage from '@components/legal/LegalPage';
 

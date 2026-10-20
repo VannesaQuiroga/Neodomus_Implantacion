@@ -1,3 +1,4 @@
+// Controla el acceso al contenido reservado a la sesión del técnico.
 import React, { type ReactNode } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { useRouter } from "expo-router";

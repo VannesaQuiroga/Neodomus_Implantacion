@@ -1,3 +1,4 @@
+// Ruta móvil de citas. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -41,6 +42,7 @@ function formatFechaLarga(fecha: string, idioma: string) {
   }
 }
 
+// Comunica con el backend mediante API "/tecnicos/mis-citas", API `/tecnicos/citas/${id}/estado`.
 export default function TecnicoCitasScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const { t, idioma } = useIdioma();
@@ -67,6 +69,7 @@ export default function TecnicoCitasScreen() {
     setHoraFiltro("");
   };
 
+  // Comunica con el backend mediante API "/tecnicos/mis-citas".
   const fetchCitas = async () => {
     try {
       const res = await apiFetch<any[]>("/tecnicos/mis-citas");
@@ -77,6 +80,7 @@ export default function TecnicoCitasScreen() {
   useEffect(() => { fetchCitas(); }, []);
   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
 
+  // Comunica con el backend mediante API `/tecnicos/citas/${id}/estado`.
   const actualizarEstado = async (id: number, estado: string) => {
     try {
       await apiFetch(`/tecnicos/citas/${id}/estado`, { method: "PUT", body: JSON.stringify({ estado }) });

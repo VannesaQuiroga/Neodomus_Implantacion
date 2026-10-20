@@ -1,3 +1,4 @@
+// Pantalla AdminProductos de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -25,6 +26,7 @@ interface PaginaProductos {
   data: ProductoAdmin[];
 }
 
+// Comunica con el backend mediante GET `/productos/?${params.toString()}`, PUT `/productos/${producto.id_producto}`, PUT `/productos/${producto.id_producto}/visibilidad` y otras peticiones de esta vista; registra escuchas de eventos para sincronizar la vista.
 const AdminProductos = () => {
   const { t } = useIdioma();
   const [productos, setProductos] = useState<ProductoAdmin[]>([]);
@@ -49,6 +51,7 @@ const AdminProductos = () => {
   const proveedorId = searchParams.get('proveedor');
   const nombreProveedor = productos[0]?.nombre_proveedor || t('adm.productos.proveedorSeleccionado');
 
+  // Comunica con el backend mediante GET `/productos/?${params.toString()}`.
   const cargar = async (search = '', silencioso = false, pagina: number = page) => {
     if (!silencioso) setCargando(true);
     if (!silencioso) setError(false);
@@ -136,6 +139,7 @@ const AdminProductos = () => {
     cargar(busqueda.trim(), false, 1);
   };
 
+  // Comunica con el backend mediante PUT `/productos/${producto.id_producto}`.
   const toggleEstado = async (producto: ProductoAdmin) => {
     try {
       const nuevoEstado = producto.estado_producto === 'activo' ? 'inactivo' : 'activo';
@@ -163,6 +167,7 @@ const AdminProductos = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/productos/${producto.id_producto}/visibilidad`.
   const toggleVisibilidad = async (producto: ProductoAdmin) => {
     try {
       const res = await api.put(`/productos/${producto.id_producto}/visibilidad`);
@@ -206,6 +211,7 @@ const AdminProductos = () => {
     setMostrarSolicitud(true);
   };
 
+  // Comunica con el backend mediante POST `/productos/proveedores/${proveedorId}/solicitar-reabastecimiento`.
   const solicitarReabastecimiento = async (e: React.FormEvent) => {
     e.preventDefault();
     type ItemSolicitud = {

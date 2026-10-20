@@ -71,9 +71,11 @@ export interface CategoriaProducto {
 export const listarProductos = () =>
   apiFetch<ListaProductos>("/productos/?limit=100");
 
+// Comunica con el backend mediante API "/productos/categorias".
 export const obtenerCategorias = () =>
   apiFetch<CategoriaProducto[]>("/productos/categorias");
 
+// Comunica con el backend mediante API `/productos/${id}`.
 export const obtenerProducto = (id: number | string) =>
   apiFetch<Producto>(`/productos/${id}`);
 

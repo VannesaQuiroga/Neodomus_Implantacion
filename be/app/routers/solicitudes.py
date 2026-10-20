@@ -1,3 +1,4 @@
+# Rutas de solicitudes. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -165,6 +166,7 @@ def _alertar_admin_nueva_solicitud(db: Session, persona: Cliente | User, tipo: s
         _programar_correo(correo, subject, body)
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -217,6 +219,7 @@ def listar_solicitudes(
     ]
 
 
+# Consulta Cliente, SolicitudCuenta; confirma los cambios con la sesión de base de datos.
 async def _resolver(solicitud_id: int, db: Session, aprobar: bool, admin: User) -> AdminSolicitudResponse:
     solicitud = db.query(SolicitudCuenta).filter(SolicitudCuenta.id == solicitud_id).first()
     if not solicitud:
@@ -341,6 +344,7 @@ def listar_solicitudes_empleados(
     return respuesta
 
 
+# Consulta User, SolicitudHabilitacionEmpleado; confirma los cambios con la sesión de base de datos.
 async def _resolver_empleado(
     solicitud_id: int,
     db: Session,

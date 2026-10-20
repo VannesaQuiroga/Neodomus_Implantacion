@@ -1,3 +1,4 @@
+// Pantalla ProductoDetalle de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaCheck, FaTruckFast, FaShieldHalved, FaRotateLeft, FaUsers, FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
@@ -5,6 +6,7 @@ import api from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useFavoritos } from '@utils/favoritos';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { parseMetros, formatMetros } from '@utils/metros';
 import '@styles/producto-detalle.css';
 
 interface Producto {
@@ -41,8 +43,6 @@ interface Producto {
     stock: number;
   }[];
 }
-
-const METROS_OPCIONES = [10, 20, 30, 40, 50];
 
 const PALETAS: Record<number, string[]> = {
   1: ['Blanco', 'Negro', 'Gris'],
@@ -142,6 +142,7 @@ const CARACTERISTICAS: Record<number, string[]> = {
   ],
 };
 
+// Comunica con el backend mediante GET `/productos/${id}`; registra escuchas de eventos para sincronizar la vista.
 const ProductoDetalle = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -163,6 +164,8 @@ const ProductoDetalle = () => {
   const [unidadesMetros, setUnidadesMetros] = useState(1);
   const [imagenActiva, setImagenActiva] = useState<string | null>(null);
   const [displayUnidades, setDisplayUnidades] = useState('1');
+  const [displayMetros, setDisplayMetros] = useState('10');
+  const [metrosError, setMetrosError] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [recomendados, setRecomendados] = useState<Producto[]>([]);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -253,6 +256,7 @@ const ProductoDetalle = () => {
   }, [color, tamano]);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET `/productos/${id}`.
     const fetchProducto = async () => {
       setLoading(true);
       try {
@@ -296,6 +300,7 @@ const ProductoDetalle = () => {
   };
 
   useEffect(() => {
+    // Comunica con el backend mediante GET `/productos/${id}`.
     const refetch = () => {
       api.get(`/productos/${id}`).then((res) => setProducto(res.data)).catch(() => undefined);
     };
@@ -341,7 +346,13 @@ const ProductoDetalle = () => {
       }
       const paramMetros = searchParams.get('metros');
       if (producto.venta_por_metros) {
-        if (paramMetros) setMetros(METROS_OPCIONES.includes(Number(paramMetros)) ? Number(paramMetros) : 10);
+        if (paramMetros) {
+          const r = parseMetros(paramMetros);
+          if (r.valor != null) {
+            setMetros(r.valor);
+            setDisplayMetros(formatMetros(r.valor));
+          }
+        }
         const paramUnidades = searchParams.get('unidades') || searchParams.get('cantidad');
         if (paramUnidades) {
           const u = Math.max(1, Number(paramUnidades) || 1);
@@ -712,24 +723,41 @@ const ProductoDetalle = () => {
                       <div className="detalle-metros-campo">
                         <span className="detalle-metros-label">Metros por unidad</span>
                         <div className="detalle-metros-select-wrap">
-                          <select
+                          <input
+                            type="text"
+                            inputMode="decimal"
                             className="detalle-metros-select"
-                            value={metros}
+                            value={displayMetros}
                             onChange={(e) => {
-                              const nuevo = Number(e.target.value);
+                              // Permite estados temporales (vacío, "1,") y un solo
+                              // separador decimal (coma o punto).
+                              const v = e.target.value.replace(/[^0-9.,]/g, '');
+                              setDisplayMetros(v);
+                              setMetrosError(null);
+                            }}
+                            onBlur={() => {
+                              const r = parseMetros(displayMetros);
+                              if (r.valor == null) {
+                                setMetrosError(r.error ?? 'Cantidad inválida');
+                                setDisplayMetros(formatMetros(metros));
+                                return;
+                              }
+                              const nuevo = r.valor;
                               setMetros(nuevo);
+                              setDisplayMetros(formatMetros(nuevo));
+                              setMetrosError(null);
                               if (nuevo * unidadesMetros > stockDisponible) {
                                 const maxU = Math.max(1, Math.floor(stockDisponible / nuevo) || 1);
                                 if (unidadesMetros > maxU) setUnidadesMetros(maxU);
                               }
                             }}
                             aria-label="Metros por unidad"
-                          >
-                            {METROS_OPCIONES.map(m => (
-                              <option key={m} value={m}>{m} m</option>
-                            ))}
-                          </select>
+                          />
+                          <span className="detalle-metros-unidad">m</span>
                         </div>
+                        {metrosError && (
+                          <span className="detalle-metros-error">{metrosError}</span>
+                        )}
                       </div>
                       <div className="detalle-metros-campo detalle-unidades-campo">
                         <span className="detalle-metros-label">Unidades</span>

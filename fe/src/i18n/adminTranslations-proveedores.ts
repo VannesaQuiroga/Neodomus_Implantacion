@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de proveedores. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_PROVEEDORES: Record<string, { es: string; en: string }> = {
   'adm.proveedores.titulo': { es: 'Proveedores', en: 'Suppliers' },
   'adm.proveedores.subtitulo': { es: 'Proveedores registrados, cuántos productos manejan y su stock para solicitar reabastecimiento.', en: 'Registered suppliers, how many products they handle and their stock to request restocking.' },

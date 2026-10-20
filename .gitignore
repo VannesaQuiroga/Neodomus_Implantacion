@@ -40,6 +40,11 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Playwright (E2E)
+test-results/
+playwright-report/
+.e2e_pedido_id.txt
+
 app-example
 
 # generated native folders

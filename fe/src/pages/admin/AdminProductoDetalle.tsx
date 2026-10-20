@@ -1,3 +1,4 @@
+// Pantalla AdminProductoDetalle de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -98,6 +99,7 @@ const VACIO: EstadoForm = {
   especializaciones_ids: [],
 };
 
+// Comunica con el backend mediante POST '/productos/upload-imagen', GET '/productos/categorias', GET '/productos/proveedores' y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const AdminProductoDetalle = () => {
   const { idioma, t } = useIdioma();
   const { id } = useParams<{ id: string }>();
@@ -139,6 +141,7 @@ const AdminProductoDetalle = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const varianteFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Comunica con el backend mediante POST '/productos/upload-imagen'; prepara FormData para enviar campos y archivos.
   const subirArchivo = async (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -180,6 +183,7 @@ const AdminProductoDetalle = () => {
     }
   };
 
+  // Comunica con el backend mediante GET '/productos/categorias', GET '/productos/proveedores', GET '/especializaciones' y otras peticiones de esta vista.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -263,6 +267,7 @@ const AdminProductoDetalle = () => {
   const setCampo = (campo: keyof EstadoForm, valor: string) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
+  // Comunica con el backend mediante POST '/productos/proveedores', GET '/productos/categorias', GET '/productos/proveedores'.
   const crearProveedor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoProveedor.nombre_proveedor.trim()) {
@@ -357,6 +362,7 @@ const AdminProductoDetalle = () => {
     return null;
   };
 
+  // Comunica con el backend mediante POST '/productos', POST `/productos/${nuevoId}/variantes`, PUT `/productos/${id}`.
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
     const invalido = validar();
@@ -439,6 +445,7 @@ const AdminProductoDetalle = () => {
 
   const agregarVariante = () => setVariantesForm((prev) => [...prev, VARIANTE_VACIA()]);
 
+  // Comunica con el backend mediante DELETE `/productos/${id}/variantes/${v.id}`.
   const quitarVariante = async (i: number, v: VarianteForm) => {
     if (v.id && !esNuevo) {
       setGuardando(true);
@@ -457,6 +464,7 @@ const AdminProductoDetalle = () => {
     setVariantesForm((prev) => prev.filter((_, j) => j !== i));
   };
 
+  // Comunica con el backend mediante PUT `/productos/${id}/variantes/${v.id}`, POST `/productos/${id}/variantes`.
   const guardarVariante = async (i: number, v: VarianteForm) => {
     const invalido = validarVariante(v);
     if (invalido) {
@@ -503,6 +511,7 @@ const AdminProductoDetalle = () => {
     }
   };
 
+  // Comunica con el backend mediante DELETE `/productos/${id}`.
   const eliminar = async () => {
     setGuardando(true);
     try {

@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+﻿// Pantalla AdminInstalaciones de Neodomus. Reúne el estado y las acciones de su vista.
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FaCalendarCheck,
@@ -106,6 +107,7 @@ const NOMBRE_SERVICIO: Record<string, string> = {
   soporte: 'adm.instalaciones.servicio.Soporte técnico',
 };
 
+// Comunica con el backend mediante GET '/citas/all-admin', GET '/tecnicos', GET '/tarifas' y otras peticiones de esta vista.
 const AdminInstalaciones = () => {
   const { idioma, t } = useIdioma();
   const [citas, setCitas] = useState<CitaAdmin[]>([]);
@@ -143,6 +145,7 @@ const AdminInstalaciones = () => {
 
   const POR_PAGINA = 6;
 
+  // Comunica con el backend mediante GET '/citas/all-admin', GET '/tecnicos', GET '/tarifas' y otras peticiones de esta vista.
   const cargar = async (silencioso = false) => {
     if (!silencioso) {
       setCargando(true);
@@ -200,6 +203,7 @@ const AdminInstalaciones = () => {
       return;
     }
     let activo = true;
+    // Comunica con el backend mediante GET `/citas/horas-disponibles?${params.toString()}`.
     const cargarHoras = async () => {
       setAplazarCargandoHoras(true);
       try {
@@ -243,6 +247,7 @@ const AdminInstalaciones = () => {
       return;
     }
     let activo = true;
+    // Comunica con el backend mediante GET `/citas/horas-disponibles?${params.toString()}`.
     const cargarHoras = async () => {
       setAplazarCargandoHoras2(true);
       try {
@@ -286,6 +291,7 @@ const AdminInstalaciones = () => {
       return;
     }
     let activo = true;
+    // Comunica con el backend mediante GET `/citas/horas-disponibles?${params.toString()}`.
     const cargarHoras = async () => {
       setAplazarCargandoHoras3(true);
       try {
@@ -321,6 +327,7 @@ const AdminInstalaciones = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante PUT `/tarifas/${tipo}`.
   const guardarTarifa = async (tipo: string) => {
     const valor = Number((edicionTarifas[tipo] ?? '').replace(/\./g, '').replace(',', '.'));
     if (!valor || valor <= 0) {
@@ -345,6 +352,7 @@ const AdminInstalaciones = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/citas/admin/${cita.id_cita}`.
   const actualizar = async (
     cita: CitaAdmin,
     cambios: {
@@ -400,6 +408,7 @@ const AdminInstalaciones = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/citas/admin/${cita.id_cita}`.
   const cancelarCita = async (cita: CitaAdmin) => {
     setCancelandoId(cita.id_cita);
     try {
@@ -430,6 +439,7 @@ const AdminInstalaciones = () => {
     return !!t && !t.is_active;
   };
 
+  // Comunica con el backend mediante POST `/citas/admin/${cita.id_cita}/reasignar`.
   const reasignar = async (cita: CitaAdmin, idTecnico: number) => {
     setGuardandoId(cita.id_cita);
     try {
@@ -447,6 +457,7 @@ const AdminInstalaciones = () => {
     }
   };
 
+  // Comunica con el backend mediante GET `/citas/admin/${cita.id_cita}/proxima-fecha`.
   const sugerirAplazamiento = async (cita: CitaAdmin) => {
     setAplazandoId(cita.id_cita);
     setSugerencia(null);
@@ -484,6 +495,7 @@ const AdminInstalaciones = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/citas/admin/${sugerencia.id_cita}/reasignar`.
   const confirmarAplazamiento = async () => {
     if (!sugerencia) return;
     const fecha = aplazarFecha || sugerencia.fecha;
@@ -767,6 +779,9 @@ const AdminInstalaciones = () => {
                   {(cita.cliente_nombre || '?').split(/\s+/).filter(Boolean).map((s) => s[0]).slice(0, 2).join('').toUpperCase()}
                 </span>
                 <span className={`ap-badge ${CLASE_ESTADO[cita.estado] || 'neutral'}`}>{t(ESTADO_TRAD[cita.estado] || cita.estado)}</span>
+                {!cita.id_tecnico && (
+                  <span className="ap-badge warn">{t('adm.instalaciones.sinAsignacion')}</span>
+                )}
               </div>
               <div>
                 <h3>{cita.cliente_nombre || t('adm.instalaciones.cliente')}</h3>

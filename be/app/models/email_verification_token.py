@@ -1,3 +1,4 @@
+# Persistencia de email verification token. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
@@ -7,6 +8,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from .cliente import Cliente
 
+# Mapea la tabla «email_verification_tokens»; sus referencias enlazan con clientes.
 class EmailVerificationToken(Base):
     __tablename__ = "email_verification_tokens"
 

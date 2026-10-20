@@ -1,3 +1,4 @@
+// Componente reutilizable themed-text para componer la interfaz de Neodomus.
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';

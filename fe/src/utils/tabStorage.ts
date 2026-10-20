@@ -7,6 +7,7 @@
 const SESSION_ID_KEY = 'neodomus_tab_session_id';
 const SUFFIX = '__tab__';
 
+// accede a sessionStorage para conservar o recuperar datos locales.
 const getSessionId = (): string => {
   try {
     let id = sessionStorage.getItem(SESSION_ID_KEY);
@@ -59,6 +60,7 @@ export const tabSet = (key: string, value: string): void => {
   }
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const tabRemove = (key: string): void => {
   try {
     localStorage.removeItem(scoped(key));
@@ -67,6 +69,7 @@ export const tabRemove = (key: string): void => {
   }
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const tabRemoveAll = (): void => {
   try {
     const keys: string[] = [];

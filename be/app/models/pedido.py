@@ -1,9 +1,11 @@
+# Persistencia de pedido. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime, date
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, Boolean, Numeric, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
+# Mapea la tabla «pedidos»; sus referencias enlazan con clientes.
 class Pedido(Base):
     __tablename__ = "pedidos"
 
@@ -20,6 +22,10 @@ class Pedido(Base):
     estado_entrega: Mapped[str] = mapped_column(String(20), nullable=True)
     entrega_actualizada_en: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     evidencia_entrega_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    # Marcador explícito: True cuando la confirmación de pago pendiente terminó
+    # ATOMICAMENTE (pago + stock + factura + entrega/órdenes). NULL en registros
+    # históricos (evidencia no fiable → conciliación). Nunca se revierte.
+    confirmacion_completa: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
     cliente = relationship("Cliente", foreign_keys=[id_cliente_pe])
     detalles = relationship("DetallePedido", back_populates="pedido")
@@ -30,6 +36,7 @@ class Pedido(Base):
     )
 
 
+# Mapea la tabla «detalle_pedido»; sus referencias enlazan con pedidos, productos.
 class DetallePedido(Base):
     __tablename__ = "detalle_pedido"
 
@@ -39,7 +46,7 @@ class DetallePedido(Base):
     id_servicio_d: Mapped[int] = mapped_column(Integer, nullable=True)
     id_comision_d: Mapped[int] = mapped_column(Integer, nullable=True)
     cantidad_detalle: Mapped[int] = mapped_column(Integer, nullable=True, default=1)
-    cantidad_metros: Mapped[float] = mapped_column(Float, nullable=True)
+    cantidad_metros: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
     precio_unitario_detalle: Mapped[float] = mapped_column(Float, nullable=True)
     subtotal_detalle: Mapped[float] = mapped_column(Float, nullable=True)
     descripcion_detalle: Mapped[str] = mapped_column(Text, nullable=True)

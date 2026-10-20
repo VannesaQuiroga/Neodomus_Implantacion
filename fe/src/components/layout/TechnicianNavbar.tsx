@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianNavbar. Se reutiliza en las pantallas de su área.
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaBars, FaChevronDown, FaRightFromBracket, FaUserGear } from 'react-icons/fa6';
@@ -14,6 +15,7 @@ interface TechnicianNavbarProps {
   onMenuToggle: () => void;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const TechnicianNavbar = ({ onMenuToggle }: TechnicianNavbarProps) => {
   const { logout } = useAuth();
   const { t } = useIdioma();

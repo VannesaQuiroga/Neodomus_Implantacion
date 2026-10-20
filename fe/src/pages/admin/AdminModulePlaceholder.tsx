@@ -1,3 +1,4 @@
+// Muestra una sección administrativa informativa mientras no tiene contenido operativo.
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';

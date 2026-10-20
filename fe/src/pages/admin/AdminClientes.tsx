@@ -1,3 +1,4 @@
+// Pantalla AdminClientes de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUsers, FaCircleInfo, FaMagnifyingGlass, FaEye, FaPowerOff, FaXmark, FaSpinner, FaBox, FaWrench, FaRotateLeft } from 'react-icons/fa6';
@@ -62,6 +63,7 @@ interface DevolucionCliente {
 
 type TabHistorial = 'pedidos' | 'servicios' | 'devoluciones';
 
+// Comunica con el backend mediante GET '/clients', GET `/clients/${cliente.id_cliente}/pedidos`, GET `/clients/${cliente.id_cliente}/servicios` y otras peticiones de esta vista; crea una URL temporal para acceder al archivo recibido.
 const AdminClientes = () => {
   const { t, idioma } = useIdioma();
   const [clientes, setClientes] = useState<ClienteAdmin[]>([]);
@@ -84,6 +86,7 @@ const AdminClientes = () => {
   const [confirmModal, setConfirmModal] = useState<{ cliente: ClienteAdmin; accion: 'inhabilitar' | 'habilitar' } | null>(null);
   const [procesando, setProcesando] = useState(false);
 
+  // Comunica con el backend mediante GET '/clients'.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -149,6 +152,7 @@ const AdminClientes = () => {
     return resultado;
   };
 
+  // Comunica con el backend mediante GET `/clients/${cliente.id_cliente}/pedidos`, GET `/clients/${cliente.id_cliente}/servicios`, GET `/clients/${cliente.id_cliente}/devoluciones`.
   const abrirDetalle = async (cliente: ClienteAdmin) => {
     setClienteDetalle(cliente);
     setCargandoHistorial(true);

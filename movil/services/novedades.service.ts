@@ -171,27 +171,33 @@ export function obtenerTiposNovedad() {
   return apiFetch<string[]>("/novedades/tipos");
 }
 
+// Comunica con el backend mediante API "/novedades/estados".
 export function obtenerEstadosNovedad() {
   return apiFetch<string[]>("/novedades/estados");
 }
 
+// Comunica con el backend mediante API "/novedades/prioridades".
 export function obtenerPrioridadesNovedad() {
   return apiFetch<string[]>("/novedades/prioridades");
 }
 
+// Comunica con el backend mediante API `/novedades/clientes-buscar${params}`.
 export function buscarClientes(q?: string) {
   const params = q ? `?q=${encodeURIComponent(q)}` : "";
   return apiFetch<ClienteBusqueda[]>(`/novedades/clientes-buscar${params}`);
 }
 
+// Comunica con el backend mediante API `/novedades/clientes/${clienteId}/pedidos`.
 export function pedidosCliente(clienteId: number) {
   return apiFetch<PedidoCliente[]>(`/novedades/clientes/${clienteId}/pedidos`);
 }
 
+// Comunica con el backend mediante API `/novedades/clientes/${clienteId}/citas`.
 export function citasCliente(clienteId: number) {
   return apiFetch<CitaCliente[]>(`/novedades/clientes/${clienteId}/citas`);
 }
 
+// Comunica con el backend mediante API "/novedades".
 export function crearNovedad(data: NovedadCrearPayload) {
   return apiFetch<{ id_novedad: number; mensaje: string }>("/novedades", {
     method: "POST",
@@ -199,14 +205,17 @@ export function crearNovedad(data: NovedadCrearPayload) {
   });
 }
 
+// Comunica con el backend mediante API "/novedades/mis-novedades".
 export function listarMisNovedades() {
   return apiFetch<Novedad[]>("/novedades/mis-novedades");
 }
 
+// Comunica con el backend mediante API "/novedades/cliente/novedades".
 export function listarNovedadesCliente() {
   return apiFetch<Novedad[]>("/novedades/cliente/novedades");
 }
 
+// Comunica con el backend mediante API `/novedades/${id}`.
 export function obtenerNovedad(id: number) {
   return apiFetch<NovedadDetalle>(`/novedades/${id}`);
 }
@@ -217,6 +226,7 @@ export interface MensajeClientePayload {
   cliente_visible?: boolean;
 }
 
+// Comunica con el backend mediante API `/novedades/${novedadId}/mensaje-cliente`.
 export function enviarMensajeCliente(novedadId: number, data: MensajeClientePayload) {
   return apiFetch<{ mensaje: string; cliente_visible: boolean }>(
     `/novedades/${novedadId}/mensaje-cliente`,
@@ -224,6 +234,7 @@ export function enviarMensajeCliente(novedadId: number, data: MensajeClientePayl
   );
 }
 
+// Comunica con el backend mediante API `/novedades/${novedadId}/evidencias`.
 export function obtenerEvidencias(novedadId: number) {
   return apiFetch<EvidenciaNovedad[]>(`/novedades/${novedadId}/evidencias`);
 }

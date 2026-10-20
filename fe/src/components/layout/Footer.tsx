@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: Footer. Se reutiliza en las pantallas de su área.
 import { Link } from "react-router-dom";
 import { useIdioma } from "@i18n/IdiomaContext";
 import "../../styles/footer.css";

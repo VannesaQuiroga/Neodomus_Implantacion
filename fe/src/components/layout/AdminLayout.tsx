@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: AdminLayout. Se reutiliza en las pantallas de su área.
 import { Outlet, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import AmbientBackground from './AmbientBackground';
@@ -8,6 +9,7 @@ import { useAdminNotificaciones } from '../../hooks/useAdminNotificaciones';
 import { useAuth } from '@contexts/AuthContext';
 import '@styles/admin-panel.css';
 
+// registra escuchas de eventos para sincronizar la vista.
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { notificaciones, cargando, noLeidas, recargar, marcarLeida } = useAdminNotificaciones();

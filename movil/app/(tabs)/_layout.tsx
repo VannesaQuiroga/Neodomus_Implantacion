@@ -1,3 +1,4 @@
+// Ruta móvil de estructura de navegación. Expo Router la incorpora a la navegación según su ubicación en app/.
 import { Tabs } from "expo-router";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import React from "react";

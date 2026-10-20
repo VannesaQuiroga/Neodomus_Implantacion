@@ -26,7 +26,11 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except ValueError:
+        # Hash no válido/legacy que bcrypt no puede verificar: rechazar.
+        return False
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
@@ -127,6 +131,7 @@ def _token_desde_request(request: Optional[Request], token: Optional[str]) -> Op
     return None
 
 
+# Consulta User, Cliente.
 async def get_current_user(
     request: Request = None,
     token: str = Depends(oauth2_scheme),
@@ -137,6 +142,10 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="No autenticado")
     payload = decode_token(token)
     if not payload:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    if payload.get("type") != "access":
+        # Un token de refresco no sirve como token de acceso (y viceversa):
+        # cada tipo se usa únicamente para su propósito.
         raise HTTPException(status_code=401, detail="Token inválido")
     user_type = payload.get("user_type")
     if user_type not in ("employee", "client"):
@@ -175,6 +184,7 @@ async def get_current_user(
             raise HTTPException(status_code=401, detail="Cliente no encontrado o inactivo")
         return client
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 async def get_current_employee(
     request: Request = None,
     token: str = Depends(oauth2_scheme),
@@ -190,6 +200,7 @@ async def get_current_employee(
         )
     return user
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 async def get_current_client(
     request: Request = None,
     token: str = Depends(oauth2_scheme),
@@ -203,6 +214,7 @@ async def get_current_client(
         )
     return user
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def require_roles(*allowed_roles: str):
     def decorator(func):
         async def wrapper(*args, current_user: User = Depends(get_current_employee), db: Session = Depends(get_db), **kwargs):

@@ -1,3 +1,4 @@
+// Normaliza nombres para mostrarlos con iniciales en mayúscula y espacios uniformes.
 export const tituloNombre = (valor: string | null | undefined): string => {
   if (!valor) return '';
   return valor

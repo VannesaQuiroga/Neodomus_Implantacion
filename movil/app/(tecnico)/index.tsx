@@ -77,6 +77,7 @@ const fechaLocal = () => {
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
 };
 
+// Comunica con el backend mediante API "/tecnicos/mis-citas", API "/tecnicos/mis-entregas", API "/calificaciones/mis" y otras peticiones de esta vista; programa una actualización periódica.
 export default function TecnicoDashboard() {
   const { usuario } = useAuth();
   const { t } = useIdioma();
@@ -101,6 +102,7 @@ export default function TecnicoDashboard() {
   const [recogiendoId, setRecogiendoId] = useState<number | null>(null);
   const [confirmRecogida, setConfirmRecogida] = useState<Entrega | null>(null);
 
+  // Comunica con el backend mediante API "/tecnicos/mis-citas", API "/tecnicos/mis-entregas", API "/calificaciones/mis" y otras peticiones de esta vista.
   const fetchAll = async () => {
     setLoading(true);
     try {
@@ -156,6 +158,7 @@ export default function TecnicoDashboard() {
   const fechaHoyTexto = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const nombreTecnico = usuario?.nombre?.split(" ")[0] || "Técnico";
 
+  // Comunica con el backend mediante API `/tecnicos/citas/${id_cita}/estado`.
   const actualizarEstado = async (id_cita: number, nuevoEstado: string) => {
     setUpdatingId(id_cita);
     try {
@@ -175,6 +178,7 @@ export default function TecnicoDashboard() {
     setModalOpen(true);
   };
 
+  // Comunica con el backend mediante API "/notificaciones/leer-todas".
   const marcarTodasLeidas = async () => {
     if (notificaciones.length === 0 || marcandoLeidas) return;
     setMarcandoLeidas(true);
@@ -192,6 +196,7 @@ export default function TecnicoDashboard() {
     setConfirmRecogida(entrega);
   };
 
+  // Comunica con el backend mediante API `/tecnicos/entregas/${confirmRecogida.id_pedido}/estado`.
   const confirmarRecogida = async () => {
     if (!confirmRecogida) return;
     setRecogiendoId(confirmRecogida.id_pedido);

@@ -1,8 +1,10 @@
+// Pantalla VerifyCode de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 import '@styles/verifyCode.css';
 
+// Comunica con el backend mediante POST '/auth/verify-code', POST '/auth/forgot-password'.
 const VerifyCode = () => {
   const { email, openAuth } = useAuthModal();
 
@@ -34,6 +36,7 @@ const VerifyCode = () => {
       .padStart(2, '0')}`;
   };
 
+  // Comunica con el backend mediante POST '/auth/verify-code'.
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -73,6 +76,7 @@ const VerifyCode = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/forgot-password'.
   const handleResend = async (
     e: React.MouseEvent
   ) => {

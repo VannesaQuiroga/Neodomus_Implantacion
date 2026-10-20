@@ -1,3 +1,4 @@
+// Pantalla TechnicianDashboard de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -31,6 +32,7 @@ import {
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
 import api from '@services/api';
+import AuthImage from '@components/common/AuthImage';
 import { useTecnicoNotificaciones } from '../../hooks/useTecnicoNotificaciones';
 import { ICONO_TIPO } from '../../components/layout/NotificacionesBell';
 import '@styles/admin-panel.css';
@@ -121,9 +123,6 @@ const fechaLocal = (): string => {
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
 };
 
-const API_HOST = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/api\/v1\/?$/, '');
-
-const urlEvidencia = (url: string) => (url.startsWith('http') ? url : `${API_HOST}${url}`);
 
 interface RecogidaDev {
   id_devolucion: number;
@@ -138,6 +137,7 @@ interface RecogidaDev {
   motivo?: string | null;
 }
 
+// Comunica con el backend mediante GET '/tecnicos/mis-citas', GET '/tecnicos/mis-entregas', GET '/calificaciones/mis' y otras peticiones de esta vista; prepara FormData para enviar campos y archivos; programa una actualización periódica.
 const TechnicianDashboard = () => {
   const { user } = useAuth();
   const { idioma, t } = useIdioma();
@@ -172,6 +172,7 @@ const TechnicianDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Comunica con el backend mediante GET '/tecnicos/mis-citas', GET '/tecnicos/mis-entregas', GET '/calificaciones/mis' y otras peticiones de esta vista.
   const fetchCitas = async () => {
     try {
       const res = await api.get('/tecnicos/mis-citas');
@@ -207,6 +208,7 @@ const TechnicianDashboard = () => {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Comunica con el backend mediante PUT `/tecnicos/citas/${id_cita}/estado`.
   const actualizarEstado = async (id_cita: number, nuevoEstado: string) => {
     setUpdatingId(id_cita);
     try {
@@ -240,6 +242,7 @@ const TechnicianDashboard = () => {
     setSelectedCita((prev) => (prev && prev.id_cita === id_cita ? { ...prev, evidencias } : prev));
   };
 
+  // Comunica con el backend mediante POST `/tecnicos/citas/${id_cita}/evidencias`; prepara FormData para enviar campos y archivos.
   const subirEvidencia = async (id_cita: number, file: File) => {
     if (!file) return;
     setSubiendoEvidencia(true);
@@ -259,6 +262,7 @@ const TechnicianDashboard = () => {
     }
   };
 
+  // Comunica con el backend mediante DELETE `/tecnicos/citas/${id_cita}/evidencias/${id_evidencia}`.
   const eliminarEvidencia = async (id_cita: number, id_evidencia: number) => {
     setEliminandoEvidencia(id_evidencia);
     try {
@@ -278,6 +282,7 @@ const TechnicianDashboard = () => {
     setModalOpen(true);
   };
 
+  // Comunica con el backend mediante PUT `/tecnicos/entregas/${pedidoId}/estado`.
   const actualizarEntrega = async (pedidoId: number, nuevoEstado: string) => {
     setUpdatingEntrega(pedidoId);
     try {
@@ -301,6 +306,7 @@ const TechnicianDashboard = () => {
   const evidenciaRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [subiendoEvidenciaId, setSubiendoEvidenciaId] = useState<number | null>(null);
 
+  // Comunica con el backend mediante POST `/tecnicos/entregas/${pedidoId}/evidencias`, PUT `/tecnicos/entregas/${pedidoId}/estado`; prepara FormData para enviar campos y archivos.
   const subirEvidenciasEntrega = async (pedidoId: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
     setSubiendoEvidenciaId(pedidoId);
@@ -322,6 +328,7 @@ const TechnicianDashboard = () => {
   const recogidaEvidenciaRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [subiendoRecogidaEvid, setSubiendoRecogidaEvid] = useState<number | null>(null);
 
+  // Comunica con el backend mediante POST `/devoluciones/${idDevolucion}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
   const subirEvidenciaRecogida = async (idDevolucion: number, file?: File) => {
     if (!file) return;
     setSubiendoRecogidaEvid(idDevolucion);
@@ -345,6 +352,7 @@ const TechnicianDashboard = () => {
     }    setCompartiendoUbicacion(false);
   };
 
+  // Comunica con el backend mediante POST '/tecnicos/ubicacion'.
   const compartirUbicacion = () => {
     if (!('geolocation' in navigator)) {
       notificar(t('tec.ubicacionNoSoportada'), 'error');
@@ -493,6 +501,7 @@ const TechnicianDashboard = () => {
     </div>
   );
 
+  // Comunica con el backend mediante POST '/auth/update-password'.
   const guardarContrasena = async (e: React.FormEvent) => {
     e.preventDefault();
     const reqsValidas =
@@ -757,13 +766,12 @@ const TechnicianDashboard = () => {
                   (e.evidencias_entrega || []).length > 0 && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {(e.evidencias_entrega || []).slice(0, 3).map((url) => (
-                        <a key={url} href={urlEvidencia(url)} target="_blank" rel="noopener noreferrer">
-                          <img
-                            src={urlEvidencia(url)}
-                            alt="Evidencia"
-                            style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
-                          />
-                        </a>
+                        <AuthImage
+                          key={url}
+                          src={url}
+                          alt="Evidencia"
+                          style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
+                        />
                       ))}
                       {(e.evidencias_entrega || []).length > 3 && (
                         <span className="muted">+{(e.evidencias_entrega || []).length - 3}</span>
@@ -1068,7 +1076,7 @@ const TechnicianDashboard = () => {
                 <div className="ap-evidencias-grid">
                   {selectedCita.evidencias.map((ev) => (
                     <div key={ev.id_evidencia} className="ap-evidencia-thumb">
-                      <img src={urlEvidencia(ev.url)} alt={ev.descripcion || 'Evidencia'} />
+                      <AuthImage src={ev.url} alt={ev.descripcion || 'Evidencia'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       {ev.descripcion && <span className="ap-evidencia-desc">{ev.descripcion}</span>}
                       {selectedCita.estado !== 'Finalizada' && (
                         <button

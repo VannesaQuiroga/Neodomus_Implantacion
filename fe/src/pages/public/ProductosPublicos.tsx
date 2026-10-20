@@ -1,3 +1,4 @@
+// Presenta el catálogo público y sus filtros de búsqueda.
 import { useState, useEffect } from 'react';
 import { FaMagnifyingGlass } from 'react-icons/fa6';
 import api from '@services/api';
@@ -38,6 +39,7 @@ interface Categoria {
   descripcion: string;
 }
 
+// Comunica con el backend mediante GET '/productos/categorias', GET '/productos/?limit=100'; registra escuchas de eventos para sincronizar la vista.
 const ProductosPublicos = () => {
   const { t } = useIdioma();
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -50,6 +52,7 @@ const ProductosPublicos = () => {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number | null>(null);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/categorias'.
     const fetchCategorias = async () => {
       try {
         const res = await api.get('/productos/categorias');
@@ -61,6 +64,7 @@ const ProductosPublicos = () => {
     fetchCategorias();
   }, []);
 
+  // Comunica con el backend mediante GET '/productos/?limit=100'.
   const cargarProductos = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     try {

@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianLayout. Se reutiliza en las pantallas de su área.
 import { Outlet } from 'react-router-dom';
 import { useState } from 'react';
 import AmbientBackground from './AmbientBackground';

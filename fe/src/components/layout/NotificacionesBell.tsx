@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: NotificacionesBell. Se reutiliza en las pantallas de su área.
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -63,6 +64,7 @@ interface NotificacionesBellProps {
   titulo?: string;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const NotificacionesBell = ({
   notificaciones,
   cargando = false,

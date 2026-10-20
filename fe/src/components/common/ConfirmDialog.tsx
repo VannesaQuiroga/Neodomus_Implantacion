@@ -1,3 +1,4 @@
+// Componente reutilizable ConfirmDialog para componer la interfaz de Neodomus.
 import { FaXmark } from 'react-icons/fa6';
 import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/admin-panel.css';

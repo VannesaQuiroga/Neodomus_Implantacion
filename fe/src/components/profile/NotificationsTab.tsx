@@ -1,3 +1,4 @@
+// Presenta los avisos de la cuenta y sus opciones de lectura.
 import { useState } from 'react';
 import { FaBell, FaCartShopping, FaTags, FaScrewdriverWrench, FaEnvelopeOpenText, FaShield } from 'react-icons/fa6';
 import type { ReactNode } from 'react';

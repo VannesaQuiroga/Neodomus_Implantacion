@@ -28,6 +28,7 @@ from app.utils.security import get_current_client, get_current_employee
 router = APIRouter(prefix="/calificaciones", tags=["Calificaciones"])
 
 
+# Agrupa los campos de CalificacionCreate: id_cita, calificacion, comentario.
 class CalificacionCreate(BaseModel):
     id_cita: int
     calificacion: int = Field(ge=1, le=5)
@@ -291,6 +292,7 @@ def estado_calificacion_cita(
 # ──────────────────────────────────────────────────────────────────
 
 
+# Consulta Pedido.
 def _pedido_entregado_propio(db: Session, id_pedido: int, id_cliente: int) -> Pedido:
     from app.models.pedido import Pedido
     from app.services.pedidos_service import pedido_completado
@@ -311,6 +313,7 @@ def _pedido_entregado_propio(db: Session, id_pedido: int, id_cliente: int) -> Pe
     return pedido
 
 
+# Agrupa los campos de CalificacionProductoCreate: id_pedido, id_producto, calificacion, comentario.
 class CalificacionProductoCreate(BaseModel):
     id_pedido: int
     id_producto: int

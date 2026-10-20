@@ -1,3 +1,4 @@
+// Pantalla AdminProveedores de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -21,6 +22,7 @@ const VACIO = {
   direccion_proveedor: '',
 };
 
+// Comunica con el backend mediante GET '/productos/proveedores', GET '/productos/?limit=100', PUT `/productos/proveedores/${editandoId}` y otras peticiones de esta vista; registra escuchas de eventos para sincronizar la vista.
 const AdminProveedores = () => {
   const { t } = useIdioma();
   const [proveedores, setProveedores] = useState<ProveedorAdmin[]>([]);
@@ -34,6 +36,7 @@ const AdminProveedores = () => {
   const [busqueda, setBusqueda] = useState('');
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
 
+  // Comunica con el backend mediante GET '/productos/proveedores', GET '/productos/?limit=100'.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -67,6 +70,7 @@ const AdminProveedores = () => {
   const setCampo = (campo: keyof typeof VACIO, valor: string) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
+  // Comunica con el backend mediante PUT `/productos/proveedores/${editandoId}`, POST '/productos/proveedores'.
   const crearProveedor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nombre_proveedor.trim()) {

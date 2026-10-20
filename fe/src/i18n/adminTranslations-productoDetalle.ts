@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de productoDetalle. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_PRODUCTO_DETALLE: Record<string, { es: string; en: string }> = {
   'adm.productoDetalle.volver': { es: 'Volver a productos', en: 'Back to products' },
   'adm.productoDetalle.tituloNuevo': { es: 'Nuevo producto', en: 'New product' },

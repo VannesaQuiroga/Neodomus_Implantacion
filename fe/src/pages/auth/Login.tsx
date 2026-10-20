@@ -1,3 +1,4 @@
+// Pantalla Login de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCircleExclamation } from 'react-icons/fa6';
@@ -14,6 +15,7 @@ const REMEMBERED_EMAIL_KEY = 'neodomus_remembered_email';
 // Se limpia al montar y nunca se vuelve a escribir.
 const LEGACY_REMEMBERED_PASSWORD_KEY = 'neodomus_remembered_password';
 
+// Comunica con el backend mediante POST '/auth/solicitar-habilitacion'; accede a sessionStorage y localStorage para conservar o recuperar datos locales.
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,6 +80,7 @@ const Login = () => {
     }
   }, []);
 
+  // accede a localStorage para conservar o recuperar datos locales.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -117,6 +120,7 @@ const Login = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/solicitar-habilitacion'.
   const handleSolicitarHabilitacion = async () => {
     setEnviandoSolicitud(true);
     setError('');

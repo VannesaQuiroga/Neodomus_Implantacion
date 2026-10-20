@@ -1,3 +1,4 @@
+// Ruta móvil de estructura de navegación. Expo Router la incorpora a la navegación según su ubicación en app/.
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";

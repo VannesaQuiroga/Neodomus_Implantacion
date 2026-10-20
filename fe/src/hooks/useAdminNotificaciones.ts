@@ -1,3 +1,4 @@
+// Hook reutilizable useAdminNotificaciones; concentra esta lógica para las pantallas que lo utilizan.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@services/api';
 import type {
@@ -129,6 +130,7 @@ const esInstalacionNotif = (tipo?: string | null) => {
 
 const claveStorage = (rol: RolNotificaciones) => `notificaciones_leidas_${rol}`;
 
+// accede a localStorage para conservar o recuperar datos locales.
 const usarLeidasStorage = (rol: RolNotificaciones): Record<string, boolean> => {
   try {
     return JSON.parse(localStorage.getItem(claveStorage(rol)) || '{}');
@@ -137,6 +139,7 @@ const usarLeidasStorage = (rol: RolNotificaciones): Record<string, boolean> => {
   }
 };
 
+// Comunica con el backend mediante PATCH `/notificaciones/${backendId}/leida`, GET '/admin/account-requests', GET '/productos/?limit=100&estado=activo' y otras peticiones de esta vista; accede a localStorage para conservar o recuperar datos locales; registra escuchas de eventos para sincronizar la vista.
 export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
   const [notificaciones, setNotificaciones] = useState<NotifAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -151,6 +154,7 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
     leidasRef.current = leidas;
   }, [leidas]);
 
+  // Comunica con el backend mediante PATCH `/notificaciones/${backendId}/leida`; accede a localStorage para conservar o recuperar datos locales.
   const marcarLeida = (id: string) => {
     if (!rol) return;
     setNotificaciones((prev) =>

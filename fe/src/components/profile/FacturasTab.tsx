@@ -1,3 +1,4 @@
+// Lista los comprobantes de compra y permite consultar sus documentos.
 import { useEffect, useState } from 'react';
 import { FaFileInvoice, FaFilePdf, FaEnvelope } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
@@ -52,6 +53,7 @@ const formatearFecha = (fecha?: string | null) => {
   }
 };
 
+// Comunica con el backend mediante GET '/pedidos/mis-pedidos'.
 const FacturasTab = () => {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);

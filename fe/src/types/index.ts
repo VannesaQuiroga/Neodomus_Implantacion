@@ -1,3 +1,4 @@
+// Tipos compartidos que describen los datos utilizados por la interfaz.
 export interface LoginResponse {
   access_token: string;
   token_type: string;

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Float, Integer, String, ForeignKey
+# Persistencia de producto variante. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
+from sqlalchemy import Column, Float, Integer, String, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -23,6 +24,6 @@ class ProductoVariante(Base):
     alto_cm = Column(Integer, nullable=True)
     precio = Column(Float, nullable=True)  # None → usa el precio del producto
     imagen_url = Column(String(255), nullable=True)
-    stock = Column(Integer, nullable=False, default=0)
+    stock = Column(Numeric(12, 2), nullable=False, default=0)
 
     producto = relationship("Producto", back_populates="variantes")

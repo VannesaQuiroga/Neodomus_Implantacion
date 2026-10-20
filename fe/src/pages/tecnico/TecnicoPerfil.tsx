@@ -1,3 +1,4 @@
+// Formulario de perfil y datos de acceso del técnico.
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
@@ -36,6 +37,7 @@ interface PerfilTecnico {
   created_at?: string;
 }
 
+// Comunica con el backend mediante GET '/users/me', GET '/especializaciones', POST `/tecnicos/mis-especializaciones/${id}` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos; registra escuchas de eventos para sincronizar la vista.
 const TechnicalPerfil = () => {
   const { user, refreshUserProfile } = useAuth();
   const { t } = useIdioma();
@@ -61,6 +63,7 @@ const TechnicalPerfil = () => {
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/users/me'.
     const cargarPerfil = async () => {
       setCargando(true);
       try {
@@ -88,6 +91,7 @@ const TechnicalPerfil = () => {
   }, [user]);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/especializaciones'.
     const cargarCatalogo = async () => {
       try {
         const res = await api.get<
@@ -101,6 +105,7 @@ const TechnicalPerfil = () => {
     cargarCatalogo();
   }, []);
 
+  // Comunica con el backend mediante POST `/tecnicos/mis-especializaciones/${id}`, DELETE `/tecnicos/mis-especializaciones/${id}`.
   const handleEspecializacionesChange = async (nuevosIds: number[]) => {
     const actuales = especializaciones.map(e => e.id_especializacion);
     const agregados = nuevosIds.filter(id => !actuales.includes(id));
@@ -144,6 +149,7 @@ const TechnicalPerfil = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante POST '/users/me/foto'; prepara FormData para enviar campos y archivos.
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -174,6 +180,7 @@ const TechnicalPerfil = () => {
     notify(t('tec.fotoEliminada'));
   };
 
+  // Comunica con el backend mediante PUT '/users/me'.
   const guardarCampo = async (payload: Record<string, unknown>) => {
     try {
       const body: Record<string, unknown> = { ...payload };

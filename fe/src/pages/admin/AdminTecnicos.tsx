@@ -1,3 +1,4 @@
+// Pantalla AdminTecnicos de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { motion } from 'framer-motion';
@@ -25,6 +26,7 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import EspecializacionesSelect from '@components/admin/EspecializacionesSelect';
+import AuthImage from '@components/common/AuthImage';
 import { notificarCambiosTecnicos } from '@utils/tecnicosSync';
 import type { Especializacion, TecnicoAdmin } from '../../types';
 
@@ -50,6 +52,7 @@ const VACIO: FormTecnico = {
   especializaciones_ids: [],
 };
 
+// Comunica con el backend mediante GET '/especializaciones', GET '/tecnicos', GET `/tecnicos/admin/${tecnico.id_tecnico}/historial` y otras peticiones de esta vista.
 const AdminTecnicos = () => {
   const { idioma, t } = useIdioma();
   const [tecnicos, setTecnicos] = useState<TecnicoAdmin[]>([]);
@@ -82,6 +85,7 @@ const AdminTecnicos = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
+  // Comunica con el backend mediante GET '/especializaciones'.
   const cargarCatalogo = async () => {
     try {
       const res = await api.get<Especializacion[]>('/especializaciones', { params: { todas: true } });
@@ -91,6 +95,7 @@ const AdminTecnicos = () => {
     }
   };
 
+  // Comunica con el backend mediante GET '/tecnicos'.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -140,6 +145,7 @@ const AdminTecnicos = () => {
     setModal(null);
   };
 
+  // Comunica con el backend mediante GET `/tecnicos/admin/${tecnico.id_tecnico}/historial`.
   const abrirHistorial = async (tecnico: TecnicoAdmin) => {
     setHistorialTecnico(tecnico);
     setTabHistorial('servicios');
@@ -267,6 +273,7 @@ const AdminTecnicos = () => {
     setDesactivando(t);
   };
 
+  // Comunica con el backend mediante PUT `/users/${desactivando.id_usuario}`.
   const confirmarDesactivar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!desactivando) return;
@@ -303,6 +310,7 @@ const AdminTecnicos = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/users/${tecnico.id_usuario}`.
   const habilitar = async (tecnico: TecnicoAdmin) => {
     try {
       await api.put(`/users/${tecnico.id_usuario}`, { is_active: true });
@@ -877,9 +885,7 @@ const AdminTecnicos = () => {
                               <span className="ap-def-label">Evidencias ({s.evidencias.length})</span>
                               <div className="ap-historial-evidencias">
                                 {s.evidencias.map((ev: any, i: number) => (
-                                  <a key={i} href={ev.url} target="_blank" rel="noopener noreferrer">
-                                    <img src={ev.url} alt={`Evidencia ${i + 1}`} />
-                                  </a>
+                                  <AuthImage key={i} src={ev.url} alt={`Evidencia ${i + 1}`} />
                                 ))}
                               </div>
                             </div>
@@ -920,9 +926,7 @@ const AdminTecnicos = () => {
                               <span className="ap-def-label">Evidencias ({e.evidencias.length})</span>
                               <div className="ap-historial-evidencias">
                                 {e.evidencias.map((url: string, i: number) => (
-                                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                                    <img src={url} alt={`Evidencia ${i + 1}`} />
-                                  </a>
+                                  <AuthImage key={i} src={url} alt={`Evidencia ${i + 1}`} />
                                 ))}
                               </div>
                             </div>
@@ -965,10 +969,10 @@ const AdminTecnicos = () => {
                               <span className="ap-def-label">Evidencias ({d.evidencias.length})</span>
                               <div className="ap-historial-evidencias">
                                 {d.evidencias.map((ev: any, i: number) => (
-                                  <a key={i} href={ev.url} target="_blank" rel="noopener noreferrer" title={`${ev.tipo} — ${ev.fecha || ''}`}>
-                                    <img src={ev.url} alt={ev.tipo} />
+                                  <div key={i} className="ap-historial-evidencias" style={{ position: 'relative' }}>
+                                    <AuthImage src={ev.url} alt={ev.tipo} />
                                     <span className="ap-evidencia-label">{ev.tipo}</span>
-                                  </a>
+                                  </div>
                                 ))}
                               </div>
                             </div>

@@ -1,3 +1,4 @@
+// Restringe la navegación al rol permitido y redirige al espacio correspondiente del usuario.
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 

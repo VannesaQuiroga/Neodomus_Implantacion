@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de tecnicos. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_TECNICOS: Record<string, { es: string; en: string }> = {
   'adm.tecnicos.titulo': { es: 'Técnicos', en: 'Technicians' },
   'adm.tecnicos.conteo': { es: '{n} técnicos registrados en el sistema', en: '{n} technicians registered in the system' },

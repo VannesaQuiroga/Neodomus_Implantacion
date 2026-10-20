@@ -1,6 +1,8 @@
+# Persistencia de proveedor. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from sqlalchemy import Column, Integer, String
 from app.database import Base
 
+# Mapea la tabla «proveedores».
 class Proveedor(Base):
     __tablename__ = "proveedores"
     id_proveedor = Column(Integer, primary_key=True, index=True)

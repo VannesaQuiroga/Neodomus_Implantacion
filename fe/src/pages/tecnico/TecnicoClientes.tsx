@@ -1,3 +1,4 @@
+// Pantalla TecnicoClientes de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import {
   FaCalendarCheck,
@@ -20,12 +21,14 @@ interface Cliente {
   citas_count: number;
 }
 
+// Comunica con el backend mediante GET '/tecnicos/mis-clientes'; programa una actualización periódica.
 const TecnicoClientes = () => {
   const { t } = useIdioma();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
 
+  // Comunica con el backend mediante GET '/tecnicos/mis-clientes'.
   const fetchClientes = async () => {
     try {
       const res = await api.get('/tecnicos/mis-clientes');

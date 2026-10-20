@@ -1,3 +1,4 @@
+// Controla el acceso a las rutas protegidas según el estado de autenticación.
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 

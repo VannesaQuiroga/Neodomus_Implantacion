@@ -1,3 +1,4 @@
+// Pantalla AdminDashboard de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -85,12 +86,14 @@ const AccesosRapidos = [
 
 const formatoPesos = (v: number) => `$${Math.round(v).toLocaleString('es-CO')}`;
 
+// Comunica con el backend mediante GET '/reports/resumen'.
 const AdminDashboard = () => {
   const { t, idioma } = useIdioma();
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [datos, setDatos] = useState<ReporteResumen | null>(null);
 
+  // Comunica con el backend mediante GET '/reports/resumen'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) {
       setCargando(true);

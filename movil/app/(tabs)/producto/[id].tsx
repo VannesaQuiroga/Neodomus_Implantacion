@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
+import { parseMetros, formatMetros } from "@/utils/metros";
 import PublicNavbar from "@/components/public/PublicNavbar";
 import AsistenteFlotante from "@/components/public/AsistenteFlotante";
 import { useFavoritos } from "@/contexts/FavoritosContext";
@@ -47,6 +48,7 @@ const METROS_OPCIONES = [10, 20, 30, 40, 50];
 /** Altura estimada del tab bar (el tab bar real es nativo). */
 const TAB_BAR_ALTO = 66;
 
+// Comunica con el backend mediante API "/productos/?limit=100".
 export default function ProductoDetalleScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,6 +60,8 @@ export default function ProductoDetalleScreen() {
   const [color, setColor] = useState("");
   const [tamano, setTamano] = useState("");
   const [metros, setMetros] = useState(10);
+  const [displayMetros, setDisplayMetros] = useState("10");
+  const [metrosError, setMetrosError] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
   const [displayCantidad, setDisplayCantidad] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
@@ -457,11 +461,38 @@ export default function ProductoDetalleScreen() {
               <Text style={styles.tituloVariantes}>
                 Elige cuántos metros quieres:
               </Text>
+              <TextInput
+                style={styles.inputMetros}
+                value={displayMetros}
+                onChangeText={(v) => {
+                  setDisplayMetros(v.replace(/[^0-9.,]/g, ""));
+                  setMetrosError(null);
+                }}
+                onBlur={() => {
+                  const r = parseMetros(displayMetros);
+                  if (r.valor == null) {
+                    setMetrosError(r.error ?? "Cantidad inválida");
+                    setDisplayMetros(formatMetros(metros));
+                    return;
+                  }
+                  setMetros(r.valor);
+                  setDisplayMetros(formatMetros(r.valor));
+                  setMetrosError(null);
+                }}
+                keyboardType="decimal-pad"
+                placeholder="p. ej. 1,5"
+                aria-label="Metros"
+              />
+              {metrosError && <Text style={styles.metrosError}>{metrosError}</Text>}
               <View style={styles.chipsMedida}>
                 {METROS_OPCIONES.map((opcion) => (
                   <Pressable
                     key={opcion}
-                    onPress={() => setMetros(opcion)}
+                    onPress={() => {
+                      setMetros(opcion);
+                      setDisplayMetros(formatMetros(opcion));
+                      setMetrosError(null);
+                    }}
                     style={[
                       styles.chipMedida,
                       metros === opcion && styles.chipMedidaActiva,
@@ -927,6 +958,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+  },
+
+  inputMetros: {
+    borderWidth: 1,
+    borderColor: "rgba(212,165,75,0.4)",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    color: "#fff",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+
+  metrosError: {
+    color: "#e05c5c",
+    fontSize: 12,
+    marginBottom: 8,
   },
 
   chipMedida: {

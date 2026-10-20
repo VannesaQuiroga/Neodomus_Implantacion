@@ -1,5 +1,7 @@
+// Comparte los artículos del carrito y las operaciones para modificar sus cantidades.
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { loadItem, saveItem } from '@utils/profileStorage';
+import { parseMetros } from '@utils/metros';
 import { useAuth } from '@contexts/AuthContext';
 
 const CART_KEY = 'neodomus_carrito';
@@ -26,7 +28,7 @@ interface CartContextValue {
   totalPrice: number;
   addItem: (producto: Omit<CartItem, 'cantidad'>, cantidad?: number, metros?: number) => string | null;
   updateQuantity: (key: string, cantidad: number) => string | null;
-  updateMetros: (key: string, metros: number) => string | null;
+  updateMetros: (key: string, metros: number | string) => string | null;
   removeItem: (key: string) => void;
   clearCart: () => void;
   actualizarStock: (key: string, stock: number) => void;
@@ -153,12 +155,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return error;
   };
 
-  const updateMetros = (key: string, metros: number): string | null => {
+  const updateMetros = (key: string, metros: number | string): string | null => {
+    const resultado = parseMetros(metros);
+    if (resultado.valor == null) {
+      return resultado.error ?? 'Cantidad inválida';
+    }
+    const nuevosMetros = resultado.valor;
     let error: string | null = null;
     setItems(prev =>
       prev.map(i => {
         if (itemKey(i) !== key) return i;
-        const nuevosMetros = Math.max(1, Math.round(metros));
         const stockMax = i.stock_maximo ?? Infinity;
         const totalMetros = nuevosMetros * (i.cantidad || 1);
         if (totalMetros > stockMax) {

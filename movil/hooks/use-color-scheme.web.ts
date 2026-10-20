@@ -1,3 +1,4 @@
+// Hook reutilizable use-color-scheme.web; concentra esta lógica para las pantallas que lo utilizan.
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 

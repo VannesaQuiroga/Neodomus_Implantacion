@@ -11,6 +11,7 @@ from typing import Optional
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import String, func, or_, select
 from sqlalchemy.orm import Session, joinedload
@@ -28,9 +29,39 @@ from app.services import novedades_service, minio_service
 
 router = APIRouter(prefix="/novedades", tags=["Novedades"])
 
+
+def _url_evidencia_novedad(evidencia_id: int) -> str:
+    """URL autorizada (no pública) de una evidencia de novedad."""
+    return f"/api/v1/novedades/evidencias/{evidencia_id}/archivo"
+
+
+@router.get("/evidencias/{evidencia_id}/archivo")
+def descargar_evidencia_novedad(
+    evidencia_id: int,
+    current_user: User = Depends(get_current_employee),
+    db: Session = Depends(get_db),
+):
+    """Sirve una evidencia de novedad previa comprobación de asignación/rol."""
+    role = db.execute(
+        select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
+    ).scalar_one_or_none()
+    evidencia = db.query(EvidenciaNovedad).filter(EvidenciaNovedad.id_evidencia_n == evidencia_id).first()
+    if not evidencia:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    if role not in ("admin", "administrador"):
+        tecnico = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
+        if not tecnico or evidencia.novedad.id_tecnico_n != tecnico.id_tecnico:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
+    try:
+        contenido, media = minio_service.leer_archivo(evidencia.url_archivo)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return Response(content=contenido, media_type=media)
+
 EXTENSIONES_EVIDENCIA = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(current_user: User = Depends(get_current_employee), db: Session = Depends(get_db)) -> User:
     role = db.execute(
         select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
@@ -236,6 +267,7 @@ def citas_cliente_tecnico(
 
 # ── Técnico: crear novedad ──────────────────────────────────────────
 
+# Agrupa los campos de NovedadCrearRequest: tipo_novedad, descripcion, prioridad, id_pedido, id_cita y los demás declarados abajo.
 class NovedadCrearRequest(BaseModel):
     tipo_novedad: str
     descripcion: str
@@ -247,6 +279,7 @@ class NovedadCrearRequest(BaseModel):
     lugar_ocurrencia: Optional[str] = None
 
 
+# Consulta Pedido, Cita, Devolucion, Novedad.
 @router.post("")
 def crear_novedad(
     data: NovedadCrearRequest,
@@ -403,11 +436,11 @@ async def subir_evidencia_novedad(
         raise HTTPException(400, "El archivo no es una imagen válida")
 
     nombre = f"{uuid.uuid4().hex}{ext}"
-    url = minio_service.subir_imagen("evidencias_novedades", nombre, contenido)
+    clave = minio_service.subir_imagen_privada("evidencias_novedades", nombre, contenido)
 
     evidencia = EvidenciaNovedad(
         id_novedad=novedad_id,
-        url_archivo=url,
+        url_archivo=clave,
         descripcion=descripcion or None,
     )
     db.add(evidencia)
@@ -426,7 +459,7 @@ async def subir_evidencia_novedad(
 
     return {
         "id_evidencia_n": evidencia.id_evidencia_n,
-        "url": evidencia.url_archivo,
+        "url": _url_evidencia_novedad(evidencia.id_evidencia_n),
         "mensaje": "Evidencia subida correctamente",
     }
 
@@ -463,7 +496,7 @@ def listar_evidencias_novedad(
     return [
         {
             "id_evidencia_n": e.id_evidencia_n,
-            "url": e.url_archivo,
+            "url": _url_evidencia_novedad(e.id_evidencia_n),
             "descripcion": e.descripcion,
             "fecha_subida": e.fecha_subida.isoformat() if e.fecha_subida else None,
         }
@@ -597,6 +630,7 @@ def novedades_cliente(
 
 # ── Admin/Técnico: escribir mensaje/solución para el cliente ──
 
+# Agrupa los campos de MensajeClienteRequest: mensaje_cliente, solucion_cliente, cliente_visible.
 class MensajeClienteRequest(BaseModel):
     mensaje_cliente: str
     solucion_cliente: Optional[str] = None
@@ -667,6 +701,7 @@ def cupones_cliente(
     ]
 
 
+# Consulta Tecnico.
 @router.get("/{novedad_id}")
 def obtener_novedad(
     novedad_id: int,
@@ -691,11 +726,13 @@ def obtener_novedad(
     return _serializar_novedad_detalle(novedad, db)
 
 
+# Agrupa los campos de CambiarEstadoRequest: nuevo_estado, accion_detalle.
 class CambiarEstadoRequest(BaseModel):
     nuevo_estado: str
     accion_detalle: Optional[str] = None
 
 
+# Consulta Tecnico.
 @router.put("/{novedad_id}/estado")
 def cambiar_estado(
     novedad_id: int,
@@ -739,6 +776,7 @@ def cambiar_estado(
 
 # ── Admin: responder novedad ────────────────────────────────────
 
+# Agrupa los campos de ResponderNovedadRequest: respuesta.
 class ResponderNovedadRequest(BaseModel):
     respuesta: str
 
@@ -783,6 +821,7 @@ def responder_novedad(
 
 # ── Admin: cambiar técnico desde novedad ────────────────────────
 
+# Agrupa los campos de CambiarTecnicoRequest: id_nuevo_tecnico, motivo.
 class CambiarTecnicoRequest(BaseModel):
     id_nuevo_tecnico: int
     motivo: Optional[str] = None
@@ -845,6 +884,7 @@ def cambiar_tecnico_novedad(
     return {"mensaje": "Técnico cambiado y notificaciones enviadas"}
 
 
+# Agrupa los campos de CrearCuponRequest: codigo, tipo_descuento, valor_descuento, fecha_vencimiento, compra_minima y los demás declarados abajo.
 class CrearCuponRequest(BaseModel):
     codigo: str
     tipo_descuento: str = "porcentaje"
@@ -875,6 +915,7 @@ def validar_cupon_endpoint(
     }
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 @router.post("/{novedad_id}/cupon")
 def crear_cupon_novedad(
     novedad_id: int,
@@ -932,6 +973,7 @@ def crear_cupon_novedad(
 
 # ── Helpers de serialización ────────────────────────────────────────
 
+# Consulta TecnicoModel.
 def _serializar_novedades(novedades, db):
     from app.models.tecnico import Tecnico as TecnicoModel
     result = []
@@ -950,7 +992,7 @@ def _serializar_novedades(novedades, db):
         for e in (n.evidencias or []):
             evidencias.append({
                 "id_evidencia_n": e.id_evidencia_n,
-                "url": e.url_archivo,
+                "url": _url_evidencia_novedad(e.id_evidencia_n),
                 "descripcion": e.descripcion,
                 "fecha_subida": e.fecha_subida.isoformat() if e.fecha_subida else None,
             })

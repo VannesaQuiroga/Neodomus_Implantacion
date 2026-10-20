@@ -1,3 +1,4 @@
+// Formulario de actualización de contraseña dentro del perfil.
 import { useState } from 'react';
 import { FaKey, FaCheck, FaXmark, FaEye, FaEyeSlash } from 'react-icons/fa6';
 import api from '@services/api';
@@ -29,6 +30,7 @@ const evaluarRequisitos = (value: string): PasswordReqs => ({
 
 const bloquearPegado = (e: React.ClipboardEvent<HTMLInputElement>) => e.preventDefault();
 
+// Comunica con el backend mediante POST '/auth/change-password'.
 const PasswordTab = ({ notify }: PasswordTabProps) => {
   const { t } = useIdioma();
   const [actual, setActual] = useState('');
@@ -54,6 +56,7 @@ const PasswordTab = ({ notify }: PasswordTabProps) => {
     { key: 'special', label: t('perfil.reqSimbolo') },
   ];
 
+  // Comunica con el backend mediante POST '/auth/change-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!botonListo) {

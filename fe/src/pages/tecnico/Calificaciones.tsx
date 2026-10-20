@@ -1,3 +1,4 @@
+// Presenta las valoraciones recibidas por el técnico.
 import { useEffect, useMemo, useState } from 'react';
 import {
   FaStar,
@@ -25,6 +26,7 @@ interface ResumenCalificaciones {
   calificaciones?: CalificacionRecibida[];
 }
 
+// Comunica con el backend mediante GET '/calificaciones/mis'.
 const Calificaciones = () => {
   const { user } = useAuth();
   const { idioma, t } = useIdioma();
@@ -41,6 +43,7 @@ const Calificaciones = () => {
   };
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/calificaciones/mis'.
     const fetchCalificaciones = async () => {
       try {
         const res = await api.get('/calificaciones/mis');

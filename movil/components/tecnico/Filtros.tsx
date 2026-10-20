@@ -1,3 +1,4 @@
+// Controles de filtro usados en las pantallas del técnico.
 import React, { useMemo, useState } from "react";
 import {
   Modal,

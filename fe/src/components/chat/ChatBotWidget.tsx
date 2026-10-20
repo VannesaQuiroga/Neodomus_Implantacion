@@ -1,3 +1,4 @@
+// Componente reutilizable ChatBotWidget para componer la interfaz de Neodomus.
 import { useEffect, useRef, useState } from 'react';
 import { FaRobot, FaMessage, FaXmark } from 'react-icons/fa6';
 import '@styles/chatbot.css';
@@ -8,6 +9,7 @@ interface ChatMsg {
   texto: string;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const ChatBotWidget = () => {
   const [abierto, setAbierto] = useState(false);
   const [chats, setChats] = useState<ChatMsg[]>([{ de: 'bot', texto: BOT_INICIAL }]);

@@ -1,3 +1,4 @@
+// Permite al administrador consultar y filtrar sus avisos.
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';

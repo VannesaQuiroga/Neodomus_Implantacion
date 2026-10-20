@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de dashboard. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_DASHBOARD: Record<string, { es: string; en: string }> = {
   'adm.dashboard.titulo': { es: 'Panel de control', en: 'Dashboard' },
   'adm.dashboard.subtitulo': { es: 'Resumen del negocio · {hoy}', en: 'Business summary · {hoy}' },

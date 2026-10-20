@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: Navbar. Se reutiliza en las pantallas de su área.
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@contexts/AuthContext";
 import { useAuthModal } from "@contexts/AuthModalContext";
@@ -15,6 +16,7 @@ import helpIcon from "@assets/images/Icono.png";
 
 import "../../styles/navbar.css";
 
+// Comunica con el backend mediante GET "/clients/me"; registra escuchas de eventos para sincronizar la vista.
 const Navbar = () => {
   const { user, rol, logout } = useAuth();
   const { openAuth } = useAuthModal();
@@ -58,6 +60,7 @@ const Navbar = () => {
   // token y, como el refresh también es rechazado, cierra la sesión al instante.
   useEffect(() => {
     if (rol !== "cliente") return;
+    // Comunica con el backend mediante GET "/clients/me".
     const verificarCuenta = () => {
       api.get("/clients/me").catch(() => {
         /* el interceptor maneja el 401 y cierra sesión */

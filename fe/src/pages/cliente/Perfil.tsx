@@ -1,3 +1,4 @@
+// Pantalla Perfil de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
@@ -65,6 +66,7 @@ interface Producto {
 
 type TabId = 'perfil' | 'contrasena' | 'pedidos' | 'servicios' | 'resenas' | 'tecnicos' | 'facturas' | 'idioma' | 'notificaciones' | 'favoritos' | 'reembolsos';
 
+// Comunica con el backend mediante GET '/productos/?limit=100', POST '/clients/me/cuenta-solicitud', POST '/clients/me/foto' y otras peticiones de esta vista; accede a localStorage para conservar o recuperar datos locales; prepara FormData para enviar campos y archivos; registra escuchas de eventos para sincronizar la vista.
 const Perfil = () => {
   const { user, refreshUserProfile } = useAuth();
   const { t } = useIdioma();
@@ -109,6 +111,7 @@ const Perfil = () => {
 
   // Cargar productos favoritos
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/?limit=100'.
     const fetchFavoritos = async () => {
       if (favoritos.size === 0) {
         setProductosFavoritos([]);
@@ -221,6 +224,7 @@ const Perfil = () => {
       .catch(() => setSolicitudEstado(null));
   }, []);
 
+  // Comunica con el backend mediante POST '/clients/me/cuenta-solicitud'.
   const handleSolicitarInhabilitacion = async () => {
     if (!motivoSolicitud.trim()) {
       notify('Debes indicar el motivo de la inhabilitación', 'error');
@@ -245,6 +249,7 @@ const Perfil = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/clients/me/foto'; accede a localStorage para conservar o recuperar datos locales; prepara FormData para enviar campos y archivos.
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -276,6 +281,7 @@ const Perfil = () => {
     notify(t('perfil.fotoEliminada'), 'success');
   };
 
+  // Comunica con el backend mediante PUT '/clients/me'.
   const guardarCampo = async (payload: Record<string, unknown>) => {
     try {
       const body: Record<string, unknown> = { ...payload };

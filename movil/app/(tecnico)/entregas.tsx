@@ -1,3 +1,4 @@
+// Ruta móvil de entregas. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import {
@@ -27,11 +28,9 @@ import {
   PRIORIDADES,
 } from "@/services/novedades.service";
 import { obtenerSesion } from "@/services/storage";
+import EvidenciaImagen from "@/components/EvidenciaImagen";
 
 // ── Helpers ──────────────────────────────────────────────────
-
-const urlEvidencia = (url: string) =>
-  url.startsWith("http") ? url : `${API_BASE_URL.replace(/\/api\/v1\/?$/, "")}${url}`;
 
 // ── Recogida interface ───────────────────────────────────────
 
@@ -186,6 +185,7 @@ export default function TecnicoEntregasScreen() {
     setSubiendoEvidenciaId(null);
   };
 
+  // Comunica con el backend mediante API `/tecnicos/entregas/${pedidoId}/evidencias`; prepara FormData para enviar campos y archivos.
   const agregarMasFotos = async (pedidoId: number) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -230,6 +230,7 @@ export default function TecnicoEntregasScreen() {
     setCompartiendoUbicacion(false);
   };
 
+  // Comunica con el backend mediante API "/tecnicos/ubicacion".
   const compartirUbicacion = async () => {
     if (compartiendoUbicacion) {
       detenerUbicacion();
@@ -465,10 +466,10 @@ export default function TecnicoEntregasScreen() {
                 {estado === "Entregado" && evidencias.length > 0 && (
                   <View style={styles.evidenciasRow}>
                     {evidencias.slice(0, 3).map((url: string, idx: number) => (
-                      <Image
+                      <EvidenciaImagen
                         key={idx}
-                        source={{ uri: urlEvidencia(url) }}
-                        style={styles.evidenciaThumb}
+                        url={url}
+                        estilo={styles.evidenciaThumb}
                       />
                     ))}
                     {evidencias.length > 3 && (
@@ -618,9 +619,9 @@ export default function TecnicoEntregasScreen() {
                     </Text>
                   </View>
                   {r.recogida_estado === "Recogida" && r.evidencia_recogida_url && (
-                    <Image
-                      source={{ uri: r.evidencia_recogida_url }}
-                      style={styles.evidenciaThumb}
+                    <EvidenciaImagen
+                      url={r.evidencia_recogida_url}
+                      estilo={styles.evidenciaThumb}
                     />
                   )}
                   {r.recogida_estado !== "Recogida" && (
@@ -672,8 +673,20 @@ export default function TecnicoEntregasScreen() {
               <Pressable onPress={() => setConfirmRecogida(null)} style={styles.btnGhost}>
                 <Text style={styles.btnGhostTxt}>Cancelar</Text>
               </Pressable>
-              <Pressable onPress={confirmarRecogida} style={[styles.btnPrimary, { flex: 1 }]}>
-                <Text style={styles.btnPrimaryTxt}>Confirmar</Text>
+              <Pressable
+                onPress={confirmarRecogida}
+                disabled={updatingId === confirmRecogida?.id_pedido}
+                style={[
+                  styles.btnPrimary,
+                  { flex: 1 },
+                  updatingId === confirmRecogida?.id_pedido && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={styles.btnPrimaryTxt}>
+                  {updatingId === confirmRecogida?.id_pedido
+                    ? t("entregas.actualizando")
+                    : t("common.confirmar")}
+                </Text>
               </Pressable>
             </View>
           </View>

@@ -1,3 +1,4 @@
+# Persistencia de evidencia. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column

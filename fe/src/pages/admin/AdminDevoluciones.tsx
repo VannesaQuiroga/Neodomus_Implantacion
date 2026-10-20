@@ -1,3 +1,4 @@
+// Pantalla AdminDevoluciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -101,6 +102,7 @@ const formatFecha = (fecha: string) => {
   return `${f[2]}/${f[1]}/${f[0]}`;
 };
 
+// Comunica con el backend mediante GET '/devoluciones/admin/solicitudes', GET '/reembolsos', GET '/reembolsos/elegibles' y otras peticiones de esta vista.
 const AdminDevoluciones = () => {
   const { t } = useIdioma();
   const [vista, setVista] = useState<Vista>('solicitudes');
@@ -134,6 +136,7 @@ const AdminDevoluciones = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante GET '/devoluciones/admin/solicitudes', GET '/reembolsos', GET '/reembolsos/elegibles' y otras peticiones de esta vista.
   const cargar = async (silencioso = false): Promise<SolicitudItem[]> => {
     if (!silencioso) setCargando(true);
     setError(false);
@@ -178,6 +181,7 @@ const AdminDevoluciones = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Comunica con el backend mediante PUT `/devoluciones/admin/solicitudes/${s.id_solicitud}/estado`.
   const cambiarEstado = async (
     s: SolicitudItem,
     estado: string,
@@ -199,6 +203,7 @@ const AdminDevoluciones = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/devoluciones/admin/solicitudes/${detalleSol.id_solicitud}/estado`.
   const guardarObservaciones = async () => {
     if (!detalleSol) return;
     setProcesando(detalleSol.id_solicitud);
@@ -234,6 +239,7 @@ const AdminDevoluciones = () => {
     setAprobarSol(null);
   };
 
+  // Comunica con el backend mediante PUT `/devoluciones/admin/${idDevolucion}/reasignar-tecnico`.
   const reasignarTecnico = async (idDevolucion: number, idTecnico: number) => {
     if (!idTecnico) return;
     setReasignandoLinea(idDevolucion);
@@ -258,6 +264,7 @@ const AdminDevoluciones = () => {
     setRetencionPct(elegida ? '15' : '');
   };
 
+  // Comunica con el backend mediante POST '/reembolsos'.
   const crearReembolso = async () => {
     if (!selReembolso) {
       notify(t('adm.instalaciones.reembolsoEligeCita'), 'err');
@@ -296,6 +303,7 @@ const AdminDevoluciones = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/reembolsos/${id}/procesar`.
   const reprocesarReembolso = async (id: number) => {
     setProcesandoReembolso(id);
     try {

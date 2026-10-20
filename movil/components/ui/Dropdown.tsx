@@ -1,3 +1,4 @@
+// Selector desplegable reutilizable de la interfaz móvil.
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

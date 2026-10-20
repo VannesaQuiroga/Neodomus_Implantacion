@@ -1,3 +1,4 @@
+// Solicita cambiar la contraseña cuando la cuenta requiere actualizarla antes de continuar.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaKey, FaCircleExclamation, FaCircleCheck } from 'react-icons/fa6';
@@ -5,6 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import api from '@services/api';
 import '@styles/login.css';
 
+// Comunica con el backend mediante POST '/auth/change-password'.
 const CambioPasswordObligatorio = () => {
   const navigate = useNavigate();
   const { rol, logout, setPasswordResetRequired } = useAuth();
@@ -28,6 +30,7 @@ const CambioPasswordObligatorio = () => {
     }
   }, [message, error]);
 
+  // Comunica con el backend mediante POST '/auth/change-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');

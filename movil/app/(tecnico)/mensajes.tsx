@@ -1,3 +1,4 @@
+// Ruta móvil de mensajes. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -40,6 +41,7 @@ interface Cliente {
   email?: string | null;
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 async function cargarConversaciones(): Promise<Conversacion[]> {
   try {
     const raw = await AsyncStorage.getItem(MENSAJES_KEY);
@@ -48,6 +50,7 @@ async function cargarConversaciones(): Promise<Conversacion[]> {
   return [];
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 async function guardarConversaciones(c: Conversacion[]) {
   try {
     await AsyncStorage.setItem(MENSAJES_KEY, JSON.stringify(c));
@@ -98,6 +101,7 @@ function iniciales(nombre: string): string {
     .join("");
 }
 
+// Comunica con el backend mediante API "/tecnicos/mis-clientes".
 export default function TecnicoMensajesScreen() {
   const scrollRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
@@ -108,6 +112,7 @@ export default function TecnicoMensajesScreen() {
   const [textoEnviar, setTextoEnviar] = useState("");
 
   useEffect(() => {
+    // Comunica con el backend mediante API "/tecnicos/mis-clientes".
     const cargar = async () => {
       try {
         const clientes = await apiFetch<Cliente[]>("/tecnicos/mis-clientes");

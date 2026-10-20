@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: AdminNavbar. Se reutiliza en las pantallas de su área.
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaBars, FaChevronDown, FaRightFromBracket, FaUserShield } from 'react-icons/fa6';
@@ -17,6 +18,7 @@ interface AdminNavbarProps {
   marcarLeida?: (id: string) => void;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const AdminNavbar = ({ onMenuToggle, notificaciones, cargandoNotificaciones = false, marcarLeida }: AdminNavbarProps) => {
   const { t } = useIdioma();
   const { logout } = useAuth();

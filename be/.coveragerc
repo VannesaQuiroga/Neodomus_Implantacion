@@ -1,0 +1,17 @@
+# Medición de cobertura para la línea base de testing del backend.
+# Se mide SOLO el paquete de aplicación (app) y se excluyen las pruebas.
+[run]
+source = app
+branch = True
+omit =
+    app/tests/*
+
+[report]
+show_missing = True
+skip_covered = False
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

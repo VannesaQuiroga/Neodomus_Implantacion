@@ -1,3 +1,4 @@
+// Selector del idioma usado para presentar la interfaz.
 import { useIdioma } from '@i18n/IdiomaContext';
 import { IDIOMAS_DISPONIBLES, type Idioma } from '@i18n/translations';
 import { FaGlobe, FaCheck } from 'react-icons/fa6';

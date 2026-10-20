@@ -1,3 +1,4 @@
+// Ruta móvil de notificaciones. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -7,6 +8,7 @@ import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { apiFetch } from "@/services/api";
 import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
 
+// Comunica con el backend mediante API "/notificaciones/mias", API "/notificaciones/leer-todas".
 export default function TecnicoNotificacionesScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useIdioma();
@@ -18,6 +20,7 @@ export default function TecnicoNotificacionesScreen() {
   const [toast, setToast] = useState<string | null>(null);
   const [mostrarTodas, setMostrarTodas] = useState(false);
 
+  // Comunica con el backend mediante API "/notificaciones/mias".
   const cargar = async () => {
     setLoading(true);
     try {
@@ -30,6 +33,7 @@ export default function TecnicoNotificacionesScreen() {
   useEffect(() => { cargar(); }, []);
   useEffect(() => { if (!toast) return; const t=setTimeout(()=>setToast(null),2500); return()=>clearTimeout(t); }, [toast]);
 
+  // Comunica con el backend mediante API "/notificaciones/leer-todas".
   const marcarTodas = async () => {
     if (notifs.length===0 || marcando) return;
     setMarcando(true);

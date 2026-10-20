@@ -1,3 +1,4 @@
+// Componente reutilizable haptic-tab para componer la interfaz de Neodomus.
 import { Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 

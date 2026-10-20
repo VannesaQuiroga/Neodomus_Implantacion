@@ -1,3 +1,4 @@
+// Restablece la posición de desplazamiento al cambiar de pantalla.
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 

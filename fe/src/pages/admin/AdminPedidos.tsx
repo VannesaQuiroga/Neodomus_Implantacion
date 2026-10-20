@@ -1,3 +1,4 @@
+// Pantalla AdminPedidos de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FaBoxOpen, FaCalendarDay, FaClock } from 'react-icons/fa6';
@@ -34,6 +35,7 @@ const ESTADO_CLASE: Record<string, string> = {
   Cancelada: 'err',
 };
 
+// Comunica con el backend mediante GET '/pedidos/admin/entregas', GET '/tecnicos', GET '/pedidos/admin/horarios-disponibles' y otras peticiones de esta vista.
 const AdminPedidos = () => {
   const { t } = useIdioma();
   const [pedidos, setPedidos] = useState<PedidoEntrega[]>([]);
@@ -69,6 +71,7 @@ const AdminPedidos = () => {
     return () => window.clearInterval(intervalo);
   }, []);
 
+  // Comunica con el backend mediante GET '/pedidos/admin/entregas', GET '/tecnicos'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) setCargando(true);
     try {
@@ -155,6 +158,7 @@ const AdminPedidos = () => {
     setHoraFinSeleccion('');
   };
 
+  // Comunica con el backend mediante PUT `/pedidos/admin/${pedido.id_pedido}/entrega`.
   const guardarFechaHora = async (pedido: PedidoEntrega) => {
     if (!fechaSeleccion) {
       setToast({ msg: 'Selecciona una fecha de entrega', tipo: 'err' });
@@ -192,6 +196,7 @@ const AdminPedidos = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/pedidos/admin/${pedido.id_pedido}/entrega`.
   const cambiarEncargado = async (pedido: PedidoEntrega, valor: string) => {
     setGuardandoId(pedido.id_pedido);
     try {

@@ -1,3 +1,4 @@
+// Monta la aplicación web y sus proveedores en el elemento raíz del documento.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

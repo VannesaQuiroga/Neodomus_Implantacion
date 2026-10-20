@@ -4,6 +4,7 @@ import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 import '@styles/verify-email.css';
 
+// Comunica con el backend mediante POST '/auth/verify-email', POST '/auth/resend-verification'.
 const VerifyEmail = () => {
   const { email, openAuth } = useAuthModal();
   
@@ -75,6 +76,7 @@ const VerifyEmail = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/verify-email'.
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalCode = codeArray.join('');
@@ -96,6 +98,7 @@ const VerifyEmail = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/resend-verification'.
   const handleResend = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!canResend) return;

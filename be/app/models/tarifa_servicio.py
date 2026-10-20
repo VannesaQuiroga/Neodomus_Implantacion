@@ -1,3 +1,4 @@
+# Persistencia de tarifa servicio. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from decimal import Decimal
 
 from sqlalchemy import Numeric, String

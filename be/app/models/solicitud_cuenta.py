@@ -1,9 +1,11 @@
+# Persistencia de solicitud cuenta. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
 
+# Mapea la tabla «solicitudes_cuenta»; sus referencias enlazan con clientes.
 class SolicitudCuenta(Base):
     __tablename__ = "solicitudes_cuenta"
 

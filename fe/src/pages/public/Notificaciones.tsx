@@ -1,3 +1,4 @@
+// Pantalla Notificaciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState, useCallback } from 'react';
 import {
   FaCircleCheck,
@@ -52,6 +53,7 @@ const ETIQUETA_TRAD: Record<TipoNotificacion, string> = {
   entrega_programada: 'notif.etiquetaEntregaProgramada',
 };
 
+// Comunica con el backend mediante GET '/notificaciones/mias', PATCH `/notificaciones/${id}/leida`; programa una actualización periódica.
 const Notificaciones = () => {
   const { t } = useIdioma();
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -86,6 +88,7 @@ const Notificaciones = () => {
     return () => clearInterval(intervalo);
   }, [cargar]);
 
+  // Comunica con el backend mediante PATCH `/notificaciones/${id}/leida`.
   const marcarLeida = async (id: number) => {
     try {
       await api.patch(`/notificaciones/${id}/leida`);

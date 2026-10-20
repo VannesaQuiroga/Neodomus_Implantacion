@@ -1,3 +1,4 @@
+// Presenta los mensajes guardados en profileStorage y permite marcarlos como leídos.
 import { useState } from 'react';
 import {
   FaEnvelopeOpenText, FaArrowLeft, FaBox, FaScrewdriverWrench, FaShield, FaTags,

@@ -1,3 +1,4 @@
+// Reúne las opciones de ayuda y contacto para el cliente.
 import { useState, useEffect } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
@@ -30,6 +31,7 @@ interface ChatMsg {
   texto: string;
 }
 
+// Comunica con el backend mediante GET '/faq', POST '/contacto'.
 const AyudaPage = () => {
   const { user, isAuthenticated } = useAuth();
   const { t } = useIdioma();
@@ -50,6 +52,7 @@ const AyudaPage = () => {
   const [chatEscribiendo, setChatEscribiendo] = useState(false);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/faq'.
     const fetchFAQs = async () => {
       try {
         const res = await api.get('/faq');
@@ -93,6 +96,7 @@ const AyudaPage = () => {
     }, 450);
   };
 
+  // Comunica con el backend mediante POST '/contacto'.
   const handleConsultaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consulta.nombre.trim() || !consulta.email.trim() || !consulta.mensaje.trim()) {

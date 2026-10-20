@@ -1,3 +1,4 @@
+// Pantalla TecnicoNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,6 +28,7 @@ import {
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
+import AuthImage from '@components/common/AuthImage';
 
 // ── Interfaces ──────────────────────────────────────────────
 
@@ -264,6 +266,7 @@ const TecnicoNovedades = () => {
     }
   }, []);
 
+  // Comunica con el backend mediante GET `/novedades/clientes/${c.id_cliente}/pedidos`, GET `/novedades/clientes/${c.id_cliente}/citas`.
   const seleccionarCliente = async (c: ClienteBusqueda) => {
     setClienteSeleccion(c);
     setTextoCliente(c.nombre);
@@ -1214,15 +1217,15 @@ const TecnicoNovedades = () => {
                     </h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {detalle.evidencias.map((ev) => (
-                        <a key={ev.id_evidencia_n} href={ev.url} target="_blank" rel="noopener noreferrer"
+                        <div key={ev.id_evidencia_n}
                           style={{ display: 'block', width: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <img src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
+                          <AuthImage src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
                           {ev.fecha_subida && (
                             <div style={{ padding: '3px 6px', fontSize: '0.65rem', color: '#8f8f8f', textAlign: 'center', background: 'rgba(0,0,0,0.4)' }}>
                               {formatFechaCorta(ev.fecha_subida)}
                             </div>
                           )}
-                        </a>
+                        </div>
                       ))}
                     </div>
                   </div>

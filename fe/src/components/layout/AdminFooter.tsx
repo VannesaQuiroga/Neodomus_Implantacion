@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: AdminFooter. Se reutiliza en las pantallas de su área.
 import { useIdioma } from "@i18n/IdiomaContext";
 import "../../styles/footer.css";
 

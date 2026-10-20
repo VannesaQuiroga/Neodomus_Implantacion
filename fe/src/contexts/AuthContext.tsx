@@ -1,3 +1,4 @@
+// Comparte la sesión y las acciones de autenticación entre los componentes.
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import api, { refreshAccessToken } from '@services/api';
 import { tabGet, tabRemove, tabSet, rotateTabSessionId } from '../utils/tabStorage';
@@ -64,6 +65,7 @@ const ROLES_VALIDOS = ['administrador', 'admin', 'cliente', 'tecnico'];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Comunica con el backend mediante GET '/users/me', GET '/clients/me', GET '/auth/session' y otras peticiones de esta vista; accede a localStorage para conservar o recuperar datos locales; registra escuchas de eventos para sincronizar la vista.
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -98,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setPerfilIncompleto(false);
   };
 
+  // Comunica con el backend mediante GET '/users/me', GET '/clients/me'; accede a localStorage para conservar o recuperar datos locales.
   const refreshUserProfile = async () => {
     try {
       // Base: usuario almacenado (no depende del estado capturado)
@@ -175,6 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // ANTES de que validarSesionInicial termine de intentar el refresh.
     (window as any).__neodomus_validando_sesion = true;
 
+    // Comunica con el backend mediante GET '/auth/session'.
     const validarSesionInicial = async () => {
       const storedUser = tabGet('user');
       if (!storedUser) return;
@@ -295,6 +299,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Comunica con el backend mediante POST '/auth/login'.
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post<LoginResponse>('/auth/login', { email, password });
@@ -323,6 +328,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         rol: userRol,
       };
       tabSet('user', JSON.stringify(userData));
+      window.dispatchEvent(new Event('neodomus:sesion-iniciada'));
       setUser(userData);
       setRol(userRol);
       setIsAuthenticated(true);
@@ -349,6 +355,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/google'.
   const googleLogin = async (credential: string) => {
     try {
       const response = await api.post<LoginResponse>('/auth/google', { credential });
@@ -373,6 +380,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         rol: userRol,
       };
       tabSet('user', JSON.stringify(userData));
+      window.dispatchEvent(new Event('neodomus:sesion-iniciada'));
       setUser(userData);
       setRol(userRol);
       setIsAuthenticated(true);
@@ -393,6 +401,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/logout'.
   const logout = () => {
     // Cierra la sesión en el servidor (elimina las cookies HttpOnly).
     api.post('/auth/logout').catch(() => {
@@ -413,6 +422,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setPasswordResetRequiredState(false);
     setPerfilIncompletoState(false);
+    window.dispatchEvent(new Event('neodomus:sesion-expirada'));
   };
 
   return (

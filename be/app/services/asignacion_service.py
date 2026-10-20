@@ -12,8 +12,11 @@ Orquesta:
 from __future__ import annotations
 
 from datetime import date
+import logging
 
+from fastapi import HTTPException
 from sqlalchemy import or_
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.models.cita import Cita
@@ -25,6 +28,11 @@ from app.services.especialidades import (
     ESTADOS_OCUPAN,
     mejor_tecnico_para,
     tecnico_ocupado,
+)
+from app.services.estados_entrega import (
+    ESTADOS_CUSTODIA_TECNICO,
+    ESTADOS_ENTREGA_ACTIVOS,
+    asignacion_reasignable,
 )
 
 
@@ -51,8 +59,13 @@ def registrar_historial(
     administrador_id: int | None = None,
     motivo: str | None = None,
     detalle: str | None = None,
+    commit: bool = True,
 ) -> HistorialCita:
-    """Registra un evento de trazabilidad para una cita."""
+    """Registra un evento de trazabilidad para una cita.
+
+    Con ``commit=False`` solo hace ``add`` + ``flush`` y deja el commit al
+    llamador (para incluir el historial en la misma transacción que el cambio
+    de la cita)."""
     entrada = HistorialCita(
         id_cita=id_cita,
         accion=accion,
@@ -65,8 +78,11 @@ def registrar_historial(
         detalle=detalle,
     )
     db.add(entrada)
-    db.commit()
-    db.refresh(entrada)
+    if commit:
+        db.commit()
+        db.refresh(entrada)
+    else:
+        db.flush()
     return entrada
 
 
@@ -118,20 +134,72 @@ def citas_futuras_de_tecnico(db: Session, id_tecnico: int) -> list[Cita]:
 
 
 def entregas_pendientes_de_tecnico(db: Session, id_tecnico: int) -> list[Pedido]:
-    """Entregas activas (Asignada/En camino) de hoy en adelante del técnico."""
+    """Entregas aún reasignables (Asignada) de hoy en adelante del técnico.
+
+    Solo se reasignan entregas en estado «Asignada»: las ya recogidas o en
+    camino están en custodia del técnico y no deben retrocederse ni transferirse
+    por un flujo automático de desactivación."""
     hoy = date.today()
     return (
         db.query(Pedido)
         .filter(
             Pedido.id_tecnico_entrega == id_tecnico,
             Pedido.fecha_entrega >= hoy,
-            Pedido.estado_entrega.in_(ESTADOS_ENTREGA_OCUPAN),
+            Pedido.estado_entrega == "Asignada",
         )
         .order_by(Pedido.fecha_entrega)
         .all()
     )
 
 
+def entregas_en_custodia_de_tecnico(db: Session, id_tecnico: int) -> list[Pedido]:
+    """Entregas del técnico que ya están en custodia (Recogido/En camino),
+    independientemente de su fecha. Bloquean la desactivación del técnico."""
+    return (
+        db.query(Pedido)
+        .filter(
+            Pedido.id_tecnico_entrega == id_tecnico,
+            Pedido.estado_entrega.in_(ESTADOS_CUSTODIA_TECNICO),
+        )
+        .order_by(Pedido.id_pedido)
+        .all()
+    )
+
+
+def validar_desactivacion_sin_custodia(db: Session, id_tecnico: int) -> None:
+    """Rechaza la desactivación de un técnico con entregas en custodia.
+
+    Bloquea (FOR UPDATE) las entregas no terminales del técnico en orden
+    estable y, bajo ese bloqueo, valida que ninguna esté en custodia. De este
+    modo la comprobación se coordina con una recogida concurrente: si la
+    recogida ganó la carrera, aquí se observa el estado Recogido/En camino y
+    se rechaza con 409; si esta validación gana, la recogida posterior verá al
+    técnico inactivo y no podrá avanzar."""
+    activas = (
+        db.query(Pedido)
+        .filter(
+            Pedido.id_tecnico_entrega == id_tecnico,
+            Pedido.estado_entrega.in_(ESTADOS_ENTREGA_ACTIVOS),
+        )
+        .order_by(Pedido.id_pedido)
+        .with_for_update()
+        .populate_existing()
+        .all()
+    )
+    en_custodia = [p for p in activas if p.estado_entrega in ESTADOS_CUSTODIA_TECNICO]
+    if en_custodia:
+        ids = ", ".join(str(p.id_pedido) for p in en_custodia)
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "No se puede desactivar al técnico: tiene entregas en curso "
+                f"(pedidos {ids}) en estado Recogido/En camino. Espera a que "
+                "complete esas entregas antes de desactivarlo."
+            ),
+        )
+
+
+# delega los avisos en notificar_cita_reasignada_cliente.
 def _notificar_cliente_reasignacion(db: Session, cita: Cita, nuevo_nombre: str) -> None:
     from app.config import settings
     from app.services.notificaciones import notificar_cita_reasignada_cliente
@@ -158,6 +226,7 @@ def _notificar_cliente_reasignacion(db: Session, cita: Cita, nuevo_nombre: str) 
     )
 
 
+# delega los avisos en notificar_cita_asignada_tecnico.
 def _notificar_tecnico_asignacion(db: Session, cita: Cita, tecnico) -> None:
     from app.services.notificaciones import notificar_cita_asignada_tecnico
 
@@ -261,158 +330,442 @@ def reasignar_cita_automatica(
     administrador_id: int | None = None,
     motivo: str = "Reasignación automática",
 ) -> dict:
-    """Intenta reasignar una cita a un técnico con la especialización
-    requerida y libre en la franja.
+    """Reasigna automáticamente una cita (por desactivación de un técnico).
 
-    Devuelve {"estado": "reasignada"|"cancelada"|"sin_cambio", ...}.
+    Límite exacto del reintento: solo se reintenta la FASE TRANSACCIONAL
+    (leer → elegir candidato → validar → actualizar cita + historial → commit).
+    Una vez confirmado, ningún fallo posterior (lectura/notificación) reinicia
+    la reasignación: los avisos se envían fuera del reintento y se tratan por
+    separado.
+
+    Agotar reintentos (1213/1205) devuelve un resultado controlado ``sin_cambio``
+    SIN cancelar ni reembolsar: la cancelación solo ocurre cuando la búsqueda
+    comprueba que no hay capacidad (condición de negocio), nunca por un error
+    técnico. El llamador debe haber confirmado sus cambios: este servicio es
+    dueño de la transacción y rechaza cambios ORM pendientes."""
+    cita_id = cita.id_cita
+    if db.new or db.deleted or any(db.is_modified(o, include_collections=True) for o in db.dirty):
+        raise ValueError("La reasignación requiere una sesión sin cambios pendientes")
+    # Esta operación es dueña de su transacción. Descarta solo lecturas previas.
+    db.rollback()
+    decision = None
+    for intento in range(3):
+        try:
+            decision = _intentar_reasignar(
+                db, cita_id, excluir_ids, administrador_id, motivo
+            )
+            if decision.get("estado") == "sin_capacidad":
+                decision = _cancelar_cita(db, cita_id, administrador_id, decision["_huella"])
+            if decision.get("estado") in ("reasignada", "reprogramada", "cancelada"):
+                # Los helpers devuelven únicamente escalares antes de este commit.
+                # No debe haber lecturas ORM posteriores dentro del reintento.
+                db.commit()
+            else:
+                db.rollback()
+            break
+        except OperationalError as exc:
+            db.rollback()
+            codigo = _codigo_error(exc)
+            if codigo in (1213, 1205) and intento < 2:
+                continue
+            if codigo not in (1213, 1205):
+                raise
+            return {"estado": "sin_cambio", "id_cita": cita_id, "conflicto": "reintentos_agotados"}
+        except Exception:
+            db.rollback()
+            raise
+    else:
+        return {"estado": "sin_cambio", "id_cita": cita_id, "conflicto": "reintentos_agotados"}
+
+    if decision is None:
+        return {"estado": "sin_cambio", "id_cita": cita_id}
+    if not decision.get("_avisos"):
+        return decision
+
+    # Post-commit: notificaciones. No reintentables; un fallo aquí no afecta el
+    # resultado ya confirmado.
+    try:
+        _enviar_avisos(db, decision)
+    except Exception:
+        db.rollback()
+        logging.getLogger(__name__).exception("Fallo post-commit de avisos de cita %s", cita_id)
+        decision["avisos_pendientes"] = True
+    decision.pop("_avisos", None)
+    return decision
+
+
+def _codigo_error(exc: OperationalError) -> int | None:
+    try:
+        if exc.orig is not None and exc.orig.args:
+            return exc.orig.args[0]
+    except Exception:
+        pass
+    return None
+
+
+def _huella_cita(cita: Cita) -> tuple:
+    """Huella de los campos relevantes para la decisión de reasignación. Si
+    cambia, la decisión tomada es obsoleta y no debe aplicarse."""
+    productos = tuple(
+        sorted(
+            (cp.id_producto, cp.id_variante or 0, cp.cantidad or 0,
+             cp.producto.dificultad_instalacion if cp.producto else None,
+             cp.producto.tecnicos_requeridos if cp.producto else None,
+             tuple(sorted(e.id_especializacion for e in cp.producto.especializaciones_requeridas)) if cp.producto else ())
+            for cp in (cita.productos_asociados or [])
+            if cp.id_producto is not None
+        )
+    )
+    return (
+        cita.estado,
+        cita.fecha,
+        cita.hora,
+        cita.tipo_servicio,
+        cita.id_especializacion,
+        (cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3),
+        productos,
+        cita.estado_pago, cita.costo_cita, cita.numero_transaccion,
+    )
+
+
+def _leer_cita_bloqueada(db: Session, cita_id: int):
+    """Relee también los datos relacionados usados por duración y aptitud.
+
+    Refrescar solo Cita no convierte las lecturas lazy de productos en current
+    reads bajo REPEATABLE READ. Estos datos forman parte de la huella.
     """
+    from sqlalchemy.orm.attributes import set_committed_value
+    from app.models.cita_producto import CitaProducto
+    from app.models.producto import Producto
+    from app.models.especializacion import Especializacion
+
+    cita = (db.query(Cita).filter(Cita.id_cita == cita_id)
+            .with_for_update().populate_existing().first())
+    if cita is None:
+        return None
+    items = (db.query(CitaProducto).filter(CitaProducto.id_cita == cita_id)
+             .order_by(CitaProducto.id_cita_producto).with_for_update().populate_existing().all())
+    for item in sorted(items, key=lambda i: i.id_producto):
+        producto = (db.query(Producto).filter(Producto.id_producto == item.id_producto)
+                    .with_for_update().populate_existing().first())
+        if producto is not None:
+            especializaciones = (db.query(Especializacion)
+                                 .join(Producto.especializaciones_requeridas)
+                                 .filter(Producto.id_producto == item.id_producto)
+                                 .with_for_update().populate_existing().all())
+            set_committed_value(producto, "especializaciones_requeridas", especializaciones)
+        set_committed_value(item, "producto", producto)
+    set_committed_value(cita, "productos_asociados", items)
+    return cita
+
+
+def _intentar_reasignar(
+    db: Session,
+    cita_id: int,
+    excluir_ids: set[int] | None,
+    administrador_id: int | None,
+    motivo: str,
+) -> dict:
+    """Un intento transaccional: relee la cita, elige candidato en el mismo
+    horario, reasigna o reprograma. Devuelve la decisión con ``_avisos`` (para
+    reasignada/reprogramada), o ``sin_capacidad`` (sin hueco) o ``sin_cambio``
+    (cita no reasignable o modificada concurrentemente)."""
+    from app.services.especialidades import duracion_estimada_cita as _dur_cita
+
+    cita = db.query(Cita).filter(Cita.id_cita == cita_id).first()
+    if cita is None:
+        return {"estado": "sin_cambio", "id_cita": cita_id}
+    if cita.estado not in ("Pendiente", "Confirmada"):
+        return {"estado": "sin_cambio", "id_cita": cita_id, "estado_actual": cita.estado}
+
     excluir = set(excluir_ids or set())
     if cita.id_tecnico is not None:
         excluir.add(cita.id_tecnico)
-
+    excluir.update(t for t in (cita.id_tecnico_2, cita.id_tecnico_3) if t is not None)
     esp = especializacion_requerida_cita(db, cita)
     ids_req = [esp.id_especializacion] if esp else []
-
-    candidato = mejor_tecnico_para(
-        db, ids_req, fecha=cita.fecha, hora=cita.hora, excluir_ids=excluir
-    )
+    duracion = _dur_cita(db, cita)
+    fecha = cita.fecha
+    hora = cita.hora
     nombre_anterior = cita.nombre_tecnico
     id_anterior = cita.id_tecnico
+    huella = _huella_cita(cita)
+
+    candidato = _elegir_candidato(db, fecha, hora, ids_req, excluir, cita_id, duracion)
 
     if candidato is None:
-        # Nadie libre en esa franja exacta: buscar el horario más cercano
-        # (prioridad 2) antes de cancelar.
-        from datetime import timedelta as _td
-
-        from app.services.especialidades import buscar_proximo_horario
-
-        proximo = (
-            buscar_proximo_horario(db, ids_req, cita.fecha + _td(days=1), None, excluir_ids=excluir)
-            if cita.fecha is not None
-            else None
-        )
-        if proximo is not None:
-            nueva_fecha, nueva_hora, tecnico_nuevo = proximo
-            fecha_anterior = cita.fecha
-            hora_anterior = cita.hora
-            cita.id_tecnico = tecnico_nuevo.id_tecnico
-            cita.nombre_tecnico = _nombre_tecnico_de(tecnico_nuevo)
-            cita.fecha = nueva_fecha
-            cita.hora = nueva_hora
-            db.commit()
-            db.refresh(cita)
-
-            registrar_historial(
-                db,
-                cita.id_cita,
-                accion="reprogramacion",
-                tecnico_anterior_id=id_anterior,
-                tecnico_anterior_nombre=nombre_anterior,
-                tecnico_nuevo_id=cita.id_tecnico,
-                tecnico_nuevo_nombre=cita.nombre_tecnico,
-                administrador_id=administrador_id,
-                motivo=motivo,
-                detalle=(
-                    f"Reprogramación automática: {fecha_anterior} {hora_anterior} → "
-                    f"{nueva_fecha} {nueva_hora}"
-                    + (f" (especialización: {esp.nombre})" if esp else "")
-                ),
-            )
-
-            _notificar_cliente_reasignacion(db, cita, cita.nombre_tecnico)
-            _notificar_tecnico_asignacion(db, cita, tecnico_nuevo)
-
-            from app.services.notificaciones import crear_notificacion
-            from app.models.user import User as _User
-
-            for admin in db.query(_User).filter(_User.id_rol_u == 1, _User.is_active == True).all():  # noqa: E712
-                crear_notificacion(
-                    db,
-                    id_usuario=admin.id_usuario,
-                    id_cliente=None,
-                    tipo="cita",
-                    titulo="Cita reprogramada automáticamente",
-                    mensaje=(
-                        f"La cita #{cita.id_cita} se reprogramó al "
-                        f"{nueva_fecha.strftime('%d/%m/%Y')} {nueva_hora} con "
-                        f"{cita.nombre_tecnico} porque nadie pudo atender en el horario original."
-                    ),
-                )
-
-            return {
-                "estado": "reprogramada",
-                "id_cita": cita.id_cita,
-                "fecha_anterior": str(fecha_anterior),
-                "hora_anterior": hora_anterior,
-                "fecha_nueva": str(nueva_fecha),
-                "hora_nueva": nueva_hora,
-                "tecnico_nuevo": cita.nombre_tecnico,
-            }
-
-        # Sin técnico disponible ni hueco próximo: cancelar + reembolsar.
-        motivo_cancelacion = (
-            f"No hay técnicos disponibles con la especialización "
-            f"'{esp.nombre}' para tu cita."
-            if esp
-            else "No hay técnicos disponibles para tu cita en este momento."
-        )
-        reembolso = cancelar_cita_con_reembolso(
-            db, cita, motivo=motivo_cancelacion, administrador_id=administrador_id
+        return _reprogramar_proximo(
+            db, cita_id, ids_req, excluir, nombre_anterior, id_anterior,
+            administrador_id, motivo, huella, duracion,
         )
 
-        # Alerta a administradores: reembolso pendiente por falta de técnico.
-        from app.services.notificaciones import notificar_admin_reembolso_pendiente_cita
-
-        cliente_c = cita.cliente
-        notificar_admin_reembolso_pendiente_cita(
-            db,
-            id_cita=cita.id_cita,
-            cliente_nombre=(
-                f"{cliente_c.first_name} {cliente_c.last_name}".strip()
-                if cliente_c
-                else "Cliente"
-            ),
-            especializacion=esp.nombre if esp else None,
-            monto=float(cita.costo_cita or 0),
-            motivo=motivo_cancelacion,
-        )
-
-        return {
-            "estado": "cancelada",
-            "id_cita": cita.id_cita,
-            "motivo": motivo_cancelacion,
-            "reembolso": reembolso,
-        }
+    # Releer la cita con bloqueo y revalidar que no cambió (estado, equipo,
+    # fecha/hora y requisitos) mientras se elegía el candidato.
+    cita = _leer_cita_bloqueada(db, cita_id)
+    if cita is None or _huella_cita(cita) != huella:
+        return {"estado": "sin_cambio", "id_cita": cita_id}
 
     cita.id_tecnico = candidato.id_tecnico
     cita.nombre_tecnico = _nombre_tecnico_de(candidato)
-    db.commit()
-    db.refresh(cita)
-
     registrar_historial(
-        db,
-        cita.id_cita,
-        accion="reasignacion",
-        tecnico_anterior_id=id_anterior,
-        tecnico_anterior_nombre=nombre_anterior,
-        tecnico_nuevo_id=candidato.id_tecnico,
-        tecnico_nuevo_nombre=cita.nombre_tecnico,
-        administrador_id=administrador_id,
-        motivo=motivo,
-        detalle=(
-            f"Especialización requerida: {esp.nombre}" if esp else None
-        ),
+        db, cita.id_cita, accion="reasignacion",
+        tecnico_anterior_id=id_anterior, tecnico_anterior_nombre=nombre_anterior,
+        tecnico_nuevo_id=candidato.id_tecnico, tecnico_nuevo_nombre=cita.nombre_tecnico,
+        administrador_id=administrador_id, motivo=motivo,
+        detalle=(f"Especialización requerida: {esp.nombre}" if esp else None),
+        commit=False,
     )
-
-    _notificar_cliente_reasignacion(db, cita, cita.nombre_tecnico)
-    _notificar_tecnico_asignacion(db, cita, candidato)
-
     return {
         "estado": "reasignada",
         "id_cita": cita.id_cita,
         "tecnico_anterior": nombre_anterior,
         "tecnico_nuevo": cita.nombre_tecnico,
+        "_avisos": {
+            "accion": "reasignada",
+            "cita_id": cita.id_cita,
+            "tecnico_nuevo_id": candidato.id_tecnico,
+            "tecnico_nuevo_nombre": cita.nombre_tecnico,
+        },
     }
+
+
+def _elegir_candidato(
+    db: Session,
+    fecha,
+    hora: str,
+    ids_req: list[int],
+    excluir: set[int],
+    excluir_cita_id: int,
+    duracion: float,
+):
+    """Elige un candidato apto y libre en el MISMO horario, probando con
+    respaldo: cada candidato se bloquea y revalida vigentemente; si uno falla,
+    se libera (rollback) y se prueba el siguiente. Devuelve el Tecnico elegido
+    (con su bloqueo retenido) o None.
+
+    El rollback solo descarta los bloqueos y lecturas de ESTE intento: el
+    llamador no debe tener cambios pendientes (la cita se relee después)."""
+    from app.services.especialidades import (
+        bloquear_tecnicos,
+        candidatos_para_especializaciones,
+        validar_equipo_tecnicos,
+    )
+
+    for cand in candidatos_para_especializaciones(
+        db, ids_req, fecha=fecha, hora=hora, excluir_ids=excluir, duracion_horas=duracion
+    ):
+        tid = cand.id_tecnico
+        bloquear_tecnicos(db, [tid])
+        try:
+            validados = validar_equipo_tecnicos(
+                db, [tid], fecha, hora,
+                ids_especializacion=ids_req, excluir_cita_id=excluir_cita_id,
+                duracion_horas=duracion,
+            )
+            return validados[0]
+        except HTTPException:
+            db.rollback()
+            continue
+    return None
+
+
+def _reprogramar_proximo(
+    db: Session,
+    cita_id: int,
+    ids_req: list[int],
+    excluir: set[int],
+    nombre_anterior: str | None,
+    id_anterior: int | None,
+    administrador_id: int | None,
+    motivo: str,
+    huella: tuple,
+    duracion: float,
+) -> dict:
+    """Busca un próximo horario donde quepa el equipo completo (principal nuevo
+    + secundarios actuales), avanzando con ``excluir_propuestas`` para no
+    repetir propuestas rechazadas. Revalida bajo bloqueo. Devuelve
+    ``reprogramada``, ``sin_capacidad`` (búsqueda sin propuestas) o ``sin_cambio``
+    cuando hubo conflictos o se alcanzó el límite de intentos."""
+    from datetime import timedelta as _td
+
+    from app.services.especialidades import (
+        bloquear_tecnicos,
+        buscar_proximo_horario,
+        validar_equipo_tecnicos,
+    )
+
+    cita = db.query(Cita).filter(Cita.id_cita == cita_id).first()
+    if cita is None or cita.estado not in ("Pendiente", "Confirmada"):
+        return {"estado": "sin_cambio", "id_cita": cita_id}
+
+    propuestas_excluidas: set = set()
+    hubo_conflictos = False
+    desde_fecha = cita.fecha + _td(days=1)
+    for _intento in range(10):
+        proximo = buscar_proximo_horario(
+            db, ids_req, desde_fecha, None,
+            excluir_ids=excluir, duracion_horas=duracion, excluir_propuestas=propuestas_excluidas,
+        )
+        if proximo is None:
+            # Un conflicto concurrente no demuestra falta definitiva de capacidad.
+            if hubo_conflictos:
+                return {"estado": "sin_cambio", "id_cita": cita_id, "conflicto": "capacidad_cambio"}
+            return {"estado": "sin_capacidad", "id_cita": cita_id, "_huella": huella}
+        nueva_fecha, nueva_hora, tecnico_nuevo = proximo
+        tecnico_nuevo_id = tecnico_nuevo.id_tecnico
+
+        # Equipo completo en el nuevo intervalo (principal nuevo + secundarios).
+        secundarios = [t for t in (cita.id_tecnico_2, cita.id_tecnico_3) if t is not None]
+        equipo = [tecnico_nuevo.id_tecnico] + secundarios
+        bloquear_tecnicos(db, equipo)
+        try:
+            validar_equipo_tecnicos(
+                db, equipo, nueva_fecha, nueva_hora,
+                ids_especializacion=ids_req, excluir_cita_id=cita_id,
+                duracion_horas=duracion,
+            )
+        except HTTPException:
+            db.rollback()
+            hubo_conflictos = True
+            propuestas_excluidas.add((nueva_fecha, nueva_hora, tecnico_nuevo_id))
+            continue
+
+        # Releer la cita con bloqueo y revalidar que no cambió.
+        cita = _leer_cita_bloqueada(db, cita_id)
+        if cita is None or _huella_cita(cita) != huella:
+            return {"estado": "sin_cambio", "id_cita": cita_id}
+
+        fecha_anterior = cita.fecha
+        hora_anterior = cita.hora
+        cita.id_tecnico = tecnico_nuevo.id_tecnico
+        cita.nombre_tecnico = _nombre_tecnico_de(tecnico_nuevo)
+        cita.fecha = nueva_fecha
+        cita.hora = nueva_hora
+        registrar_historial(
+            db, cita.id_cita, accion="reprogramacion",
+            tecnico_anterior_id=id_anterior, tecnico_anterior_nombre=nombre_anterior,
+            tecnico_nuevo_id=cita.id_tecnico, tecnico_nuevo_nombre=cita.nombre_tecnico,
+            administrador_id=administrador_id, motivo=motivo,
+            detalle=(
+                f"Reprogramación automática: {fecha_anterior} {hora_anterior} → "
+                f"{nueva_fecha} {nueva_hora}"
+            ),
+            commit=False,
+        )
+        return {
+            "estado": "reprogramada",
+            "id_cita": cita.id_cita,
+            "fecha_anterior": str(fecha_anterior),
+            "hora_anterior": hora_anterior,
+            "fecha_nueva": str(nueva_fecha),
+            "hora_nueva": nueva_hora,
+            "tecnico_nuevo": cita.nombre_tecnico,
+            "_avisos": {
+                "accion": "reprogramada",
+                "cita_id": cita.id_cita,
+                "tecnico_nuevo_id": tecnico_nuevo.id_tecnico,
+                "tecnico_nuevo_nombre": cita.nombre_tecnico,
+                "fecha_anterior": str(fecha_anterior),
+                "hora_anterior": hora_anterior,
+                "nueva_fecha": str(nueva_fecha),
+                "nueva_hora": nueva_hora,
+            },
+        }
+
+    return {"estado": "sin_cambio", "id_cita": cita_id, "conflicto": "busqueda_limitada"}
+
+
+def _cancelar_cita(db: Session, cita_id: int, administrador_id: int | None, huella: tuple) -> dict:
+    """Cancela una cita + reembolsa (condición de negocio: sin capacidad).
+    Relee y revalida la cita vigente antes de cancelar."""
+    cita = _leer_cita_bloqueada(db, cita_id)
+    if cita is None or _huella_cita(cita) != huella or cita.estado not in ("Pendiente", "Confirmada"):
+        return {"estado": "sin_cambio", "id_cita": cita_id}
+
+    esp = especializacion_requerida_cita(db, cita)
+    motivo_cancelacion = (
+        f"No hay técnicos disponibles con la especialización "
+        f"'{esp.nombre}' para tu cita."
+        if esp
+        else "No hay técnicos disponibles para tu cita en este momento."
+    )
+    estado_anterior = cita.estado
+    cita.estado = "Cancelada"
+    registrar_historial(
+        db, cita_id, accion="cancelacion", tecnico_anterior_id=cita.id_tecnico,
+        tecnico_anterior_nombre=cita.nombre_tecnico, administrador_id=administrador_id,
+        motivo=motivo_cancelacion, detalle=f"Estado anterior: {estado_anterior}", commit=False,
+    )
+    reembolso = None
+    if cita.estado_pago == "aprobado" and cita.costo_cita:
+        from app.models.especializacion import Reembolso
+        registro = Reembolso(id_cita=cita_id, monto=round(float(cita.costo_cita), 2),
+                             estado="Pendiente", motivo=motivo_cancelacion,
+                             numero_transaccion_original=cita.numero_transaccion)
+        db.add(registro)
+        db.flush()
+        reembolso = {"id_reembolso": registro.id_reembolso, "monto": registro.monto, "estado": registro.estado}
+
+    return {
+        "estado": "cancelada",
+        "id_cita": cita.id_cita,
+        "motivo": motivo_cancelacion,
+        "reembolso": reembolso,
+        "_avisos": {"accion": "cancelada", "cita_id": cita_id,
+                    "motivo": motivo_cancelacion, "especializacion": esp.nombre if esp else None},
+    }
+
+
+def _enviar_avisos(db: Session, decision: dict) -> None:
+    """Envía las notificaciones (post-commit). No reintentable."""
+    avisos = decision.get("_avisos")
+    if not avisos:
+        return
+    from app.models.tecnico import Tecnico
+
+    cita = db.query(Cita).filter(Cita.id_cita == avisos["cita_id"]).first()
+    if cita is None:
+        return
+    if avisos["accion"] == "cancelada":
+        from app.services.notificaciones import notificar_cita_estado_cliente, notificar_admin_reembolso_pendiente_cita
+        cliente = cita.cliente
+        nombre = f"{cliente.first_name} {cliente.last_name}".strip() if cliente else "Cliente"
+        if cliente:
+            notificar_cita_estado_cliente(
+                db, cliente.id_cliente, cliente.email, nombre,
+                {"servicio": cita.tipo_servicio, "fecha": cita.fecha.strftime("%d/%m/%Y"),
+                 "tecnico": cita.nombre_tecnico or "-"}, "Cancelada", motivo=avisos["motivo"],
+            )
+        notificar_admin_reembolso_pendiente_cita(
+            db, id_cita=cita.id_cita, cliente_nombre=nombre,
+            especializacion=avisos["especializacion"], monto=float(cita.costo_cita or 0), motivo=avisos["motivo"],
+        )
+        return
+    tecnico = (
+        db.query(Tecnico).filter(Tecnico.id_tecnico == avisos["tecnico_nuevo_id"]).first()
+        if avisos.get("tecnico_nuevo_id")
+        else None
+    )
+    _notificar_cliente_reasignacion(db, cita, avisos.get("tecnico_nuevo_nombre"))
+    _notificar_tecnico_asignacion(db, cita, tecnico)
+
+    if avisos["accion"] == "reprogramada":
+        from app.models.user import User as _User
+        from app.services.notificaciones import crear_notificacion
+
+        for admin in db.query(_User).filter(_User.id_rol_u == 1, _User.is_active == True).all():  # noqa: E712
+            crear_notificacion(
+                db,
+                id_usuario=admin.id_usuario,
+                id_cliente=None,
+                tipo="cita",
+                titulo="Cita reprogramada automáticamente",
+                mensaje=(
+                    f"La cita #{cita.id_cita} se reprogramó al "
+                    f"{avisos['nueva_fecha']} {avisos['nueva_hora']} con "
+                    f"{avisos['tecnico_nuevo_nombre']} porque nadie pudo atender en el horario original."
+                ),
+            )
 
 
 def especializaciones_requeridas_entrega(db: Session, pedido: Pedido) -> list[int]:
@@ -427,7 +780,18 @@ def especializaciones_requeridas_entrega(db: Session, pedido: Pedido) -> list[in
     return _esp_de_productos(productos)
 
 
-def reasignar_entrega(db: Session, pedido: Pedido, excluir_ids: set[int] | None = None) -> dict | None:
+# Señal de resultado de `reasignar_entrega`: la entrega ya no pertenece al
+# técnico que se desactiva (un administrador la reasignó en el ínterin). El
+# proceso de desactivación debe omitirla sin reasignarla ni dejarla sin técnico.
+OMITIR_ENTREGA = object()
+
+
+def reasignar_entrega(
+    db: Session,
+    pedido: Pedido,
+    excluir_ids: set[int] | None = None,
+    propietario_esperado: int | None = None,
+) -> dict | None:
     """Reasigna la entrega de un pedido buscando técnico disponible DENTRO DEL
     RANGO horario de la entrega, con esta prioridad:
 
@@ -438,6 +802,16 @@ def reasignar_entrega(db: Session, pedido: Pedido, excluir_ids: set[int] | None 
     Dentro de cada nivel se elige el de menor carga activa. Devuelve un dict
     con el técnico elegido y si se usó una especialización alternativa, o
     None si no hay candidatos.
+
+    Bloquea la fila (FOR UPDATE) y refresca sus atributos desde la base
+    (``populate_existing``) para no validar un objeto precargado/desactualizado
+    del mapa de identidad. Bajo el bloqueo:
+
+      - Si ``propietario_esperado`` se indica y la entrega ya no le pertenece
+        (la reasignó un administrador), devuelve ``OMITIR_ENTREGA`` y no altera
+        datos ni emite avisos.
+      - Si el estado ya no es reasignable (recogida/en camino/entregada o
+        desconocido), lanza 409; no lo confunde con «no hay candidatos».
     """
     from app.services.especialidades import (
         _tecnicos_activos,
@@ -445,6 +819,35 @@ def reasignar_entrega(db: Session, pedido: Pedido, excluir_ids: set[int] | None 
         ventana_entrega,
         tecnico_libre_en_rango,
     )
+
+    # Bloquear la fila y refrescar los atributos vigentes. populate_existing()
+    # obliga a SQLAlchemy a sobrescribir la instancia del mapa de identidad con
+    # la fila recién leída, de modo que la validación posterior use el estado y
+    # responsable actuales, no los valores precargados por el llamador.
+    pedido = (
+        db.query(Pedido)
+        .filter(Pedido.id_pedido == pedido.id_pedido)
+        .with_for_update()
+        .populate_existing()
+        .first()
+    )
+    if pedido is None:
+        return None
+
+    # La entrega dejó de pertenecer al técnico que se desactiva: conservar la
+    # asignación vigente (no reasignar de nuevo ni dejarla sin responsable).
+    if propietario_esperado is not None and pedido.id_tecnico_entrega != propietario_esperado:
+        db.commit()  # libera el bloqueo sin modificar nada
+        return OMITIR_ENTREGA
+
+    if not asignacion_reasignable(pedido.estado_entrega):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"La entrega del pedido #{pedido.id_pedido} ya no está en estado "
+                "asignable (recogida, en camino o entregada); no se puede reasignar."
+            ),
+        )
 
     excluir = set(excluir_ids or set())
     if pedido.id_tecnico_entrega:
@@ -644,7 +1047,13 @@ def desactivar_tecnico_proceso(
 
     # 3) Entregas pendientes.
     for pedido in entregas_pendientes_de_tecnico(db, id_tecnico):
-        resultado_entrega = reasignar_entrega(db, pedido, excluir_ids={id_tecnico})
+        resultado_entrega = reasignar_entrega(
+            db, pedido, excluir_ids={id_tecnico}, propietario_esperado=id_tecnico
+        )
+        if resultado_entrega is OMITIR_ENTREGA:
+            # Un administrador ya la reasignó a otro técnico: conservar la
+            # asignación vigente y no contarla como reasignada ni desasignarla.
+            continue
         if resultado_entrega is not None:
             resumen["entregas_reasignadas"].append(
                 {

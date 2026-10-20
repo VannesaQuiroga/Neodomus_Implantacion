@@ -1,3 +1,4 @@
+// Pantalla AdminConsultas de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
@@ -25,6 +26,7 @@ type SolicitudCombinada =
   | { fuente: 'cliente'; data: SolicitudCuenta }
   | { fuente: 'empleado'; data: SolicitudEmpleado };
 
+// Comunica con el backend mediante GET '/admin/account-requests', GET '/admin/account-requests/empleados', GET '/clients' y otras peticiones de esta vista.
 const AdminConsultas = () => {
   const { idioma, t } = useIdioma();
   const location = useLocation();
@@ -43,6 +45,7 @@ const AdminConsultas = () => {
 
   const POR_PAGINA = 6;
 
+  // Comunica con el backend mediante GET '/admin/account-requests', GET '/admin/account-requests/empleados'.
   const cargarSolicitudes = async () => {
     try {
       const [clientesRes, empleadosRes] = await Promise.all([
@@ -56,6 +59,7 @@ const AdminConsultas = () => {
     }
   };
 
+  // Comunica con el backend mediante GET '/clients', GET '/tecnicos'.
   const cargarCuentas = async () => {
     try {
       const [clientesRes, tecnicosRes] = await Promise.all([
@@ -104,6 +108,7 @@ const AdminConsultas = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante PUT `/admin/account-requests/${id}/${accion}`.
   const resolver = async (id: number, accion: 'aprobar' | 'rechazar') => {
     setResolviendo(`cliente-${id}`);
     try {
@@ -119,6 +124,7 @@ const AdminConsultas = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/admin/account-requests/empleados/${id}/${accion}`.
   const resolverEmpleado = async (id: number, accion: 'aprobar' | 'rechazar') => {
     setResolviendo(`emp-${id}`);
     try {
@@ -134,6 +140,7 @@ const AdminConsultas = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/clients/${id}/habilitar`.
   const habilitarCliente = async (id: number) => {
     setResolviendo(`cliente-${id}`);
     try {
@@ -148,6 +155,7 @@ const AdminConsultas = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/users/${id}`.
   const habilitarTecnico = async (id: number) => {
     setResolviendo(`tecnico-${id}`);
     try {

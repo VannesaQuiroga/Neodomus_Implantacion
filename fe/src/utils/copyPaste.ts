@@ -1,3 +1,4 @@
+// Agrupa los manejadores que bloquean las acciones de portapapeles en los campos que los utilizan.
 import type { ClipboardEvent, KeyboardEvent, MouseEvent } from 'react';
 
 export const bloquearTeclasPortapapeles = (e: KeyboardEvent<HTMLElement>) => {

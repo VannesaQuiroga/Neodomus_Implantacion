@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianBottomTabs. Se reutiliza en las pantallas de su área.
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -7,6 +8,7 @@ import { FontFamilies } from "@/constants/theme";
 import { apiFetch } from "@/services/api";
 import { useIdioma } from "@/contexts/IdiomaContext";
 
+// Comunica con el backend mediante API "/notificaciones/mias"; programa una actualización periódica.
 export default function TechnicianBottomTabs() {
   const router = useRouter();
   const segments = useSegments() as string[];
@@ -23,6 +25,7 @@ export default function TechnicianBottomTabs() {
 
   useEffect(() => {
     let alive = true;
+    // Comunica con el backend mediante API "/notificaciones/mias".
     const cargar = async () => {
       try {
         const res = await apiFetch<any[]>("/notificaciones/mias").catch(() => []);

@@ -1,8 +1,10 @@
+# Persistencia de user. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
+# Mapea la tabla «usuarios»; sus referencias enlazan con roles_usuario.
 class User(Base):
     __tablename__ = "usuarios"
 

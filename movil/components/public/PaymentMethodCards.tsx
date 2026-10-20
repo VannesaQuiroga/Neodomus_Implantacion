@@ -1,3 +1,4 @@
+// Presenta los métodos de pago disponibles para seleccionarlos.
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

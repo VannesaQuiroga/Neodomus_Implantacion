@@ -1,7 +1,8 @@
+# Rutas de pedidos. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ from typing import List, Optional
 
 from app.database import get_db
 from app.models.cliente import Cliente
+from app.models.evidencia import EvidenciaEntrega
 from app.models.pedido import DetallePedido, Pedido
 from app.models.producto import Producto
 from app.models.roles_usuario import RolesUsuario
@@ -16,12 +18,72 @@ from app.models.tecnico import Tecnico
 from app.models.ubicacion_tecnico import UbicacionTecnico
 from app.models.user import User
 from app.services.pagos_service import BANCOS_COLOMBIANOS, METODOS_PAGO
-from app.services import pedidos_service
+from app.services import minio_service, pedidos_service
+from app.services.estados_entrega import asignacion_reasignable
 from app.utils.security import get_current_client, get_current_employee
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 
+def _url_evidencia_entrega(pedido_id: int, evidencia_id: int) -> str:
+    return f"/api/v1/pedidos/{pedido_id}/evidencias-entrega/{evidencia_id}/archivo"
+
+
+def _pedido_propio(pedido_id: int, cliente: Cliente, db: Session) -> Pedido:
+    pedido = (
+        db.query(Pedido)
+        .filter(Pedido.id_pedido == pedido_id, Pedido.id_cliente_pe == cliente.id_cliente)
+        .first()
+    )
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    return pedido
+
+
+@router.get("/{pedido_id}/evidencias-entrega")
+def evidencias_entrega_cliente(
+    pedido_id: int,
+    cliente: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Evidencias de entrega del pedido propio del cliente (URLs autorizadas)."""
+    _pedido_propio(pedido_id, cliente, db)
+    filas = (
+        db.query(EvidenciaEntrega)
+        .filter(EvidenciaEntrega.id_pedido == pedido_id)
+        .order_by(EvidenciaEntrega.id.desc())
+        .all()
+    )
+    return [
+        {"id": f.id, "url": _url_evidencia_entrega(pedido_id, f.id)}
+        for f in filas
+    ]
+
+
+@router.get("/{pedido_id}/evidencias-entrega/{evidencia_id}/archivo")
+def descargar_evidencia_entrega_cliente(
+    pedido_id: int,
+    evidencia_id: int,
+    cliente: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """El cliente propietario descarga la evidencia de entrega de su pedido."""
+    _pedido_propio(pedido_id, cliente, db)
+    ev = (
+        db.query(EvidenciaEntrega)
+        .filter(EvidenciaEntrega.id == evidencia_id, EvidenciaEntrega.id_pedido == pedido_id)
+        .first()
+    )
+    if not ev:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    try:
+        contenido, media = minio_service.leer_archivo(ev.url_archivo)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return Response(content=contenido, media_type=media)
+
+
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -36,6 +98,7 @@ def _admin(
 
 # ── Esquemas de entrada ─────────────────────────────────────────
 
+# Agrupa los campos de ItemCarrito: id_producto, cantidad, metros, color, id_variante.
 class ItemCarrito(BaseModel):
     id_producto: int
     cantidad: int = 1
@@ -44,6 +107,7 @@ class ItemCarrito(BaseModel):
     id_variante: Optional[int] = None
 
 
+# Agrupa los campos de ServicioCheckout: nombre, tipo_servicio, descripcion, fecha, hora y los demás declarados abajo.
 class ServicioCheckout(BaseModel):
     nombre: str
     tipo_servicio: Optional[str] = None
@@ -56,6 +120,7 @@ class ServicioCheckout(BaseModel):
     id_tecnico_2: Optional[int] = None
 
 
+# Agrupa los campos de DatosPago: metodo, numero, titular, expiracion, cvv y los demás declarados abajo.
 class DatosPago(BaseModel):
     metodo: str
     numero: Optional[str] = None
@@ -68,6 +133,7 @@ class DatosPago(BaseModel):
     punto_pago: Optional[str] = None
 
 
+# Agrupa los campos de CheckoutRequest: items, servicios, pago, codigo_cupon.
 class CheckoutRequest(BaseModel):
     items: List[ItemCarrito]
     servicios: List[ServicioCheckout] = []
@@ -151,6 +217,7 @@ def _serializar_pedido(pedido, con_detalles=False, db: Session | None = None):
 
 # ── Endpoints ───────────────────────────────────────────────────
 
+# Agrupa los campos de RecomendacionRequest: items, fecha, hora.
 class RecomendacionRequest(BaseModel):
     items: List[ItemCarrito]
     fecha: Optional[str] = None
@@ -433,6 +500,7 @@ def horarios_disponibles_entrega(
     return disponibles
 
 
+# Agrupa los campos de EntregaAsignarRequest: id_tecnico, fecha_entrega, hora_entrega, hora_entrega_fin.
 class EntregaAsignarRequest(BaseModel):
     id_tecnico: Optional[int] = None
     fecha_entrega: Optional[date] = None
@@ -448,7 +516,9 @@ def asignar_entrega_admin(
     db: Session = Depends(get_db),
 ):
     """Asigna o reasigna el técnico responsable de entregar un pedido.
-    Con id_tecnico null deja la entrega sin técnico (estado Pendiente)."""
+    Con id_tecnico null deja la entrega sin técnico (estado Pendiente).
+    Orden de bloqueo coherente: Tecnico → Pedido (evita la inversión con la
+    creación de citas, que bloquea Tecnico → Cita/Pedido)."""
     pedido = db.query(Pedido).filter(Pedido.id_pedido == pedido_id).first()
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
@@ -464,6 +534,22 @@ def asignar_entrega_admin(
     )
 
     if data.id_tecnico is None:
+        # Remoción de técnico: no compite por capacidad; solo se bloquea el pedido.
+        pedido = (
+            db.query(Pedido)
+            .filter(Pedido.id_pedido == pedido_id)
+            .with_for_update()
+            .populate_existing()
+            .first()
+        )
+        if not asignacion_reasignable(pedido.estado_entrega):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"La entrega ya está en curso ({pedido.estado_entrega}) y no "
+                    "puede reasignarse ni revertirse desde este panel."
+                ),
+            )
         anterior = pedido.nombre_tecnico_entrega
         pedido.id_tecnico_entrega = None
         pedido.nombre_tecnico_entrega = None
@@ -495,6 +581,7 @@ def asignar_entrega_admin(
             "mensaje": f"Entrega del pedido #{pedido_id} sin técnico (antes: {anterior or '—'})",
         }
 
+    # Asignación/reasignación: validar y bloquear el técnico ANTES del pedido.
     tecnico = (
         db.query(Tecnico)
         .join(User, User.id_usuario == Tecnico.id_usuario_t)
@@ -506,6 +593,30 @@ def asignar_entrega_admin(
     )
     if not tecnico:
         raise HTTPException(status_code=404, detail="Técnico no encontrado o inactivo")
+
+    from app.services.especialidades import tecnico_libre_en_rango, bloquear_tecnicos
+
+    bloquear_tecnicos(db, [tecnico.id_tecnico])
+
+    # Bloquear el pedido y revalidar su estado vigente (pudo cambiar mientras se
+    # esperaba el bloqueo del técnico).
+    pedido = (
+        db.query(Pedido)
+        .filter(Pedido.id_pedido == pedido_id)
+        .with_for_update()
+        .populate_existing()
+        .first()
+    )
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    if not asignacion_reasignable(pedido.estado_entrega):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"La entrega ya está en curso ({pedido.estado_entrega}) y no "
+                "puede reasignarse ni revertirse desde este panel."
+            ),
+        )
 
     # Actualización opcional de fecha/rango de entrega.
     rango_cambiado = False
@@ -545,10 +656,9 @@ def asignar_entrega_admin(
         )
         pedido.hora_entrega_fin = data.hora_entrega_fin
 
-    # Validar que el técnico esté libre dentro del rango de la entrega.
+    # Validar que el técnico esté libre dentro del rango de la entrega, con
+    # lectura vigente (bloqueo ya adquirido sobre el técnico).
     if pedido.fecha_entrega is not None:
-        from app.services.especialidades import tecnico_libre_en_rango
-
         libre = tecnico_libre_en_rango(
             db,
             tecnico.id_tecnico,
@@ -556,6 +666,7 @@ def asignar_entrega_admin(
             pedido.hora_entrega or "10:00",
             pedido.hora_entrega_fin,
             excluir_pedido_id=pedido.id_pedido,
+            for_update=True,
         )
         if not libre:
             db.rollback()
@@ -573,8 +684,7 @@ def asignar_entrega_admin(
         if tecnico.usuario
         else "Técnico"
     )
-    if pedido.estado_entrega != "En camino":
-        pedido.estado_entrega = "Asignada"
+    pedido.estado_entrega = "Asignada"
     pedido.entrega_actualizada_en = datetime.now()
     db.commit()
 
@@ -719,11 +829,6 @@ def seguimiento_pedido(
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
-    from app.services.especialidades import auto_en_camino
-
-    # Regla automática: faltan 5 min para cumplirse las 3 h → En camino.
-    auto_en_camino(db, pedido)
-
     estado_entrega = pedido.estado_entrega
     confirmado = bool(pedido.estado_pedido and pedido.estado_pedido.lower().startswith("pag"))
     asignado = pedido.id_tecnico_entrega is not None
@@ -763,6 +868,12 @@ def seguimiento_pedido(
                 ),
             }
 
+    ultima_evidencia = (
+        db.query(EvidenciaEntrega)
+        .filter(EvidenciaEntrega.id_pedido == pedido.id_pedido)
+        .order_by(EvidenciaEntrega.id.desc())
+        .first()
+    )
     return {
         "id_pedido": pedido.id_pedido,
         "estado_pedido": pedido.estado_pedido,
@@ -771,7 +882,11 @@ def seguimiento_pedido(
         "fecha_entrega": pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
         "hora_entrega": pedido.hora_entrega,
         "hora_entrega_fin": pedido.hora_entrega_fin,
-        "evidencia_entrega_url": pedido.evidencia_entrega_url,
+        "evidencia_entrega_url": (
+            _url_evidencia_entrega(pedido.id_pedido, ultima_evidencia.id)
+            if ultima_evidencia
+            else None
+        ),
         "rango_entrega": (
             f"{pedido.hora_entrega or '10:00'} - {pedido.hora_entrega_fin}"
             if pedido.hora_entrega_fin

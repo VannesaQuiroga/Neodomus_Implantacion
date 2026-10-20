@@ -1,3 +1,4 @@
+// Contenido institucional de presentación de Neodomus.
 import fondo2 from '@assets/images/Fondo2.png';
 import sobreImg from '@assets/images/sobre.jpeg';
 import '@styles/info_pages.css';

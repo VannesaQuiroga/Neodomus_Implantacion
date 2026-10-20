@@ -1,3 +1,4 @@
+// Ruta móvil de privacidad. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React from "react";
 
 import LegalScreen from "@/components/public/LegalScreen";

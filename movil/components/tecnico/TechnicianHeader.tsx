@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianHeader. Se reutiliza en las pantallas de su área.
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View, Image, Modal } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # --- Verificación de email y recuperación de contraseña ---
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
-    # 🔥 NUEVA variable en MINUTOS para el código de recuperación
+    # NUEVA variable en MINUTOS para el código de recuperación
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 10   # 10 minutos por defecto
     # Opcional: se mantiene por compatibilidad, pero ya no se usa
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 1
@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = "neodomus-media"
     MINIO_PUBLIC_ENDPOINT: str = "http://localhost:9000"
     MINIO_SECURE: bool = False
+    # Bucket PRIVADO para evidencias y adjuntos del negocio (sin lectura anónima).
+    # El bucket público MINIO_BUCKET sigue sirviendo solo el catálogo de productos.
+    MINIO_PRIVATE_BUCKET: str = "neodomus-private"
 
     # --- Frontend URLs ---
     FRONTEND_URL: str = "http://localhost:5173"

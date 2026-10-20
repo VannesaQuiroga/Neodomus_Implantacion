@@ -1,3 +1,4 @@
+// Componente reutilizable CompletarDatosModal para componer la interfaz de Neodomus.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaUserPen, FaCircleExclamation, FaCircleCheck } from 'react-icons/fa6';
@@ -6,6 +7,7 @@ import api from '@services/api';
 import '@styles/auth-modal.css';
 import '@styles/login.css';
 
+// Comunica con el backend mediante PUT '/clients/me'.
 const CompletarDatosModal = () => {
   const navigate = useNavigate();
   const { perfilIncompleto, rol, isAuthenticated, marcarPerfilCompleto, logout } = useAuth();
@@ -40,6 +42,7 @@ const CompletarDatosModal = () => {
 
   if (!visible) return null;
 
+  // Comunica con el backend mediante PUT '/clients/me'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');

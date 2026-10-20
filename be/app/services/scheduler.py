@@ -40,6 +40,7 @@ def _job_recordatorios() -> None:
         db.close()
 
 
+# delega los avisos en enviar_recordatorios_calificacion.
 def _job_recordatorios_calificacion() -> None:
     db = SessionLocal()
     try:

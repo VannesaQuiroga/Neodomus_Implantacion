@@ -1,3 +1,4 @@
+// Encabezado reutilizable de una sección del perfil, con icono, texto y acción opcional.
 import { ReactNode } from 'react';
 
 interface SectionHeaderProps {

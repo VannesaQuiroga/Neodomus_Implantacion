@@ -26,6 +26,7 @@ const regionesColombia: Record<string, string[]> = {
   "Bogotá": ["Bogotá D.C."]
 };
 
+// Comunica con el backend mediante POST '/auth/register/client'.
 const Register = () => {
   const { openAuth, closeAuth } = useAuthModal();
   const { googleLogin } = useAuth();
@@ -130,6 +131,7 @@ const Register = () => {
     return true;
   };
 
+  // Comunica con el backend mediante POST '/auth/register/client'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

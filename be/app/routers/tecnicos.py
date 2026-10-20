@@ -1,9 +1,11 @@
+# Rutas de tecnicos. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from typing import List, Optional
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -25,9 +27,14 @@ from app.models.pedido import Pedido, DetallePedido
 from app.services.especialidades import (
     _dia_es_laboral,
     horas_laborales,
-    slot_tomado,
     tecnico_ocupado,
+    bloquear_tecnicos,
+    requisitos_cita,
+    ids_equipo_cita,
+    validar_equipo_tecnicos,
+    tecnico_disponible,
 )
+from app.services.estados_entrega import validar_transicion_tecnico
 from app.services.notificaciones import notificar_cita_reasignada_cliente
 from app.routers.citas import _validar_franja_cita
 from app.models.ubicacion_tecnico import UbicacionTecnico
@@ -43,19 +50,82 @@ EVIDENCIAS_DIR = Path(__file__).resolve().parent.parent / "static" / "evidencias
 EXTENSIONES_EVIDENCIA = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 
-def _url_evidencia(url_archivo: str, base_legado: str = "/static/evidencias") -> str:
-    """URL pública de una evidencia.
+def _url_evidencia(url_archivo: str, tipo: str, evidencia_id: int) -> str:
+    """URL autorizada (no pública) de una evidencia.
 
-    Las nuevas se guardan en MinIO con clave 'evidencias/<archivo>' (contiene '/').
-    Las antiguas eran archivos en disco y conservan su ruta relativa original.
+    Las evidencias son archivos privados del negocio: se sirven mediante una
+    ruta autenticada que comprueba asignación/rol. Nunca se devuelven enlaces
+    públicos del almacenamiento. ``url_archivo`` se conserva en el backend para
+    resolver el objeto al descargarlo.
     """
-    if "/" in url_archivo:
-        return minio_service.url_publica(url_archivo)
-    return f"{base_legado}/{url_archivo}"
+    return f"/api/v1/tecnicos/evidencias/{tipo}/{evidencia_id}/archivo"
+
+
+def _leer_archivo_evidencia(url_archivo: str) -> tuple[bytes, str]:
+    """Lee el contenido de una evidencia desde su almacenamiento (MinIO privado
+    o disco legado) sin exponer el enlace directo. Devuelve (bytes, media_type)."""
+    if "/" in (url_archivo or ""):
+        try:
+            return minio_service.leer_archivo(url_archivo)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    ruta = EVIDENCIAS_DIR / url_archivo
+    if not ruta.is_file():
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return ruta.read_bytes(), "image/jpeg"
 
 router = APIRouter(prefix="/tecnicos", tags=["Técnicos"])
 
 
+def _servir_evidencia(db: Session, tipo: str, evidencia_id: int, current_user: User):
+    """Sirve una evidencia privada previa comprobación de asignación/rol.
+
+    Administrador: cualquier evidencia. Técnico: solo las suyas (asignadas).
+    """
+    from app.models.evidencia import EvidenciaEntrega
+
+    rol = (
+        db.query(RolesUsuario)
+        .filter(RolesUsuario.id_rol == current_user.id_rol_u)
+        .first()
+    )
+    es_admin = rol is not None and rol.nombre_rol in ("admin", "administrador")
+
+    if tipo not in ("entrega", "cita"):
+        raise HTTPException(status_code=400, detail="Tipo de evidencia no válido")
+    if tipo == "entrega":
+        ev = db.query(EvidenciaEntrega).filter(EvidenciaEntrega.id == evidencia_id).first()
+    else:
+        ev = db.query(Evidencia).filter(Evidencia.id_evidencia == evidencia_id).first()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    if not es_admin:
+        tecnico = _ficha_tecnico_actual(db, current_user)
+        if ev.id_tecnico != tecnico.id_tecnico:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
+    contenido, media = _leer_archivo_evidencia(ev.url_archivo)
+    return Response(content=contenido, media_type=media)
+
+
+@router.get("/evidencias/entrega/{evidencia_id}/archivo")
+def descargar_evidencia_entrega(
+    evidencia_id: int,
+    current_user: User = Depends(get_current_employee),
+    db: Session = Depends(get_db),
+):
+    return _servir_evidencia(db, "entrega", evidencia_id, current_user)
+
+
+@router.get("/evidencias/cita/{evidencia_id}/archivo")
+def descargar_evidencia_cita(
+    evidencia_id: int,
+    current_user: User = Depends(get_current_employee),
+    db: Session = Depends(get_db),
+):
+    return _servir_evidencia(db, "cita", evidencia_id, current_user)
+
+
+# Agrupa los campos de TecnicoAdminResponse: id_tecnico, id_usuario, first_name, last_name, email y los demás declarados abajo.
 class TecnicoAdminResponse(BaseModel):
     id_tecnico: int
     id_usuario: int
@@ -74,15 +144,18 @@ class TecnicoAdminResponse(BaseModel):
     total_calificaciones: int = 0
 
 
+# Agrupa los campos de TecnicoUpdate: certificacion.
 class TecnicoUpdate(BaseModel):
     certificacion: str | None = None
 
 
+# Agrupa los campos de EstadoCitaUpdate: estado, estado_id.
 class EstadoCitaUpdate(BaseModel):
     estado: str | None = None
     estado_id: int | None = None
 
 
+# Agrupa los campos de TecnicoCitaResponse: id_cita, fecha, hora, estado, tipo_servicio y los demás declarados abajo.
 class TecnicoCitaResponse(BaseModel):
     id_cita: int
     fecha: date
@@ -114,6 +187,7 @@ class TecnicoCitaResponse(BaseModel):
     productos: list[dict] = []
 
 
+# Agrupa los campos de TecnicoClienteResponse: id_cliente, nombre, email, telefono, direccion y los demás declarados abajo.
 class TecnicoClienteResponse(BaseModel):
     id_cliente: int
     nombre: str
@@ -123,6 +197,7 @@ class TecnicoClienteResponse(BaseModel):
     citas_count: int
 
 
+# Agrupa los campos de ComisionTecnicoResponse: id_cita, fecha, hora, tipo_servicio, cliente_nombre y los demás declarados abajo.
 class ComisionTecnicoResponse(BaseModel):
     id_cita: int
     fecha: date
@@ -137,6 +212,7 @@ class ComisionTecnicoResponse(BaseModel):
     valor_comision: float | None = None
 
 
+# Agrupa los campos de ReagendarCitaRequest: fecha, hora, metodo_pago, id_comision, porcentaje_comision y los demás declarados abajo.
 class ReagendarCitaRequest(BaseModel):
     fecha: date
     hora: str
@@ -146,6 +222,7 @@ class ReagendarCitaRequest(BaseModel):
     valor_comision: float | None = None
 
 
+# Agrupa los campos de TecnicoPublicoResponse: id_tecnico, first_name, last_name, certificacion_t, is_active y los demás declarados abajo.
 class TecnicoPublicoResponse(BaseModel):
     id_tecnico: int
     first_name: str
@@ -185,6 +262,7 @@ def _serializar_publico(db: Session, t: Tecnico) -> TecnicoPublicoResponse:
     )
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -551,7 +629,7 @@ def _serializar_evidencias(db: Session, id_cita: int) -> list[dict]:
     return [
         {
             "id_evidencia": e.id_evidencia,
-            "url": _url_evidencia(e.url_archivo, "/evidencias"),
+            "url": _url_evidencia(e.url_archivo, "cita", e.id_evidencia),
             "descripcion": e.descripcion,
             "fecha_subida": e.fecha_subida.isoformat() if e.fecha_subida else None,
         }
@@ -858,18 +936,27 @@ def proxima_fecha_tecnico(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
 ):
-    """Sugiere la próxima fecha laboral disponible desde mañana en la que el
-    técnico autenticado esté libre a la hora de la cita (excluyendo la cita actual)."""
+    """Sugiere la próxima fecha laboral disponible desde mañana en la que TODO
+    el equipo de la cita esté libre a la hora de la cita (excluyendo la actual)."""
     tecnico = _ficha_tecnico_actual(db, current_user)
     cita = _cita_asignada_a_mi(db, tecnico, cita_id)
     if cita.estado not in ("Pendiente", "Confirmada"):
         raise HTTPException(status_code=400, detail="Solo puedes aplazar una cita pendiente o confirmada")
+    duracion, ids_esp = requisitos_cita(db, cita)
+    equipo = ids_equipo_cita(cita)
     dia = max(cita.fecha + timedelta(days=1), date.today())
     for _ in range(45):
         if _dia_es_laboral(dia):
-            if not tecnico_ocupado(db, tecnico.id_tecnico, dia, cita.hora, excluir_cita_id=cita.id_cita) \
-               and not slot_tomado(db, dia, cita.hora, excluir_cita_id=cita.id_cita):
-                u = db.query(User).get(tecnico.usuario.id_usuario) if tecnico.usuario else None
+            libre = all(
+                tecnico_disponible(
+                    db, tid, dia, cita.hora,
+                    ids_especializacion=ids_esp,
+                    excluir_cita_id=cita.id_cita,
+                    duracion_horas=duracion,
+                )
+                for tid in equipo
+            )
+            if libre:
                 return {
                     "fecha": dia,
                     "hora": cita.hora,
@@ -880,7 +967,7 @@ def proxima_fecha_tecnico(
         dia += timedelta(days=1)
     raise HTTPException(
         status_code=404,
-        detail="No se encontró una fecha próxima con el técnico disponible",
+        detail="No se encontró una fecha próxima con el equipo disponible",
     )
 
 
@@ -891,16 +978,24 @@ def horas_disponibles_tecnico(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
 ):
-    """Franjas horarias libres para el técnico en la fecha indicada, excluyendo
-    la cita actual. Se usa para sugerir horas al técnico al reagendar."""
+    """Franjas horarias libres para el EQUIPO COMPLETO de la cita en la fecha
+    indicada, excluyendo la cita actual. Se usa para sugerir horas al técnico
+    al reagendar."""
     tecnico = _ficha_tecnico_actual(db, current_user)
     cita = _cita_asignada_a_mi(db, tecnico, cita_id)
+    duracion, ids_esp = requisitos_cita(db, cita)
+    equipo = ids_equipo_cita(cita)
     return [
         h
-        for h in horas_laborales(fecha)
-        if not slot_tomado(db, fecha, h, excluir_cita_id=cita.id_cita)
-        and not tecnico_ocupado(
-            db, tecnico.id_tecnico, fecha, h, excluir_cita_id=cita.id_cita
+        for h in horas_laborales(fecha, duracion)
+        if all(
+            tecnico_disponible(
+                db, tid, fecha, h,
+                ids_especializacion=ids_esp,
+                excluir_cita_id=cita.id_cita,
+                duracion_horas=duracion,
+            )
+            for tid in equipo
         )
     ]
 
@@ -913,26 +1008,31 @@ def reagendar_cita_tecnico(
     db: Session = Depends(get_db),
 ):
     """Permite al técnico reagendar una cita (cambiar fecha y hora).
-    Se valida disponibilidad del técnico, franja laboral y que la hora no esté
-    ocupada por otra cita (excluyendo la actual)."""
+    Se valida la franja laboral y la disponibilidad del EQUIPO COMPLETO
+    (principal, segundo y tercero) con la duración y especializaciones reales,
+    excluyendo la cita actual."""
     tecnico = _ficha_tecnico_actual(db, current_user)
     cita = _cita_asignada_a_mi(db, tecnico, cita_id)
     if cita.estado not in ("Pendiente", "Confirmada"):
         raise HTTPException(status_code=400, detail="Solo puedes aplazar una cita pendiente o confirmada")
     if data.fecha < date.today():
         raise HTTPException(status_code=400, detail="La fecha no puede ser en el pasado")
-    _validar_franja_cita(data.fecha, data.hora)
-    if slot_tomado(db, data.fecha, data.hora, excluir_cita_id=cita.id_cita):
-        raise HTTPException(status_code=400, detail="Esa fecha y hora ya están reservadas por otra cita")
-    if tecnico_ocupado(db, tecnico.id_tecnico, data.fecha, data.hora, excluir_cita_id=cita.id_cita):
-        raise HTTPException(status_code=400, detail="No tienes disponibilidad en esa fecha y hora")
-    if cita.id_tecnico_2 is not None and tecnico_ocupado(
-        db, cita.id_tecnico_2, data.fecha, data.hora, excluir_cita_id=cita.id_cita
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="El segundo técnico no está disponible en esa fecha y hora",
-        )
+    duracion, ids_esp = requisitos_cita(db, cita)
+    _validar_franja_cita(data.fecha, data.hora, duracion_horas=duracion)
+    # Bloquear y validar el EQUIPO COMPLETO (sin duplicados), no solo al
+    # solicitante y al segundo técnico. Se serializa frente a reservas
+    # concurrentes sobre la misma capacidad.
+    equipo = ids_equipo_cita(cita)
+    bloquear_tecnicos(db, equipo)
+    validar_equipo_tecnicos(
+        db,
+        equipo,
+        data.fecha,
+        data.hora,
+        ids_especializacion=ids_esp,
+        excluir_cita_id=cita.id_cita,
+        duracion_horas=duracion,
+    )
     cita.fecha = data.fecha
     cita.hora = data.hora
     db.commit()
@@ -957,6 +1057,7 @@ def reagendar_cita_tecnico(
     return _serializar_cita_tecnico(db, cita)
 
 
+# Consulta Cita.
 def _cita_asignada_a_mi(db: Session, tecnico: Tecnico, cita_id: int) -> Cita:
     cita = (
         db.query(Cita)
@@ -975,6 +1076,7 @@ def _cita_asignada_a_mi(db: Session, tecnico: Tecnico, cita_id: int) -> Cita:
     return cita
 
 
+# Consulta Pedido.
 def _entrega_asignada_a_mi(db: Session, tecnico: Tecnico, pedido_id: int) -> Pedido:
     pedido = (
         db.query(Pedido)
@@ -1007,7 +1109,7 @@ async def subir_evidencias_entrega(
     if not files:
         raise HTTPException(status_code=400, detail="Selecciona al menos una imagen")
 
-    urls: list[str] = []
+    filas: list = []
     for file in files:
         if not file or not file.filename:
             continue
@@ -1028,20 +1130,20 @@ async def subir_evidencias_entrega(
         except Exception:
             raise HTTPException(status_code=400, detail="Un archivo no es una imagen válida")
         nombre = f"{uuid.uuid4().hex}{ext}"
-        clave = f"evidencias_entrega/{nombre}"
-        minio_service.subir_imagen("evidencias_entrega", nombre, contenido)
-        db.add(
-            EvidenciaEntrega(
-                id_pedido=pedido.id_pedido,
-                id_tecnico=tecnico.id_tecnico,
-                url_archivo=clave,
-            )
+        clave = minio_service.subir_imagen_privada("evidencias_entrega", nombre, contenido)
+        ev = EvidenciaEntrega(
+            id_pedido=pedido.id_pedido,
+            id_tecnico=tecnico.id_tecnico,
+            url_archivo=clave,
         )
-        urls.append(minio_service.url_publica(clave))
+        db.add(ev)
+        filas.append(ev)
 
-    if not urls:
+    if not filas:
         raise HTTPException(status_code=400, detail="No se recibieron imágenes válidas")
     pedido.entrega_actualizada_en = datetime.now()
+    db.flush()
+    urls = [_url_evidencia(ev.url_archivo, "entrega", ev.id) for ev in filas]
     db.commit()
     return {
         "msg": f"{len(urls)} evidencia(s) guardada(s)",
@@ -1067,7 +1169,7 @@ def listar_evidencias_entrega(
         .order_by(EvidenciaEntrega.id.desc())
         .all()
     )
-    return [_url_evidencia(f.url_archivo) for f in filas]
+    return [_url_evidencia(f.url_archivo, "entrega", f.id) for f in filas]
 
 
 @router.post("/citas/{cita_id}/evidencias")
@@ -1108,8 +1210,7 @@ async def subir_evidencia_cita(
     except Exception:
         raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
     nombre = f"{uuid.uuid4().hex}{ext}"
-    clave = f"evidencias_citas/{nombre}"
-    minio_service.subir_imagen("evidencias_citas", nombre, contenido)
+    clave = minio_service.subir_imagen_privada("evidencias_citas", nombre, contenido)
     db.add(
         Evidencia(
             id_cita=cita.id_cita,
@@ -1144,7 +1245,7 @@ def eliminar_evidencia_cita(
     if not evidencia:
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
     if "/" in (evidencia.url_archivo or ""):
-        minio_service.eliminar_objeto(evidencia.url_archivo)
+        minio_service.eliminar_objeto_privado(evidencia.url_archivo)
     else:
         try:
             (EVIDENCIAS_DIR / evidencia.url_archivo).unlink(missing_ok=True)
@@ -1155,6 +1256,7 @@ def eliminar_evidencia_cita(
     return {"msg": "Evidencia eliminada", "evidencias": _serializar_evidencias(db, cita_id)}
 
 
+# Agrupa los campos de EntregaTecnicoResponse: id_pedido, cliente, telefono, email, direccion y los demás declarados abajo.
 class EntregaTecnicoResponse(BaseModel):
     id_pedido: int
     cliente: str
@@ -1169,6 +1271,7 @@ class EntregaTecnicoResponse(BaseModel):
     productos: list[dict] = []
 
 
+# Consulta Cliente, DetallePedido, EvidenciaEntrega.
 def _serializar_entrega_tecnico(db: Session, pedido: Pedido) -> EntregaTecnicoResponse:
     from app.models.cliente import Cliente
     from app.models.evidencia import EvidenciaEntrega
@@ -1201,7 +1304,7 @@ def _serializar_entrega_tecnico(db: Session, pedido: Pedido) -> EntregaTecnicoRe
         hora_entrega_fin=pedido.hora_entrega_fin,
         estado_entrega=pedido.estado_entrega,
         evidencias_entrega=[
-            _url_evidencia(f.url_archivo) for f in fotos
+            _url_evidencia(f.url_archivo, "entrega", f.id) for f in fotos
         ],
         productos=[
             {
@@ -1221,9 +1324,8 @@ def mis_entregas_tecnico(
     db: Session = Depends(get_db),
 ):
     """Pedidos de entrega asignados al técnico autenticado, con productos y
-    datos completos del cliente (dirección, teléfono, correo)."""
-    from app.services.especialidades import auto_en_camino
-
+    datos completos del cliente (dirección, teléfono, correo). Consultar esta
+    lista no modifica estados ni genera notificaciones."""
     tecnico = _ficha_tecnico_actual(db, current_user)
     pedidos = (
         db.query(Pedido)
@@ -1231,12 +1333,10 @@ def mis_entregas_tecnico(
         .order_by(Pedido.fecha_entrega.asc(), Pedido.hora_entrega.asc())
         .all()
     )
-    # Regla automática: faltan 5 min para cumplirse las 3 h → En camino.
-    for p in pedidos:
-        auto_en_camino(db, p)
     return [_serializar_entrega_tecnico(db, p) for p in pedidos]
 
 
+# Agrupa los campos de EstadoEntregaUpdate: estado.
 class EstadoEntregaUpdate(BaseModel):
     estado: str
 
@@ -1248,8 +1348,10 @@ def actualizar_estado_entrega_tecnico(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
 ):
-    """El técnico marca una entrega como 'En camino' (notifica al cliente con
-    anticipación y sus datos de identificación) o 'Entregado'."""
+    """El técnico marcado avanza la entrega un paso a la vez, en orden:
+    Recogido → En camino → Entregado. No se permiten saltos, retrocesos ni
+    entregas sin evidencia. Repetir el estado actual es idempotente (no repite
+    notificaciones ni cambia la fecha de transición)."""
     tecnico = _ficha_tecnico_actual(db, current_user)
     pedido = (
         db.query(Pedido)
@@ -1257,16 +1359,40 @@ def actualizar_estado_entrega_tecnico(
             Pedido.id_pedido == pedido_id,
             Pedido.id_tecnico_entrega == tecnico.id_tecnico,
         )
+        .with_for_update()
+        .populate_existing()
         .first()
     )
     if not pedido:
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
+
+    # Revalidar dentro de la sección crítica que la cuenta sigue activa. Si la
+    # desactivación ganó la carrera, el técnico inactivo no puede recoger el
+    # pedido mediante una solicitud que estaba en curso. Se usa una lectura con
+    # bloqueo (FOR UPDATE) para leer el valor más reciente, no una instantánea
+    # anterior a la desactivación.
+    sigue_activo = (
+        db.query(User)
+        .filter(User.id_usuario == current_user.id_usuario, User.is_active == True)  # noqa: E712
+        .with_for_update()
+        .first()
+        is not None
+    )
+    if not sigue_activo:
+        raise HTTPException(status_code=403, detail="Tu cuenta está inhabilitada")
+
     estado = data.estado.strip()
-    if estado not in ("Recogido", "En camino", "Entregado"):
-        raise HTTPException(
-            status_code=400,
-            detail="Estado no válido (Recogido / En camino / Entregado)",
-        )
+
+    # Regla de secuencia centralizada: sin saltos ni retrocesos.
+    ok, error = validar_transicion_tecnico(pedido.estado_entrega, estado)
+    if not ok:
+        raise HTTPException(status_code=409, detail=error)
+
+    # Repetición del estado actual: devuelve el resultado existente sin
+    # notificar de nuevo ni actualizar la fecha de transición.
+    if pedido.estado_entrega == estado:
+        return _serializar_entrega_tecnico(db, pedido)
+
     # Las evidencias son OBLIGATORIAS para marcar el pedido como Entregado.
     from app.models.evidencia import EvidenciaEntrega
 
@@ -1284,7 +1410,9 @@ def actualizar_estado_entrega_tecnico(
                     "marcar el pedido como Entregado"
                 ),
             )
+
     pedido.estado_entrega = estado
+    pedido.entrega_actualizada_en = datetime.now()
     db.commit()
     db.refresh(pedido)
 
@@ -1356,6 +1484,7 @@ def actualizar_estado_entrega_tecnico(
 
 # ── Ubicación GPS en vivo del técnico ──────────────────────────
 
+# Agrupa los campos de UbicacionUpdate: latitud, longitud.
 class UbicacionUpdate(BaseModel):
     latitud: float
     longitud: float
@@ -1436,7 +1565,7 @@ def historial_tecnico(
     ev_cita_map: dict[int, list] = {}
     for ev in evidencias_cita:
         ev_cita_map.setdefault(ev.id_cita, []).append(
-            {"url": _url_evidencia(ev.url_archivo), "descripcion": ev.descripcion}
+            {"url": _url_evidencia(ev.url_archivo, "cita", ev.id_evidencia), "descripcion": ev.descripcion}
         )
 
     servicios = []
@@ -1470,7 +1599,7 @@ def historial_tecnico(
     ev_entrega_map: dict[int, list] = {}
     for ev in ev_entrega_rows:
         ev_entrega_map.setdefault(ev.id_pedido, []).append(
-            _url_evidencia(ev.url_archivo)
+            _url_evidencia(ev.url_archivo, "entrega", ev.id)
         )
 
     entregas = []
@@ -1516,13 +1645,13 @@ def historial_tecnico(
         if d.evidencia_recogida:
             evidencias.append({
                 "tipo": "Recogida",
-                "url": _url_evidencia(d.evidencia_recogida),
+                "url": f"/api/v1/devoluciones/{d.id_devolucion}/evidencia-recogida/archivo",
                 "fecha": d.fecha_recogida.isoformat() if d.fecha_recogida else None,
             })
         if d.evidencia_cambio:
             evidencias.append({
                 "tipo": "Entrega de cambio",
-                "url": _url_evidencia(d.evidencia_cambio),
+                "url": f"/api/v1/devoluciones/{d.id_devolucion}/evidencia-cambio/archivo",
                 "fecha": d.fecha_entrega_cambio.isoformat() if d.fecha_entrega_cambio else None,
             })
 

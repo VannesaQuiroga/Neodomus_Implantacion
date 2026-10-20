@@ -1,3 +1,4 @@
+// Hook reutilizable useTecnicoNotificaciones; concentra esta lógica para las pantallas que lo utilizan.
 import { useCallback, useEffect, useState } from 'react';
 import api from '@services/api';
 import type { NotifAdmin, TipoNotificacion } from './useAdminNotificaciones';
@@ -30,6 +31,7 @@ const formatoFecha = (iso?: string | null) => {
   });
 };
 
+// Comunica con el backend mediante GET '/notificaciones/mias', PATCH `/notificaciones/${id}/leida`, PATCH '/notificaciones/leer-todas'; registra escuchas de eventos para sincronizar la vista.
 export const useTecnicoNotificaciones = () => {
   const [notificaciones, setNotificaciones] = useState<NotifAdmin[]>([]);
   const [cargando, setCargando] = useState(true);

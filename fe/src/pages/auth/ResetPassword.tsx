@@ -1,9 +1,11 @@
+// Pantalla ResetPassword de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 
 import '@styles/resetpassword.css';
 
+// Comunica con el backend mediante POST '/auth/reset-password'.
 const ResetPassword = () => {
   const { token, openAuth } = useAuthModal();
 
@@ -48,6 +50,7 @@ const ResetPassword = () => {
     }
   }, [token, message, error]);
 
+  // Comunica con el backend mediante POST '/auth/reset-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

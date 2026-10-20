@@ -1,3 +1,4 @@
+// Funciones compartidas de favoritos usadas por la interfaz.
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 
@@ -8,6 +9,7 @@ const VISITANTE_KEY = 'neodomus_favoritos_visitante';
 
 const keyPorCorreo = (correo: string) => `neodomus_favoritos_${correo}`;
 
+// accede a localStorage para conservar o recuperar datos locales.
 const leerLista = (key: string): number[] => {
   try {
     const raw = localStorage.getItem(key);
@@ -17,6 +19,7 @@ const leerLista = (key: string): number[] => {
   }
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 const guardarLista = (key: string, ids: number[]) => {
   try {
     localStorage.setItem(key, JSON.stringify(ids));

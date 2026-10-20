@@ -1,3 +1,4 @@
+// Cliente de comunicación con el backend y tratamiento compartido de las peticiones.
 import axios from 'axios';
 import { tabGet, tabRemove, tabSet } from '../utils/tabStorage';
 

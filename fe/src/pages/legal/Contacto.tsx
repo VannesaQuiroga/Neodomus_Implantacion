@@ -1,3 +1,4 @@
+// Presenta los canales de contacto y sus accesos desde la web.
 import { Link } from 'react-router-dom';
 import {
   FaHeadset, FaEnvelope, FaPhone, FaClock, FaLocationDot

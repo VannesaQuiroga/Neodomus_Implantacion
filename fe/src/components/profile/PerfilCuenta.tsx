@@ -1,3 +1,4 @@
+// Agrupa los controles de la cuenta dentro del perfil del cliente.
 import { useState } from 'react';
 import { FaPen, FaCheck, FaXmark } from 'react-icons/fa6';
 import { useIdioma } from '@i18n/IdiomaContext';

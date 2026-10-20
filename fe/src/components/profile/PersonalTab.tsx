@@ -1,3 +1,4 @@
+// Formulario de datos personales utilizado dentro del perfil del cliente.
 import { useState, useEffect, useRef } from 'react';
 import { FaUserPen, FaCamera, FaTrashCan } from 'react-icons/fa6';
 import api from '@services/api';
@@ -22,6 +23,7 @@ interface ClientProfile {
   address?: string | null;
 }
 
+// Comunica con el backend mediante POST '/clients/me/foto', PUT '/clients/me'; accede a localStorage para conservar o recuperar datos locales; prepara FormData para enviar campos y archivos; registra escuchas de eventos para sincronizar la vista.
 const PersonalTab = ({ notify, onProfileChanged }: PersonalTabProps) => {
   const { user, refreshUserProfile } = useAuth();
   const { t } = useIdioma();
@@ -65,6 +67,7 @@ const PersonalTab = ({ notify, onProfileChanged }: PersonalTabProps) => {
     return () => window.removeEventListener('client-profile-updated', sync);
   }, []);
 
+  // Comunica con el backend mediante POST '/clients/me/foto'; accede a localStorage para conservar o recuperar datos locales; prepara FormData para enviar campos y archivos.
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,6 +99,7 @@ const PersonalTab = ({ notify, onProfileChanged }: PersonalTabProps) => {
     notify(t('perfil.fotoEliminada'), 'success');
   };
 
+  // Comunica con el backend mediante PUT '/clients/me'.
   const guardarCampo = async (payload: Record<string, unknown>) => {
     try {
       const body: Record<string, unknown> = { ...payload };

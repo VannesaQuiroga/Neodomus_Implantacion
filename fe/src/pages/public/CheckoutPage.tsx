@@ -1,3 +1,4 @@
+// Pantalla CheckoutPage de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -109,6 +110,7 @@ interface ResultadoCheckout {
 const formatoPeso = (value: number) =>
   value.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
+// Comunica con el backend mediante GET '/pedidos/metodos-pago', GET '/clients/me', GET `/tecnicos/publicos?${params.toString()}` y otras peticiones de esta vista; accede a sessionStorage para conservar o recuperar datos locales.
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { items, totalPrice, clearCart } = useCart();
@@ -288,6 +290,7 @@ const CheckoutPage = () => {
     setServicios((prev) => prev.filter((s) => s.id !== id));
   };
 
+  // Comunica con el backend mediante POST '/pedidos'; accede a sessionStorage para conservar o recuperar datos locales.
   const handlePagar = async () => {
     setError('');
     if (items.length === 0) {
@@ -444,6 +447,7 @@ const CheckoutPage = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/pedidos/${resultado.pedido.id_pedido}/confirmar-pago`.
   const confirmarPago = async () => {
     if (!resultado?.pedido?.id_pedido) return;
     setProcesando(true);
@@ -480,6 +484,7 @@ const CheckoutPage = () => {
     }
   };
 
+  // accede a sessionStorage para conservar o recuperar datos locales.
   const reiniciar = () => {
     setResultado(null);
     setError('');
