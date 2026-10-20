@@ -13,7 +13,7 @@
 > **Entregable:** Semanas 1 y 2 — Ficha Técnica, Migración, Respaldo e Instalación v0
 > **Versión:** 1.1
 > **Fecha:** 20/10/2026
-> **Informes asociados:** Semana 1 (no incluido en este entregable) · [`docs/informe-semana-2.md`](informe-semana-2.md)
+> **Informes asociados:** no incluidos en este repositorio.
 > **Entorno de referencia:** Ubuntu Server 24.04.5 LTS x86_64 · Docker Engine 29.5.2 · Docker Compose 5.1.4
 > **Convención de seguridad:** todas las IP, hosts, usuarios, dominios y credenciales de este documento son genéricos. No se publican datos de producción ni secretos.
 

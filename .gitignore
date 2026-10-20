@@ -59,5 +59,8 @@ evidencias_backup/
 # Respaldos locales generados por scripts/respaldar.sh
 backups/
 
+# Informes internos no publicados en este repositorio
+docs/informe-semana-*.md
+
 # MinIO — datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
