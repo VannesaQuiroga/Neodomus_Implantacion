@@ -1,0 +1,123 @@
+# =============================================================================
+# Caddyfile - Neodomus - reverse proxy para pruebas locales
+# -----------------------------------------------------------------------------
+# Dominios locales: app.neodomus.local (frontend) y api.neodomus.local (API).
+# Certificados: tls internal (CA local de Caddy, sin ACME ni Internet).
+#
+# Resolucion local (solo en el equipo que abre el navegador/curl):
+#   Windows : C:\Windows\System32\drivers\etc\hosts
+#   Linux   : /etc/hosts
+#   macOS   : /etc/hosts
+#
+#   127.0.0.1  app.neodomus.local
+#   127.0.0.1  api.neodomus.local
+#
+# Prueba sin editar el archivo hosts (sustituye el nombre por el vhost real):
+#   curl --resolve app.neodomus.local:443:127.0.0.1 \
+#        --cacert ./caddy-root.crt https://app.neodomus.local
+#   curl --resolve api.neodomus.local:443:127.0.0.1 \
+#        --cacert ./caddy-root.crt https://api.neodomus.local/health
+#
+# En Windows, curl.exe usa Schannel; si la CA local no publica CRL, anadir
+# --ssl-no-revoke para evitar el error "revocation status is unknown".
+#
+# La CA local se extrae del volumen de Caddy:
+#   docker cp neodomus_caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+#
+# Este archivo asume que Caddy corre como contenedor en la misma red Docker que
+# los servicios "frontend" y "api" del docker-compose (por eso se usan esos
+# nombres como upstreams y no localhost).
+# =============================================================================
+{
+	# Que: publica la API de administracion de Caddy solo en loopback.
+	# Para que: permitir "caddy reload" dentro del contenedor sin abrir el 2019.
+	admin 127.0.0.1:2019
+
+	# Que: limites de tiempo para leer cabecera/cuerpo y escribir respuestas.
+	# Para que: liberar conexiones lentas o colgadas y no agotar workers.
+	servers {
+		timeouts {
+			read_body 10s
+			read_header 10s
+			write 60s
+			idle 2m
+		}
+	}
+}
+
+# Que: cabeceras de seguridad comunes a los dos vhosts.
+# Para que: mitigar sniffing, clickjacking y fuga de referrer; ocultar la version.
+(neodomus_headers) {
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
+		# HSTS: habilitar solo en produccion con un certificado publico valido.
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
+
+# Que: escribe una linea por peticion en stdout.
+# Para que: depurar con "docker logs neodomus_caddy" sin archivos locales.
+(neodomus_access_log) {
+	log {
+		output stdout
+		format console
+	}
+}
+
+# --- Frontend web (React + Vite) ---------------------------------------------
+app.neodomus.local {
+	# Que: certificado emitido por la CA local de Caddy.
+	# Para que: HTTPS en .local sin ACME ni depender de Internet.
+	tls internal
+	import neodomus_headers
+	import neodomus_access_log
+
+	# Que: comprime HTML, JS, CSS y JSON.
+	# Para que: reducir bytes; no recomprime imagenes ni binarios.
+	encode zstd gzip
+
+	# Upstream: servicio "frontend" del compose; 5173 es su puerto interno.
+	# Caddy conserva el Host original y gestiona el upgrade de WebSocket (HMR).
+	reverse_proxy frontend:5173 {
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+# --- API (FastAPI + Uvicorn) -------------------------------------------------
+api.neodomus.local {
+	# Que: mismo TLS interno que el frontend, con certificado propio del vhost.
+	# Para que: la API también sea HTTPS en local sin avisos de proxy.
+	tls internal
+	import neodomus_headers
+	import neodomus_access_log
+
+	# Que: comprime HTML, JS, CSS y JSON.
+	# Para que: reducir bytes; no recomprime imagenes ni binarios.
+	encode zstd gzip
+
+	# Upstream: servicio "api" del compose; 8000 es su puerto interno.
+	# /health existe en Neodomus y se usa para el chequeo activo de Caddy.
+	reverse_proxy api:8000 {
+		header_up X-Real-IP {remote_host}
+		# Que: sonda activa contra /health cada 30 s.
+		# Para que: Caddy deje de enviar trafico si la API deja de responder.
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+	}
+}
+
+# --- Almacenamiento de objetos (opcional) ------------------------------------
+# Descomentar para probar MinIO a traves de Caddy. Requiere actualizar
+# MINIO_PUBLIC_ENDPOINT a https://media.neodomus.local, revisar el CORS del
+# bucket y volver a firmar las URLs prefirmadas con ese host publico.
+# media.neodomus.local {
+# 	tls internal
+# 	import neodomus_headers
+# 	import neodomus_access_log
+# 	reverse_proxy minio:9000
+# }

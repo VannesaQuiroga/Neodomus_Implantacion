@@ -10,8 +10,8 @@
 -->
 
 > **Proyecto:** Neodomus — Plataforma web/móvil de domótica y servicios técnicos
-> **Entregable:** Semanas 1 y 2 — Ficha Técnica, Migración, Respaldo e Instalación v0
-> **Versión:** 1.1
+> **Entregable:** Semanas 1, 2 y 3 — Ficha Técnica, Migración, Respaldo, Instalación v0, Hosting y Dominio
+> **Versión:** 1.2
 > **Fecha:** 20/10/2026
 > **Informes asociados:** no incluidos en este repositorio.
 > **Entorno de referencia:** Ubuntu Server 24.04.5 LTS x86_64 · Docker Engine 29.5.2 · Docker Compose 5.1.4
@@ -30,7 +30,7 @@ Esta sección cubre la **Semana 1**:
 3. Preguntas guía justificadas: sistema operativo, infraestructura on-premise y licencias.
 4. Evidencia de ejecución del script `scripts/verificar-requisitos.sh`.
 
-Las secciones **2 (migración de datos)**, **3 (respaldo v0)** y **5 (instalación v0)** se incorporan en la Semana 2 y se documentan más abajo. La Sección 4 se reserva para operación, monitoreo y pruebas de carga; no forma parte de este entregable.
+Las secciones **2 (migración de datos)**, **3 (respaldo v0)** y **5 (instalación v0)** se incorporan en la Semana 2. La **Sección 4 (estrategia de hosting y dominio)** se incorpora en la Semana 3. La operación, el monitoreo y las pruebas de carga quedan para un entregable posterior.
 
 ### 0.2 Stack real auditado
 
@@ -41,9 +41,9 @@ El repositorio de Neodomus **no usa Node.js/Express como backend ni MongoDB como
 | Frontend web | React 18.3.1 + Vite 5.4.21 | `5173` | `docker-compose.yml` servicio `frontend` |
 | Backend API | FastAPI 0.115.0 + Uvicorn 0.30.0 (Python 3.12.15) | `8000` | `docker-compose.yml` servicio `api` |
 | Base de datos | MySQL 8.0.46 | `3307` → `3306` interno | `docker-compose.yml` servicio `db` |
-| Almacenamiento de objetos | MinIO Server `RELEASE.2025-10-15T17-29-55Z` (`ghcr.io/coollabsio/minio`) | `9000` API S3 · `9001` consola | `docker-compose.yml` servicio `minio` |
+| Almacenamiento de objetos | MinIO Server `RELEASE.2025-10-15T17-29-55Z` (`coollabsio/minio`, Docker Hub) | `9000` API S3 · `9001` consola | `docker-compose.yml` servicio `minio` |
 | Aplicación móvil | Expo SDK 57.0.22 + React Native 0.86.3 | Metro `8081` (desarrollo) | `movil/` |
-| Proxy / TLS | Nginx 1.28.0 (propuesto) | `80` / `443` | **Pendiente de incorporar** |
+| Proxy / TLS | Nginx 1.28.0 (producción) · Caddy 2.10 (local) | `80` / `443` | **Caddyfile local entregado**; Nginx de producción pendiente de desplegar |
 | Base de datos documental | MongoDB | No aplica | **No forma parte del stack** |
 
 > **Puertos del stack:** no se comprueban `3000` ni `27017` porque no corresponden a este repositorio. El backend escucha en `8000`, la base de datos real es MySQL en `3307` y no hay MongoDB. Por eso el script valida `80`, `443`, `5173`, `8000`, `3306`, `3307`, `9000` y `9001`.
@@ -55,12 +55,12 @@ El repositorio de Neodomus **no usa Node.js/Express como backend ni MongoDB como
 | ID | Hallazgo | Riesgo | Acción obligatoria antes de producción |
 |---|---|---|---|
 | H-01 | MySQL 8.0 alcanzó el fin de su soporte extendido el **30/04/2026**. La imagen `mysql:8.0` resuelve a 8.0.46. | Alto: sin parches de seguridad de Oracle | Migrar a **MySQL 8.4.13 LTS** y probar compatibilidad con Alembic/SQLAlchemy |
-| H-02 | Imágenes con etiquetas flotantes o sin digest: `mysql:8.0`, `ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z`, `node:22-alpine`, `python:3.12-slim`. | Medio: despliegues no reproducibles | Fijar versión + digest SHA-256 y actualizar con PR revisado |
+| H-02 | Imágenes con etiquetas flotantes o sin digest: `mysql:8.0`, `coollabsio/minio:RELEASE.2025-10-15T17-29-55Z`, `node:22-alpine`, `python:3.12-slim`. | Medio: despliegues no reproducibles | Fijar versión + digest SHA-256 y actualizar con PR revisado |
 | H-03 | El `docker-compose.yml` actual ejecuta el servidor de desarrollo de Vite en el puerto 5173. | Medio: no es un servidor estático de producción | Compilar `pnpm build` y servir `dist/` con Nginx |
 | H-04 | El compose define valores por defecto para credenciales de MySQL y MinIO. | Alto: credenciales débiles si no se configura `.env` | Eliminar los fallbacks, usar secretos y rotar credenciales |
 | H-05 | MySQL (3307) y la consola de MinIO (9001) se publican en todas las interfaces. | Medio: exposición innecesaria | Publicar solo en `127.0.0.1` o en una red de administración/VPN |
-| H-06 | No existe proxy TLS ni política de backups declarada en el compose. | Alto: tráfico sin cifrar y riesgo de pérdida de datos | Añadir Nginx + Let's Encrypt y backups 3-2-1 probados |
-| H-07 | MinIO se consume desde un espejo de terceros (`ghcr.io/coollabsio/minio`). | Medio: cadena de suministro | Usar la imagen oficial `minio/minio` fijada por digest, o un espejo interno escaneado y firmado |
+| H-06 | No existe proxy TLS ni política de backups declarada en el compose. | Alto: tráfico sin cifrar y riesgo de pérdida de datos | Añadir Nginx + Let's Encrypt en producción (sección 4) y backups 3-2-1 probados |
+| H-07 | MinIO se consume desde un espejo de terceros (`coollabsio/minio`, Docker Hub). | Medio: cadena de suministro | Usar la imagen oficial `minio/minio` fijada por digest, o un espejo interno escaneado y firmado |
 
 ---
 
@@ -97,7 +97,7 @@ El repositorio de Neodomus **no usa Node.js/Express como backend ni MongoDB como
 | Validación de datos | Pydantic | 2.7.0 | API | MIT | Schemas de entrada/salida |
 | Driver de base de datos | PyMySQL | 1.1.0 | DB Driver | MIT | Conexión MySQL desde SQLAlchemy |
 | Base de datos | MySQL Community Server | 8.0.46 actual / 8.4.13 LTS objetivo | DB | GPL-2.0-only con FOSS Exception | 8.0 sin soporte desde 30/04/2026; migración obligatoria |
-| Almacenamiento de objetos | MinIO Server | `RELEASE.2025-10-15T17-29-55Z` | Almacenamiento S3 | AGPL-3.0-only | Imagen actual `ghcr.io/coollabsio/minio`; fijar digest y evaluar imagen oficial |
+| Almacenamiento de objetos | MinIO Server | `RELEASE.2025-10-15T17-29-55Z` | Almacenamiento S3 | AGPL-3.0-only | Imagen actual `coollabsio/minio` (Docker Hub); fijar digest y evaluar imagen oficial |
 | SDK de objetos | MinIO Python SDK | 7.2.20 | API / Cliente S3 | Apache-2.0 | Subida de imágenes y evidencias |
 | Aplicación móvil | Expo SDK | 57.0.22 | Mobile | MIT | Cliente Android/iOS |
 | Framework móvil | React Native | 0.86.3 | Mobile | MIT | Runtime de la app móvil |
@@ -126,7 +126,7 @@ El repositorio de Neodomus **no usa Node.js/Express como backend ni MongoDB como
    ```yaml
    # Ejemplo genérico; sustituir <DIGEST> por el valor real verificado.
    image: mysql:8.4.13@sha256:<DIGEST>
-   image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z@sha256:<DIGEST>
+   image: coollabsio/minio:RELEASE.2025-10-15T17-29-55Z@sha256:<DIGEST>
    image: node:22.23.3-alpine3.22@sha256:<DIGEST>
    image: python:3.12.15-slim-bookworm@sha256:<DIGEST>
    ```
@@ -1029,9 +1029,321 @@ También se probó el modo Docker con el archivo `neodomus_20261020_213649.sql.g
 
 ---
 
-## 4. Nota de alcance
+## 4. Estrategia de Hosting y Dominio
 
-La **Sección 4** (operación, monitoreo, capacidad y pruebas de carga) no forma parte de la Semana 2. Se conserva la numeración solicitada para la **Sección 5** y se completará en el siguiente entregable. Las secciones 2, 3 y 5 de este documento sí están completas y son ejecutables.
+> **Objetivo:** decidir dónde se ejecuta cada componente de Neodomus, cómo se resuelve el dominio del cliente, qué camino sigue una petición hasta el contenedor y qué controles de red y transferencia protegen el despliegue. Todos los nombres, IP y claves son marcadores de posición; no se publican datos de producción.
+
+### 4.1 Decisiones de arquitectura (resumen)
+
+| Decisión | Elección para v0 | Justificación breve |
+|---|---|---|
+| Modelo de hosting | 1 VPS IaaS con Docker Compose | Coste contenido, control del runtime, IP fija, snapshots y compatibilidad con el compose actual |
+| Proxy y TLS | Nginx 1.28.0 en producción · Caddy 2.10 en local | Nginx conserva la medición de la sección 1.2 y Certbot; Caddy aporta `tls internal` sin ACME para pruebas |
+| Frontend | Build estático servido por Nginx (dev: Vite `5173`; local: Caddy) | Reduce superficie, evita Node en producción y permite cachear estáticos |
+| API | Contenedor FastAPI/Uvicorn (`8000`) | Stack real auditado; sin exposición directa a Internet |
+| Base de datos | Contenedor MySQL 8.0 con volumen persistente | Volumen pequeño en v0; backups externos; migración a gestionada al crecer |
+| Objetos | Contenedor MinIO (`9000`/`9001`) | API S3 sin coste de egress; datos en volumen y copia externa |
+| DNS | Dominio del cliente con subdominios `app`, `api` y `media` | Separación por función, certificados y CORS por origen |
+| Transferencia | `rsync`/`SFTP` sobre SSH con llaves Ed25519 | Cifrado, automatizable y sin contraseñas; FTP plano prohibido |
+
+**Supuesto de despliegue:** un único VPS en la UE para v0. La IP `203.0.113.10` pertenece al rango TEST-NET-3 (RFC 5737) y solo se usa como ejemplo; el cliente la sustituye por la IP real de su proveedor.
+
+### 4.2 Tipos de hosting por componente
+
+#### 4.2.1 Comparativa de modelos
+
+| Modelo | Ventajas | Limitaciones | Papel en Neodomus |
+|---|---|---|---|
+| **VPS / IaaS** | Control del SO y del runtime; Docker sin restricciones; IP fija; snapshots; coste predecible | Parcheo, disponibilidad y seguridad son responsabilidad del equipo | **Base del despliegue v0** |
+| **PaaS** | Despliegue gestionado, TLS y escalado integrados | Límites de red y disco; coste por uso; menor control; dependencia del proveedor | Alternativa para frontend/API en fase 2 |
+| **Servidor dedicado** | CPU/RAM dedicadas, aislamiento y rendimiento | Coste y aprovisionamiento altos; sobredimensionado para el volumen actual | No se usa en v0 |
+| **Base de datos gestionada** | Backups/PITR, alta disponibilidad y parcheo delegados | Coste mensual y latencia de red; dependencia del proveedor | Evolución cuando el SLA lo exija |
+| **Object storage gestionado** | Durabilidad y CDN integrados | Coste de egress; configuración de CORS y firma | Evolución para `media` |
+
+#### 4.2.2 Asignación por componente
+
+| Componente | Hosting v0 | Justificación técnica | Evolución prevista |
+|---|---|---|---|
+| **Frontend web** (React/Vite) | VPS · Nginx sirve `/srv/neodomus/current` (local: Caddy → Vite) | SPA estática; no necesita Node en producción; el proxy aplica caché, compresión y TLS | CDN u object storage con build inmutable |
+| **API** (FastAPI/Uvicorn) | VPS · contenedor `api:8000` en red interna | Procesos ligeros, WebSocket y acceso a MySQL/MinIO por red privada; Nginx termina TLS en producción y Caddy en local | Escalar réplicas detrás del proxy o migrar a PaaS |
+| **Base de datos** (MySQL 8.0) | VPS · contenedor `db:3306` y volumen `mysql_data` | Datos transaccionales pequeños; backup 3-2-1 de la sección 3; sin exposición pública | MySQL gestionado con backups/PITR y réplica |
+| **Archivos y medios** (MinIO) | VPS · contenedor `minio:9000` y volumen `minio_data` | API compatible S3; integración directa con la app; sin egress | Object storage externo y CDN |
+| **Respaldos** | Almacenamiento externo cifrado (`rclone`/S3) | Debe sobrevivir a la pérdida del VPS; sección 3 | Copias inmutables y prueba de restauración |
+| **App móvil** (Expo/React Native) | EAS Build / tiendas o APK interno | No se aloja en el VPS; consume `https://api.neodomus.example` | Misma estrategia de API y certificados |
+
+**Dimensionamiento de referencia (sección 1.2.6):** mínimo 2 vCPU / 4 GiB RAM / 40 GB SSD; recomendado 4 vCPU / 8 GiB RAM / 80 GB SSD. Mantener al menos 30 % de disco libre y 25 % de RAM de cabeza. MySQL y MinIO comparten disco: si el crecimiento de medios supera el 60 % del volumen, separar MinIO a un volumen o proveedor externo.
+
+**Criterios de selección del proveedor:** región en la UE y contrato de encargado del tratamiento (RGPD), SLA ≥ 99.9 %, IPv4 e IPv6, snapshots, firewall de red, red privada, consola de recuperación, soporte y precio predecible. Candidatos a evaluar (categoría, no adjudicación): Hetzner Cloud, OVHcloud Public Cloud, Scaleway y DigitalOcean. La decisión final requiere cotización, revisión legal y prueba de latencia desde los usuarios objetivo.
+
+### 4.3 Estrategia de dominio y registros DNS
+
+#### 4.3.1 Dominio y esquema de subdominios
+
+**Dominio propuesto:** `neodomus.example` (marcador de posición; `.example` está reservado por la RFC 2606 y no resuelve en Internet). El cliente debe registrar el dominio definitivo, verificar disponibilidad y marca, y sustituirlo en esta tabla, en `.env` y en los certificados.
+
+| Nombre | Función | Expuesto | Certificado |
+|---|---|---|---|
+| `neodomus.example` | Apex; redirección 301 a `app` | Sí | TLS público |
+| `app.neodomus.example` | Frontend web | Sí | TLS público |
+| `api.neodomus.example` | API FastAPI | Sí | TLS público |
+| `media.neodomus.example` | API S3 de MinIO (opcional vía reverse proxy) | Sí, si se habilita | TLS público |
+| `www.neodomus.example` | Alias del apex | Sí | TLS público |
+| `staging.neodomus.example` | Preproducción aislada | Solo equipo/VPN | TLS público o interno |
+| `db`, `minio-console`, `admin` | Acceso administrativo | **No** | No se crean registros públicos |
+
+Reglas: nombres en minúsculas, sin `_` en el host, un propósito por nombre, certificados por nombre (sin wildcard salvo necesidad justificada) y CORS limitado a `https://app.neodomus.example`.
+
+#### 4.3.2 Tabla de registros DNS
+
+Valores de ejemplo con IP de documentación (`203.0.113.10`); sustituir por la IP real del VPS. TTL en segundos.
+
+| Tipo | Nombre | Valor | TTL | ¿Obligatorio? | Propósito |
+|---|---|---|---|---|---|
+| `A` | `@` | `203.0.113.10` | 300 | Sí | Apex; redirección a `app` |
+| `A` | `app` | `203.0.113.10` | 300 | Sí | Frontend |
+| `A` | `api` | `203.0.113.10` | 300 | Sí | API |
+| `A` | `media` | `203.0.113.10` | 300 | Sí (si MinIO vía reverse proxy) | Endpoint S3 |
+| `AAAA` | `@` | `2001:db8::10` | 300 | No | IPv6 del VPS (RFC 3849 de ejemplo) |
+| `CNAME` | `www` | `neodomus.example.` | 3600 | Sí | Alias del apex |
+| `A` | `staging` | `203.0.113.11` | 300 | No | Preproducción separada |
+| `TXT` | `@` | `v=spf1 include:_spf.google.com ~all` | 3600 | Sí | SPF del correo saliente |
+| `TXT` | `google._domainkey` | `v=DKIM1; k=rsa; p=<CLAVE_PUBLICA_DKIM>` | 3600 | Sí (Google Workspace) | DKIM (solo clave pública) |
+| `TXT` | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:dmarc@neodomus.example; adkim=s; aspf=s; pct=100` | 3600 | Sí | DMARC y reportes |
+| `CAA` | `@` | `0 issue "letsencrypt.org"` | 3600 | Sí | Autoriza a Let's Encrypt |
+| `CAA` | `@` | `0 issuewild "letsencrypt.org"` | 3600 | Sí | Autoriza wildcard (si se usa) |
+| `MX` | `@` | `1 smtp.google.com.` | 3600 | No | Solo si hay correo corporativo |
+| `TXT` | `_acme-challenge` | `<TOKEN_ACME>` | 300 | No | Solo si se cambia a DNS-01 |
+
+**Notas de correo:** si se usa Resend en lugar de Google Workspace, sustituir SPF/DKIM por los valores que muestra su panel y no publicar nunca la clave privada. `p=<CLAVE_PUBLICA_DKIM>` es la clave pública que entrega el proveedor. Si no hay buzón corporativo, se omite `MX`.
+
+**TTL recomendado:** 300 s durante la puesta en marcha y 24-48 h antes de una migración; 3600 s en régimen estable. No subir el TTL hasta comprobar la resolución. Propagación: `dig +short app.neodomus.example A`, `dig +short neodomus.example CAA` y `dig +short _dmarc.neodomus.example TXT`.
+
+**Buenas prácticas del registrador:** renovación automática, bloqueo de transferencia, 2FA, correo de facturación con varias personas, privacidad WHOIS y DNSSEC con su registro `DS` cuando el registrador lo soporte. Mantener un TTL bajo antes de cambiar de proveedor.
+
+#### 4.3.3 Certificados y ACME
+
+- **Producción:** Nginx + Certbot obtienen certificados de Let's Encrypt con ACME (HTTP-01) y los renuevan mediante el temporizador de Certbot; requieren `80` y `443` accesibles. `CAA` restringe las CA a `letsencrypt.org`.
+- **Local:** `tls internal` usa la CA propia de Caddy (alternativa: certificado autofirmado con `openssl`, pero peor de mantener). El certificado se guarda en el volumen `caddy_data`; si se borra, se regenera y hay que volver a confiar en la CA.
+- **HSTS:** se activa solo cuando el dominio real funciona con certificado público y todos los subdominios son HTTPS; un HSTS mal activado bloquea el acceso en pruebas.
+- **Renovación:** monitorizar la fecha de expiración, probar `certbot renew --dry-run` en staging y conservar el aviso de caducidad en el monitoreo.
+
+### 4.4 Camino de la petición
+
+#### 4.4.1 Diagrama
+
+```text
+Navegador / app móvil
+   │  1. https://app.neodomus.example
+   ▼
+Resolución DNS: caché local → resolver recursivo → servidor autoritativo
+   │  2. A 203.0.113.10 (TTL 300)
+   ▼
+Internet → VPS 203.0.113.10
+   │  3. UFW: 80/443 públicos; 22 solo desde administración/VPN
+   ▼
+Reverse proxy :443  (Nginx producción · Caddy local)
+   │  TLS 1.2/1.3, HTTP/2, HSTS, cabeceras, logs
+   │  4. SNI/Host selecciona el vhost
+   ├── app.neodomus.example  → frontend:5173 (local) | /srv/neodomus (prod)
+   ├── api.neodomus.example  → api:8000 → FastAPI
+   └── media.neodomus.example→ minio:9000 (opcional)
+                                  │
+                                  ├── db:3306 (MySQL, solo red interna)
+                                  └── minio:9000
+```
+
+#### 4.4.2 Paso a paso
+
+1. El usuario abre `https://app.neodomus.example`; el navegador consulta su caché DNS y, si no hay entrada, al resolver del sistema/ISP.
+2. El resolver recursivo pregunta a la jerarquía DNS; el servidor autoritativo del dominio devuelve el registro `A` (o `AAAA`) con TTL 300 s.
+3. El cliente abre TCP hacia `203.0.113.10:443` (y `:80` si hay redirección/ACME). UFW y el firewall del proveedor permiten solo los puertos publicados.
+4. El proxy (Nginx en producción, Caddy en local) acepta la conexión, completa el handshake TLS y selecciona el vhost por SNI/Host.
+5. El proxy añade cabeceras de seguridad, comprime la respuesta y registra la petición con su latencia y código.
+6. Para `app`, Nginx devuelve el build estático (producción) o Caddy hace `reverse_proxy frontend:5173` (local, Vite).
+7. Para `api`, el proxy hace `reverse_proxy api:8000`; añade `X-Forwarded-For`, `X-Forwarded-Proto` y `X-Real-IP`.
+8. Docker DNS resuelve `api`, `db` y `minio` dentro de `neodomus_net`; MySQL y MinIO nunca se resuelven desde Internet.
+9. La API consulta MySQL (`db:3306`) y MinIO (`minio:9000`), valida el token y devuelve JSON al proxy.
+10. El proxy devuelve la respuesta al cliente, reutiliza conexiones (keep-alive) y registra el resultado. Un `502` indica que el upstream no responde; revisar `docker compose ps` y los logs del contenedor, no el DNS.
+
+**Rendimiento:** HTTP/2 reduce latencia; la compresión (gzip/zstd según el proxy) aligera el texto; los estáticos se cachean con `Cache-Control` inmutable y hash en el nombre. La API no se cachea.
+
+#### 4.4.3 Variante local con Caddy (`Caddyfile`)
+
+El repositorio incluye `Caddyfile` en la raíz. Usa `tls internal`, los nombres `app.neodomus.local`/`api.neodomus.local` y los upstreams `frontend:5173` y `api:8000` (nombres de servicio del compose).
+
+```text
+127.0.0.1  app.neodomus.local
+127.0.0.1  api.neodomus.local
+```
+
+Caddy debe ejecutarse en la misma red Docker que el compose:
+
+```bash
+docker network ls   # identificar la red, p. ej. neodomus_implantacion_neodomus_net
+docker run -d --name neodomus_caddy \
+  --network neodomus_implantacion_neodomus_net \
+  -p 80:80 -p 443:443 \
+  -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  -v neodomus_caddy_data:/data \
+  -v neodomus_caddy_config:/config \
+  caddy:2.10-alpine
+```
+
+Verificación sin editar `hosts` (Windows: añadir `--ssl-no-revoke` si Schannel no puede comprobar la revocación):
+
+```bash
+curl --resolve app.neodomus.local:443:127.0.0.1 \
+     --cacert ./caddy-root.crt https://app.neodomus.local
+curl --resolve api.neodomus.local:443:127.0.0.1 \
+     --cacert ./caddy-root.crt https://api.neodomus.local/health
+```
+
+Para que el frontend acepte el host, `fe/vite.config.ts` declara `server.allowedHosts: ['app.neodomus.local']`. Para que la API acepte el origen, añadir `https://app.neodomus.local` a `CORS_ORIGINS` y ajustar `VITE_API_URL=https://api.neodomus.local/api/v1` en `.env` (y reiniciar/recompilar). La CA local se extrae con `docker cp neodomus_caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt`; para el navegador se importa esa CA en el almacén de confianza del sistema.
+
+### 4.5 Seguridad y puertos de red
+
+#### 4.5.1 Matriz de puertos
+
+| Puerto | Servicio | Exposición producción | Regla |
+|---|---|---|---|
+| `22/tcp` | SSH | Restringida | Solo CIDR de administración/VPN; solo llaves; `PermitRootLogin no`; fail2ban |
+| `80/tcp` | Reverse proxy HTTP | Pública | Redirección 308 a HTTPS y validación ACME (Certbot) |
+| `443/tcp` | Reverse proxy HTTPS | Pública | Único punto de entrada de la aplicación |
+| `8000/tcp` | API Uvicorn | **Interna** | No publicar; el proxy lo alcanza por `neodomus_net` |
+| `5173/tcp` | Vite dev | **Interna/dev** | Solo desarrollo; en producción no existe |
+| `3306/tcp` | MySQL (interno) | **Interna** | Sin publicación; acceso desde `api` |
+| `3307/tcp` | MySQL (host dev) | **Interna** | Si se necesita desde el host, publicar en `127.0.0.1` |
+| `9000/tcp` | MinIO S3 | **Interna** | Solo `api` o el proxy; no exponer directo |
+| `9001/tcp` | Consola MinIO | **Interna** | Solo VPN/loopback; nunca pública |
+| `2019/tcp` | Admin API Caddy (solo local) | **Loopback** | `admin 127.0.0.1:2019`; no publicar |
+| `8081/tcp` | Metro (Expo) | **Interna/dev** | Solo LAN de desarrollo; nunca producción |
+| `2375-2376/tcp` | Docker API | **Prohibida** | Nunca exponer; sin TLS es compromiso total |
+
+**Salida permitida:** `80/443` para ACME, actualizaciones e imágenes; `587/465` para SMTP; `53` para DNS; `123/udp` para NTP. El resto se deniega por defecto en entrada.
+
+#### 4.5.2 Firewall y hardening
+
+**Advertencia sobre Docker y UFW:** los puertos publicados por Docker se insertan en las cadenas NAT/`DOCKER-USER` antes de UFW; `ufw deny 3307` **no** bloquea un contenedor publicado con `-p 3307:3306`. Por eso, en producción:
+
+1. No publicar `db`, `minio`, `api` ni `frontend`; solo el reverse proxy publica `80/443`.
+2. Si hace falta acceso desde el host, publicar en loopback: `127.0.0.1:3307:3306`.
+3. Revisar `DOCKER-USER` y `docker compose config` antes de abrir el servicio.
+
+```yaml
+# Objetivo de producción: sin puertos publicados salvo el reverse proxy
+services:
+  db:
+    ports: []
+  minio:
+    ports: []
+  api:
+    ports: []
+  frontend:
+    ports: []
+```
+
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from <CIDR_ADMIN> to any port 22 proto tcp
+sudo ufw allow 80,443/tcp
+sudo ufw enable
+sudo ufw status verbose
+```
+
+Antes de activar UFW, comprobar que existe acceso por consola del proveedor para no perder la sesión. Endurecer SSH en `/etc/ssh/sshd_config.d/99-neodomus.conf`:
+
+```text
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AllowUsers deploy
+MaxAuthTries 3
+```
+
+Validar con `sudo sshd -t` y recargar con `sudo systemctl reload ssh`. Activar `fail2ban` para SSH y revisar `auth.log`. El cambio de puerto SSH es opcional y no sustituye a las llaves ni al filtrado por origen.
+
+**Defensa en profundidad:** CORS con allowlist, cookies `Secure`/`HttpOnly`/`SameSite`, rate limit en login (SlowAPI ya integrado), validación de entradas, secretos fuera del repositorio, contenedores sin `privileged`, usuario no root cuando sea posible y escaneo de imágenes (Trivy/Scout).
+
+#### 4.5.3 Verificación externa
+
+Desde una máquina fuera del VPS (sustituir `<IP_VPS>`):
+
+```bash
+nmap -Pn -p 22,80,443,3307,8000,9000,9001 <IP_VPS>
+ss -lntp
+docker compose ps
+```
+
+Resultado esperado: `80` y `443` abiertos; `22` filtrado o accesible solo desde la IP de administración; el resto cerrado. Si `3307`, `8000`, `9000` o `9001` responden, hay un `ports:` que debe eliminarse o limitarse a `127.0.0.1`.
+
+### 4.6 Transferencia segura de archivos
+
+#### 4.6.1 Reglas obligatorias
+
+- **Solo SSH:** `rsync` sobre SSH para despliegues, `SFTP` para transferencias puntuales y `scp` solo si no hay alternativa. Nunca FTP ni Telnet.
+- **Solo llaves:** Ed25519 con passphrase, `ssh-agent` y `IdentitiesOnly=yes`. Prohibida la autenticación por contraseña.
+- **Usuario de despliegue:** `deploy` sin `sudo` general; propietario de `/srv/neodomus`; `umask 027`.
+- **Integridad:** generar `SHA256SUMS`, transferirlo por un canal distinto o firmarlo, y verificar antes de activar la release.
+- **Verificación de host:** fijar la huella del servidor en `known_hosts` durante el aprovisionamiento; no aceptar hosts nuevos a ciegas.
+- **Secretos:** la clave privada nunca se sube al repositorio; en CI va en un secreto protegido y se rota ante cualquier incidente.
+
+#### 4.6.2 Procedimientos
+
+```bash
+# 1) Crear la llave de despliegue (una vez)
+ssh-keygen -t ed25519 -a 100 -C "deploy@neodomus" -f ~/.ssh/neodomus_deploy_ed25519
+
+# 2) Instalar la clave pública en el servidor (sin contraseña)
+ssh-copy-id -i ~/.ssh/neodomus_deploy_ed25519.pub deploy@<IP_VPS>
+
+# 3) Desplegar una release con rsync
+rsync -avz --delete \
+  -e "ssh -i ~/.ssh/neodomus_deploy_ed25519 -o IdentitiesOnly=yes" \
+  ./dist/ deploy@<IP_VPS>:/srv/neodomus/releases/<VERSION>/
+
+# 4) Verificar integridad antes de activar
+ssh -i ~/.ssh/neodomus_deploy_ed25519 deploy@<IP_VPS> \
+  "cd /srv/neodomus/releases/<VERSION> && sha256sum -c SHA256SUMS"
+
+# 5) Transferencia puntual por SFTP
+sftp -i ~/.ssh/neodomus_deploy_ed25519 deploy@<IP_VPS>
+# put archivo.zip /srv/neodomus/incoming/
+```
+
+**Restricción de la clave en `~/.ssh/authorized_keys`** (ejemplo; sustituir por la clave pública real y el comando permitido):
+
+```text
+from="<IP_ADMIN>",no-agent-forwarding,no-port-forwarding,no-pty,command="/usr/bin/rrsync /srv/neodomus" ssh-ed25519 <CLAVE_PUBLICA_ED25519> deploy
+```
+
+`rrsync` limita la clave a rsync dentro de un directorio. Si no está disponible, usar `from=` y un usuario sin shell para las tareas de solo lectura.
+
+**Permisos:** `chmod 700 ~/.ssh`, `chmod 600 ~/.ssh/authorized_keys`, `chown -R deploy:deploy /srv/neodomus`, `chmod 750 /srv/neodomus`. Revisar `lastb` y los logs de `sshd` tras cada despliegue.
+
+**CI/CD:** el pipeline usa una clave de despliegue distinta por entorno, `known_hosts` fijado, permisos mínimos y aprobación manual para producción. La clave se guarda en el gestor de secretos del CI, nunca en `docker-compose.yml`, `.env` versionado ni en la imagen.
+
+### 4.7 Criterios de aceptación de la Semana 3
+
+- [ ] `caddy validate --config Caddyfile` devuelve `Valid configuration`.
+- [ ] `app.neodomus.local` y `api.neodomus.local/health` responden `200` con `curl --resolve` y la CA local.
+- [ ] `http://app.neodomus.local` redirige a HTTPS (`308`) y las cabeceras de seguridad están presentes.
+- [ ] La tabla DNS está aplicada y verificada con `dig`; TTL y CAA correctos.
+- [ ] Solo `80/443` son accesibles desde Internet; `3306/3307`, `8000`, `9000` y `9001` no responden externamente.
+- [ ] SSH solo con llaves, sin root y con origen restringido; `fail2ban` activo.
+- [ ] `rsync` de una release funciona con llave, checksum verificado y rollback probado.
+- [ ] No existe FTP; el servicio está desinstalado o deshabilitado.
+- [ ] `CORS_ORIGINS`, `VITE_API_URL` y `FRONTEND_URL` apuntan al esquema HTTPS correcto.
+- [ ] `nginx -t` pasa y `certbot renew --dry-run` termina sin errores; HSTS validado en staging.
+
+### 4.8 Relación con las demás secciones
+
+- **Sección 1.2:** el dimensionamiento del VPS (2 vCPU/4 GiB mínimo; 4 vCPU/8 GiB recomendado) se reutiliza aquí.
+- **Sección 3:** los backups 3-2-1 y la copia externa protegen MySQL y MinIO; el hosting no sustituye al respaldo.
+- **Sección 5:** la instalación v0 usa Docker Compose; esta sección define la exposición, el dominio y el proxy para producción.
+- **Sección 5.6:** Nginx es la implementación de producción (TLS con Certbot); el `Caddyfile` de la raíz es la variante local con `tls internal`.
+- **Hallazgos H-05 y H-06:** esta sección define el control (puertos internos y proxy TLS); la evidencia de cierre se registra al aplicar el despliegue.
 
 ---
 
@@ -1121,7 +1433,7 @@ docker compose ps
 | `db` | `mysql:8.0` | `3307 → 3306` | Migrar a MySQL 8.4 LTS antes de producción |
 | `api` | `be/Dockerfile` (FastAPI + Uvicorn) | `8000` | En v0 monta `./be` y usa `--reload`; no usar así en producción |
 | `frontend` | `fe/Dockerfile` (Vite dev server) | `5173` | En producción compilar y servir con Nginx |
-| `minio` | `ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z` | `9000`, `9001` | Consola solo en `127.0.0.1`/VPN |
+| `minio` | `coollabsio/minio:RELEASE.2025-10-15T17-29-55Z` | `9000`, `9001` | Consola solo en `127.0.0.1`/VPN |
 | Nginx/TLS | Nginx 1.28 + Certbot | `80`, `443` | Pendiente de incorporar al compose; ver 5.6 |
 
 **Comandos útiles:**
@@ -1210,7 +1522,7 @@ docker compose exec api uv run python /app/scripts/subir_productos_minio.py
 
 ### 5.6 Configuración de Nginx, TLS y exposición de puertos
 
-En v0 el frontend se sirve con Vite en `5173` y no hay TLS. Para producción se incorpora Nginx como reverse proxy y se sirve el build estático.
+En v0 el frontend se sirve con Vite en `5173` y no hay TLS. Para producción se incorpora Nginx como reverse proxy (sección 4) y se sirve el build estático. El `Caddyfile` de la raíz es la variante local para pruebas con `tls internal`, no la configuración de producción.
 
 ```nginx
 # /etc/nginx/sites-available/neodomus.conf (ejemplo con dominio genérico)
