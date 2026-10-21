@@ -435,8 +435,7 @@ Guardas frontend: `PrivateRoute`/`RoleRoute` (`fe/src/components/layout/RoleRout
 ├── .env + .env.example              # env real vs plantilla (DATABASE_URL, SECRET_KEY, MINIO_*, SMTP, GOOGLE, FRONTEND_URL)
 ├── .gitignore (incluye minio_data/ pnpm-store/ .venv/)
 ├── README.md                        # README técnico original (no modificado)
-├── DOCUMENTACION_PROYECTO.md        # este archivo
-└── INFORME_FINAL_EVALUACION_NEODOMUS.md
+└── DOCUMENTACION_PROYECTO.md        # este archivo
 ```
 
 Explicación por carpeta importante:

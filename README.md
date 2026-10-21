@@ -208,8 +208,7 @@ Estructura real (raíz):
 ├── .env                     # variables reales (DATABASE_URL, SECRET_KEY, MINIO_*, SMTP, GOOGLE, FRONTEND_URL)
 ├── .env.example             # plantilla documentada
 ├── docs/                    # requisitos (RFs/HUs), conceptos, setup con-docker/sin-docker, referencia técnica
-├── README.md                # este archivo
-└── INFORME_FINAL_EVALUACION_NEODOMUS.md
+└── README.md                # este archivo
 ```
 
 Qué contiene cada carpeta importante:
