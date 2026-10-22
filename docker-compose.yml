@@ -74,7 +74,7 @@ services:
       - neodomus_net
 
   minio:
-    image: minio/minio:latest
+    image: elestio/minio:latest
     container_name: neodomus_minio
     restart: always
     environment:
