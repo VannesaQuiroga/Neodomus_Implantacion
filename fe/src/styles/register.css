@@ -207,8 +207,8 @@
 
 /* NUEVO: Checkboxes en una sola fila horizontal (Gran ahorro de altura) */
 .legal-checkboxes {
-  display: grid   ;
-  grid-template-columns: repeat(3, 1fr)   ; /* Pone los 3 lado a lado */
+  display: flex   ;
+  flex-wrap: wrap   ;
   gap: 4px   ;
   margin-bottom: 6px   ;
 }
@@ -216,11 +216,13 @@
 .checkbox-row {
   display: flex   ;
   align-items: center   ;
+  flex: 1 1 140px   ;
   gap: 4px   ;
+  min-width: 0   ;
   color: #999999   ;
   font-size: 9.5px   ;
   text-align: left   ;
-  white-space: nowrap; /* Evita que el texto salte de línea bruscamente */
+  white-space: normal; /* Permite que el texto se ajuste dentro del contenedor */
 }
 
 .checkbox-row input[type="checkbox"] {
@@ -308,6 +310,6 @@ button.login-accent-link {
     grid-template-columns: 1fr   ;
   }
   .legal-checkboxes {
-    grid-template-columns: 1fr   ; /* En celulares vuelve a lista por espacio */
+    flex-direction: column   ; /* En celulares vuelve a lista por espacio */
   }
 }
