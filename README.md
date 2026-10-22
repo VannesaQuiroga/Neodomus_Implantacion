@@ -88,7 +88,7 @@ volumes:
 command: server /data --console-address ":9001"
 ```
 
-- Imagen: `minio/minio:latest` (`docker-compose.yml:78`) — consola en `:9001`, API S3 en `:9000`.
+- Imagen: `elestio/minio:latest` (`docker-compose.yml:77`) — consola en `:9001`, API S3 en `:9000`.
 - Backend lo consume como **MinIO** vía `app/services/minio_service.py:32` (`Minio(settings.MINIO_ENDPOINT, ...)`).
 - El bucket por defecto es `neodomus-media` (`be/app/config.py:75`), autocreado con política pública de lectura en el primer uso (`_asegurar_bucket`).
 - Ver sección **Gestión de imágenes con `ninio_data`** para flujo completo.
@@ -274,7 +274,7 @@ Montaje y bucket:
 ```yaml
 # docker-compose.yml:77
 minio:
-  image: minio/minio:latest
+  image: elestio/minio:latest
   volumes: ["./minio_data:/data"]
   command: server /data --console-address ":9001"
 # api env (docker-compose.yml:61)

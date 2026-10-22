@@ -295,7 +295,7 @@ Estados: `pedidos.estado_pedido Pagado|Pago pendiente|Rechazado`, `estado_entreg
 
 ## 10. Gestión de imágenes y `ninio_data`
 
-**Qué es `ninio_data`**: exactamente la carpeta `minio_data/` en la raíz del repo. No es una librería distinta: es el volumen host del servicio **MinIO** (objeto-compatible S3) declarado en `docker-compose.yml:88` `volumes: ["./minio_data:/data"]` con `command: server /data --console-address ":9001"` (`docker-compose.yml:89`). El contenedor es `minio/minio:latest` (`docker-compose.yml:78`) con `ports 9000:9000` (API S3) y `9001:9001` (consola), en `networks: neodomus_net`. El bucket por defecto es `neodomus-media` (`be/app/config.py:75`), accesible a la red `api→minio` en `minio:9000` y al mundo externo en `MINIO_PUBLIC_ENDPOINT` (`http://localhost:9000` por defecto).
+**Qué es `ninio_data`**: exactamente la carpeta `minio_data/` en la raíz del repo. No es una librería distinta: es el volumen host del servicio **MinIO** (objeto-compatible S3) declarado en `docker-compose.yml:88` `volumes: ["./minio_data:/data"]` con `command: server /data --console-address ":9001"` (`docker-compose.yml:89`). El contenedor es `elestio/minio:latest` (`docker-compose.yml:78`) con `ports 9000:9000` (API S3) y `9001:9001` (consola), en `networks: neodomus_net`. El bucket por defecto es `neodomus-media` (`be/app/config.py:75`), accesible a la red `api→minio` en `minio:9000` y al mundo externo en `MINIO_PUBLIC_ENDPOINT` (`http://localhost:9000` por defecto).
 
 **Dónde está configurado**:
 
@@ -521,7 +521,7 @@ cp .env.example .env
 docker compose up --build
 #  db      mysql:8.0 healthy en 3307:3306
 #  api     be/Dockerfile → uv run alembic upgrade head && uvicorn (0.0.0.0:8000)
-#  minio   minio/minio:latest data=/data (./minio_data) + console 9001
+#  minio   elestio/minio:latest data=/data (./minio_data) + console 9001
 #  frontend pnpm run dev en 5173 (bind fe:/app)
 docker compose ps                    # 4 servicios Up
 docker compose exec api uv run python /app/scripts/seed_test_users.py   # idempotente, users hash bcrypt
