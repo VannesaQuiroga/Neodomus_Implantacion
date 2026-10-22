@@ -238,7 +238,7 @@ Qué contiene cada carpeta importante:
 
 ## API y comunicación entre sistemas
 
-- **Tipo de API**: REST ` /api/v1` versionada. Todos los routers se incluyen con `app.include_router(..., prefix="/api/v1")` en `be/app/main.py:113`.
+- **Tipo de API**: REST `/api/v1` versionada. Todos los routers se incluyen con `app.include_router(..., prefix="/api/v1")` en `be/app/main.py:113`.
 - **Comunicación frontend↔backend**: web vía `axios` (`fe/src/services/api.ts:154`), móvil vía `apiFetch` wrapper (`movil/services/api.ts`). Sin WebSockets; polling leve de 15–30 s en catálogo (`ProductoDetalle.tsx:233`, `ProductosPublicos.tsx:94`, `movil/app/(tabs)/productos.tsx:132`).
 - **Principales módulos / endpoints**:
 
@@ -288,7 +288,7 @@ MINIO_BUCKET: neodomus-media
 
 1. Admin sube vía formulario → `POST /productos/upload-imagen` (`be/app/routers/productos.py:800`) con `UploadFile`; se valida extensión `.jpg/.jpeg/.png/.webp/.gif`, tamaño ≤ 5 MB y que `Pillow.Image.verify()` suceda; se genera nombre `uuid.hex + ext`.
 2. `minio_service.subir_imagen("productos", nombre, contenido)` (`be/app/services/minio_service.py:77`) ejecuta `put_object(bucket, "productos/<nombre>", BytesIO, len, content_type)` vía cliente `Minio(settings.MINIO_ENDPOINT, ...)` y, en el primer uso, crea el bucket y le fija política pública `{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::BUCKET/*"]}` (`_asegurar_bucket`).
-3. La función retorna `url_publica = f"{MINIO_PUBLIC_ENDPOINT}/{BUCKET}/productos/{nombre}"` que se persiste en `Producto.imagen_url` (y analogamente en `ProductoVariante.imagen_url`). Para evidencias se guarda la clave `evidencias_citas/<nombre>` y `url_publica` se resuelve al leer (`tecnicos.py:82` `_url_evidencia`).
+3. La función retorna `url_publica = f"{MINIO_PUBLIC_ENDPOINT}/{BUCKET}/productos/{nombre}"` que se persiste en `Producto.imagen_url` (y análogamente en `ProductoVariante.imagen_url`). Para evidencias se guarda la clave `evidencias_citas/<nombre>` y `url_publica` se resuelve al leer (`tecnicos.py:82` `_url_evidencia`).
 4. Carga masiva/migración: `scripts/subir_productos_minio.py:61` lee `fe/public/productos/*.jpg` (montados en `/app/productos_local` según `docker-compose.yml:69`) y `be/scripts/migrar_a_minio.py:60` migra claves legadas `/uploads/*` a URLs públicas MinIO; ambos preservan filas ya en MinIO.
 
 **Cómo se recuperan**:
