@@ -1,5 +1,7 @@
 # Plan de Trabajo — Proyecto Neodomus
 
+> **Nota de vigencia (30/10/2026):** este plan conserva un corte de seguimiento fechado 29/08/2026 y referencias/estados que no se volvieron a certificar en esta actualización. En particular, el manifiesto actual de `movil/package.json` declara Expo 57 y la API tiene migración `0060`. Trata las fechas, porcentajes, Jira, cobertura y estados como registro histórico hasta que el equipo los confirme. Consulta `docs/auditoria-documental.md`.
+
 <!--
   ¿Qué? Documento que define fases, actividades, responsables y seguimiento del proyecto.
   ¿Para qué? Alinear la ejecución real (código, BD, despliegue) con la gestión en Jira y la evaluación ADSO.
@@ -20,7 +22,7 @@
 | **1. Análisis y diseño** | Mayo 2026 | Requisitos RF/RNF, HU, restricciones, arquitectura, modelo BD | `docs/requisitos/RFs/*` (44), `RNs/*` (6), `HUs/*` (44), `restricciones.md`, `referencia-tecnica/architecture.md` | ✅ Completado |
 | **2. Backend** | Jun-Jul 2026 | API FastAPI, auth JWT, productos, citas, pedidos, pagos simulador, técnicos, reportes | `be/app/routers/` 16 routers, `be/app/models/` 29 modelos, `be/alembic/versions/` 48 | ✅ Completado |
 | **3. Frontend Web** | Jul-Ago 2026 | SPA React 18, auth multitab, catálogo, carrito, checkout, dashboards por rol | `fe/src/pages/` 56 pages, `fe/src/components/` 43, `fe/src/contexts/` 3 | ✅ Completado |
-| **4. Móvil** | Ago 2026 | App Expo 54 (visitante/cliente/técnico), parity checkout/citas | `movil/app/(tabs)` 19, `movil/app/(tecnico)` 10, `movil/services/` 5 | 🟡 Parcial (admin 0%) |
+| **4. Móvil** | Ago 2026 | App Expo (visitante/cliente/técnico; este plan consignó SDK 54, el manifiesto actual declara 57), parity checkout/citas | `movil/app/(tabs)` 19, `movil/app/(tecnico)` 10, `movil/services/` 5 | 🟡 Parcial (admin 0%) |
 | **5. Integración y calidad** | Ago 2026 | Docker, MinIO, pruebas, seguridad, auditoría | `docker-compose.yml`, `AUDITORIA_FINAL_NEODOMUS.md`, `be/app/tests/test_auth.py` | 🟡 Parcial (tests 0%) |
 | **6. Presentación** | Sep 2026 | Documentación final, plan mejora, evidencias Jira | `docs/plan-trabajo.md` (este), `AUDITORIA_FINAL_NEODOMUS.md`, `docs/referencia-tecnica/database-schema.md` | 🔄 En curso |
 

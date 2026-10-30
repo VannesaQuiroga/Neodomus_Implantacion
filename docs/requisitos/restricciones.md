@@ -160,7 +160,7 @@ El proyecto se desarrolla y ejecuta en entornos de desarrollo local. No hay requ
 Toda información sensible (claves secretas, credenciales de BD, configuraciones SMTP, claves de pasarela de pagos) debe almacenarse en archivos `.env` no versionados en git. Nunca se deben hardcodear valores sensibles en el código.
 
 ### RS-002 — Archivo .env.example obligatorio
-Siempre debe existir un `.env.example` en la raíz del proyecto (tanto en `backend/` como en `frontend/`) con las variables necesarias y valores de ejemplo no sensibles.
+Debe existir una plantilla de entorno con variables necesarias y valores no sensibles. El repositorio actual tiene `.env.example` en la raíz y `movil/.env.example`; verifica su contenido por componente.
 
 ### RS-003 — No exponer contraseñas
 Las contraseñas (hasheadas o en texto plano) nunca deben aparecer en:

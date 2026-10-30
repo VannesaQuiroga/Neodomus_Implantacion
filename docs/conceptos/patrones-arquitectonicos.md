@@ -1,3 +1,4 @@
+> **Alcance:** este archivo presenta patrones/conceptos de referencia y contiene ejemplos históricos. Las rutas `backend/`/`frontend/`, Leaflet y otros ejemplos no describen necesariamente la implementación actual. Para arquitectura comprobada usa `docs/referencia-tecnica/architecture.md`; para el código real revisa `be/`, `fe/` y `movil/`.
 > **Nota 2026-08 — Stack real:** Este documento lista `Leaflet`/`react-leaflet` (Patrón 10) y `backend/`+`frontend/` (Patrón 9). **Real:** Sin Leaflet (`fe/package.json` sin leaflet), monorepo `be/`+`fe/`+`movil/` (`docker-compose.yml:24,93`), `uv` no `poetry`, `react-icons` no `lucide-react`. Ver `restricciones.md` y `docs/referencia-tecnica/architecture.md` actualizados. Patrón 10 es aspiracional/futuro (HU-025).
 
 # Patrones Arquitectónicos — Neodomus
