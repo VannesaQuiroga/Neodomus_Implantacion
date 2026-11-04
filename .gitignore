@@ -58,3 +58,7 @@ evidencias_backup/
 
 # MinIO — datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
+
+# Archivos privados de despliegue
+deploy/.env.prod
+respaldos/

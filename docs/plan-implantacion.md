@@ -527,3 +527,73 @@ $ SIMULATE_FAIL=true ./scripts/verificar-requisitos.sh
 ---
 
 > **Fin de la Sección 1.** Las secciones 2 a 5 (instalación, configuración, operación y pruebas) se completarán en las siguientes semanas.
+
+## 5. Procedimiento de despliegue — Semana 4
+
+### 5.1 Liberación e instalación en Linux
+
+La versión base usa imágenes separadas para web y API. Nginx sirve la web compilada y reenvía las consultas a FastAPI. MySQL y MinIO permanecen en la red del Compose. La prueba se realizó en Ubuntu sobre WSL, con el proyecto en /opt/neodomus y el puerto 8080 publicado en la interfaz local.
+
+Desde la raíz del proyecto en Linux, con Docker y Compose disponibles:
+
+```bash
+docker build -f deploy/Dockerfile.frontend -t neodomus-web:1.0.0 ./fe
+if [ ! -e deploy/.env.prod ]; then
+  (umask 077
+   for key in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD SECRET_KEY MINIO_PASSWORD; do
+     printf '%s=%s\n' "$key" "$(openssl rand -hex 32)"
+   done > deploy/.env.prod)
+fi
+docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yaml up -d --build
+bash scripts/smoke-test.sh http://localhost:8080
+```
+
+Resultado esperado: web, salud y consulta del producto responden HTTP 200. La evidencia inicial registró 10 productos en el catálogo.
+
+### 5.2 Respaldo, actualización y rollback
+
+```bash
+mkdir -p respaldos
+respaldo="respaldos/neodomus-$(date +%Y%m%d-%H%M%S).sql"
+(umask 077
+ docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yaml \
+   exec -T db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump -uroot --single-transaction --no-tablespaces neodomus' \
+   > "$respaldo") && test -s "$respaldo"
+```
+
+Continuar solo después de confirmar que el respaldo terminó correctamente. Para la prueba se creó una imagen derivada con un marcador de versión:
+
+```bash
+docker build -t neodomus-web:1.0.1 - <<'EOF'
+FROM neodomus-web:1.0.0
+RUN printf 'Neodomus web 1.0.1\n' > /usr/share/nginx/html/version.txt
+EOF
+docker compose --env-file deploy/.env.prod \
+  -f deploy/compose.prod.yaml -f deploy/compose.update.yaml up -d --no-deps web
+curl -fsS http://localhost:8080/version.txt
+bash scripts/smoke-test.sh http://localhost:8080
+```
+
+El marcador devolvió Neodomus web 1.0.1. Para volver a la imagen anterior:
+
+```bash
+docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yaml up -d --no-deps web
+docker inspect --format '{{.Config.Image}}' neodomus-prod-web-1
+bash scripts/smoke-test.sh http://localhost:8080
+```
+
+La inspección devolvió neodomus-web:1.0.0 y la web y el producto respondieron HTTP 200. El cambio fue solo de la web, por lo que no requirió restaurar MySQL. Las migraciones aditivas pueden permitir rollback si la versión anterior sigue funcionando con el esquema nuevo. Ante una eliminación de columnas o una transformación incompatible, detener escrituras y ensayar la restauración antes de recuperar el servicio. Esa restauración no se probó en esta entrega.
+
+### 5.3 Despliegue en Railway
+
+Se conectaron las imágenes juliancc13/neodomus-api:1.0.0 y juliancc13/neodomus-web:1.0.0 desde Docker Hub. La API se conectó a MySQL por red privada. Los secretos se configuraron en Railway. La web usa la configuración deploy/nginx.railway.conf y reenvía las consultas a la API por HTTPS. La prueba verificó el catálogo y el detalle del producto. La carga de archivos en MinIO en la nube queda sin verificar.
+
+```bash
+bash scripts/smoke-test.sh https://neodomus-web-production.up.railway.app
+```
+
+Evidencias: [Linux](../evidencias/smoke-linux.txt), [Railway](../evidencias/smoke-nube.txt), [actualización](../evidencias/actualizacion-linux.txt) y [rollback](../evidencias/rollback-linux.txt).
+
+### 5.4 Costos
+
+Para la demostración se eligió Railway Trial porque permitió conservar MySQL y usar crédito de prueba. La prueba ofrece USD 5 por única vez, hasta 30 días. Como alternativa en la misma plataforma, Hobby tiene un mínimo de USD 5 al mes, con el consumo incluido hasta ese importe y cobro adicional si se supera. El costo real depende de CPU, memoria, almacenamiento y tráfico. Consultado el 4 de noviembre de 2026. [Prueba de Railway](https://docs.railway.com/pricing/free-trial) · [Planes y tarifas](https://docs.railway.com/pricing/plans)
