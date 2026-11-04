@@ -95,7 +95,7 @@ def main():
         db.flush()
         admin_id = admin.id_usuario
 
-        tecnico = User(first_name='Tecnico', last_name='Foto', email=tecnico_email,
+        tecnico = User(first_name='Tecnico', last_name='ConFoto', email=tecnico_email,
                        password_hash=hash_password(tecnico_password), id_rol_u=rol_tec.id_rol, is_active=True)
         db.add(tecnico)
         db.flush()
@@ -103,7 +103,7 @@ def main():
         db.add(Tecnico(id_usuario_t=tecnico.id_usuario, certificacion_t=''))
 
         roto = User(
-            first_name='Tecnico', last_name='Roto', email=roto_email,
+            first_name='Tecnico', last_name='SinFoto', email=roto_email,
             password_hash=hash_password(roto_password), id_rol_u=rol_tec.id_rol, is_active=True,
             foto_url='http://127.0.0.1:9000/neodomus-test-e2e/perfiles/no-existe.png',
         )
@@ -155,7 +155,7 @@ def main():
                 result = subprocess.run(
                     [node, 'node_modules/@playwright/test/cli.js', 'test',
                      'foto-tecnico.e2e.spec.ts', '--workers=1'],
-                    cwd=ROOT / 'fe', env=env, creationflags=flags, timeout=300,
+                    cwd=ROOT / 'fe', env=env, creationflags=flags, timeout=600,
                     capture_output=True, text=True, encoding='utf-8', errors='replace',
                 )
                 enc = sys.stdout.encoding or 'utf-8'

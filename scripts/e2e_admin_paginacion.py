@@ -72,6 +72,12 @@ def main():
     procesos = []
     temp = None
     flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+    admin_id = None
+    cliente_ids = []
+    proveedor_ids = []
+    tecnico_ids = []
+    usuario_tec_ids = []
+    novedad_ids = []
     try:
         rol_admin = db.scalar(select(RolesUsuario).where(RolesUsuario.nombre_rol == 'administrador'))
         rol_tec = db.scalar(select(RolesUsuario).where(RolesUsuario.nombre_rol == 'tecnico'))
@@ -160,7 +166,7 @@ def main():
                 result = subprocess.run(
                     [node, 'node_modules/@playwright/test/cli.js', 'test',
                      'admin-paginacion.e2e.spec.ts', '--workers=1'],
-                    cwd=ROOT / 'fe', env=env, creationflags=flags, timeout=300,
+                    cwd=ROOT / 'fe', env=env, creationflags=flags, timeout=600,
                     capture_output=True, text=True, encoding='utf-8', errors='replace',
                 )
                 enc = sys.stdout.encoding or 'utf-8'

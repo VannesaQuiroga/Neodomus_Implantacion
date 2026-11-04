@@ -364,20 +364,26 @@ Primer arranque de datos e imágenes (dentro de `api`):
 
 ```bash
 docker compose exec api uv run python /app/scripts/seed_test_users.py
-docker compose exec api uv run python scripts/subir_productos_minio.py
-# Si migras desde datos legados locales:
-docker compose exec api uv run python be/scripts/migrar_a_minio.py
+# Crear la cuenta de administrador inicial (correo + contraseña interactivos o vía
+# variables ADMIN_EMAIL / ADMIN_PASSWORD; no usa una contraseña fija):
+docker compose exec api uv run python /app/scripts/crear_admin.py
 ```
 
 ### Backend sin Docker
 
 ```bash
 cd be
-cp ../.env .env  # o crear be/.env con DATABASE_URL=mysql+pymysql://neodomus:...@localhost:3307/neodomus
+cp .env.example .env   # completa DATABASE_URL, SECRET_KEY y MINIO_*
 uv sync
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-# Alternativa: python -m app.main (lee PORT env)
+```
+
+En Windows, define `PYTHONIOENCODING=utf-8` antes de ejecutar Alembic/uvicorn
+(algunas migraciones imprimen caracteres Unicode que fallan en la consola cp1252):
+
+```powershell
+$env:PYTHONIOENCODING = "utf-8"
 ```
 
 ### Frontend web

@@ -140,6 +140,7 @@ class TecnicoAdminResponse(BaseModel):
     created_at: datetime | None = None
     password_reset_required: bool = False
     servicios: list[str] = []
+    foto_url: str | None = None
     calificacion: float | None = None
     total_calificaciones: int = 0
 
@@ -293,6 +294,7 @@ def _serializar(
         created_at=u.created_at if u else None,
         password_reset_required=bool(u.password_reset_required) if u else False,
         servicios=[],
+        foto_url=u.foto_url if u else None,
         calificacion=calificacion,
         total_calificaciones=total_calificaciones,
     )

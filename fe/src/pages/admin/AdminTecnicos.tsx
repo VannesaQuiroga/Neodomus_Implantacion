@@ -28,6 +28,7 @@ import api from '@services/api';
 import EspecializacionesSelect from '@components/admin/EspecializacionesSelect';
 import AuthImage from '@components/common/AuthImage';
 import { Paginacion } from '@components/common/Paginacion';
+import { AvatarFoto } from '@components/common/AvatarFoto';
 import { usePaginacion } from '../../hooks/usePaginacion';
 import { notificarCambiosTecnicos } from '@utils/tecnicosSync';
 import type { Especializacion, TecnicoAdmin } from '../../types';
@@ -433,7 +434,7 @@ const AdminTecnicos = () => {
           {pageItems.map((tecnico, idx) => (
             <div className="ap-grid-item" key={tecnico.id_tecnico}>
               <div className="ap-grid-item-top">
-                <span className="ap-initials">{iniciales(tecnico)}</span>
+                <AvatarFoto src={tecnico.foto_url} iniciales={iniciales(tecnico)} alt={nombreMayus(tecnico)} />
                 <span className="muted" style={{ fontSize: 11 }}>#{numeroFila(idx)}</span>
                 <span className={`ap-badge ${tecnico.is_active ? 'ok' : 'err'}`}>
                   {tecnico.is_active ? t('adm.tecnicos.disponible') : t('adm.tecnicos.inactivo')}

@@ -211,6 +211,26 @@ class FotoPerfilTecnicoTestCase(BaseT1TestCase):
         self.assertNotEqual(clave1, clave2)
         self.assertEqual(minio_service.leer_objeto_publico(clave2), _png_bytes("blue"))
 
+    def test_listado_admin_incluye_foto_url(self):
+        if not self._minio_disponible():
+            self.skipTest("MinIO no alcanzable; listado admin de foto no comprobado")
+
+        tecnico_u, tecnico = self._crear_tecnico("foto")
+        admin = self._crear_admin("foto")
+
+        token_tec = self._token(self._login(tecnico_u.email))
+        r = self._upload(token_tec, "a.png", _png_bytes("red"), "image/png")
+        self.assertEqual(r.status_code, 200, r.text)
+        url = r.json()["foto_url"]
+        self._claves_minio.append(_clave_desde_url(url))
+
+        token_admin = self._token(self._login(admin.email))
+        r_lista = self._get("/api/v1/tecnicos", headers=self._bearer(token_admin))
+        self.assertEqual(r_lista.status_code, 200, r_lista.text)
+        item = next((x for x in r_lista.json() if x["id_tecnico"] == tecnico.id_tecnico), None)
+        self.assertIsNotNone(item)
+        self.assertEqual(item["foto_url"], url)
+
 
 if __name__ == "__main__":
     unittest.main()

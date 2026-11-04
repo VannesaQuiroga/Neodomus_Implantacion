@@ -188,6 +188,7 @@ export interface TecnicoAdmin {
   password_reset_required?: boolean;
   servicios?: string[];
   especializaciones?: { id_especializacion: number; nombre: string }[];
+  foto_url?: string | null;
   citas_pendientes?: number;
   entregas_pendientes?: number;
   calificacion?: number | null;
