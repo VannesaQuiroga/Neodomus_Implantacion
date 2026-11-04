@@ -1,13 +1,31 @@
-// Hook reutilizable useAdminNotificaciones; concentra esta lógica para las pantallas que lo utilizan.
+// Hook compartido de notificaciones para campana y apartado.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@services/api';
+import { useAuth } from '@contexts/AuthContext';
 import type {
   ProductoAdmin,
   SolicitudCuenta,
   SolicitudEmpleado,
 } from '../types';
 
-export type TipoNotificacion = 'cuenta' | 'registro' | 'cita' | 'pedido' | 'stock' | 'sistema' | 'entrega' | 'reembolso' | 'devolucion' | 'producto' | 'promocion' | 'recogida' | 'recordatorio_cita' | 'recordatorio_producto';
+export type TipoNotificacion =
+  | 'cuenta'
+  | 'registro'
+  | 'cita'
+  | 'pedido'
+  | 'stock'
+  | 'sistema'
+  | 'entrega'
+  | 'reembolso'
+  | 'devolucion'
+  | 'producto'
+  | 'promocion'
+  | 'recogida'
+  | 'novedad'
+  | 'cupon'
+  | 'asignacion'
+  | 'recordatorio_cita'
+  | 'recordatorio_producto';
 
 export interface NotifAdmin {
   id: string;
@@ -18,6 +36,7 @@ export interface NotifAdmin {
   leida: boolean;
   timestamp: number;
   accion?: { to: string; label: string };
+  backendId?: number;
 }
 
 export type RolNotificaciones = 'administrador' | 'tecnico' | 'cliente';
@@ -25,50 +44,6 @@ export type RolNotificaciones = 'administrador' | 'tecnico' | 'cliente';
 interface PaginaProductos {
   data: ProductoAdmin[];
 }
-
-interface CitaTecnico {
-  id_cita: number;
-  fecha: string;
-  hora: string;
-  estado: string;
-  tipo_servicio: string;
-  cliente: string;
-}
-
-interface CitaCliente {
-  id_cita: number;
-  estado: string;
-  created_at?: string | null;
-  tipo_servicio: string;
-  fecha: string;
-  hora: string;
-}
-
-interface PedidoCliente {
-  id_pedido: number;
-  fecha?: string | null;
-  total?: number | null;
-  estado?: string | null;
-}
-
-interface NotifPlataforma {
-  id_notificacion: number;
-  tipo: string;
-  titulo: string;
-  mensaje: string;
-  leida: boolean;
-  fecha_creacion?: string | null;
-}
-
-const TIPOS_PLATAFORMA_CLIENTE: TipoNotificacion[] = [
-  'reembolso',
-  'entrega',
-  'devolucion',
-  'producto',
-  'promocion',
-  'recordatorio_cita',
-  'recordatorio_producto',
-];
 
 interface CitaReasignar {
   id_cita: number;
@@ -85,6 +60,98 @@ interface CitaReasignar {
   tecnico_actual?: string | null;
   tecnico_actual_email?: string | null;
 }
+
+interface NotifPlataforma {
+  id_notificacion: number;
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  leida: boolean;
+  fecha_creacion?: string | null;
+}
+
+const TIPOS_VALIDOS: TipoNotificacion[] = [
+  'cuenta',
+  'registro',
+  'cita',
+  'pedido',
+  'stock',
+  'sistema',
+  'entrega',
+  'reembolso',
+  'devolucion',
+  'producto',
+  'promocion',
+  'recogida',
+  'novedad',
+  'cupon',
+  'asignacion',
+  'recordatorio_cita',
+  'recordatorio_producto',
+];
+
+const ACCIONES_PLATAFORMA: Record<
+  RolNotificaciones,
+  Record<string, { to: string; label: string }>
+> = {
+  administrador: {
+    reembolso: { to: '/admin/devoluciones', label: 'Ver reembolsos' },
+    devolucion: { to: '/admin/devoluciones', label: 'Ver devoluciones' },
+    cita: { to: '/admin/instalaciones', label: 'Ver citas' },
+    pedido: { to: '/admin/pedidos', label: 'Ver pedidos' },
+    entrega: { to: '/admin/pedidos', label: 'Ver entregas' },
+    recogida: { to: '/admin/devoluciones', label: 'Ver devoluciones' },
+    producto: { to: '/admin/productos', label: 'Ver productos' },
+    promocion: { to: '/admin/novedades', label: 'Ver novedades' },
+    novedad: { to: '/admin/novedades', label: 'Ver novedades' },
+    cupon: { to: '/admin/novedades', label: 'Ver cupones' },
+    asignacion: { to: '/admin/instalaciones', label: 'Ver citas' },
+    cuenta: { to: '/admin/consultas#solicitudes-cuenta', label: 'Revisar solicitudes' },
+    registro: { to: '/admin/clientes', label: 'Ver clientes' },
+    stock: { to: '/admin/productos', label: 'Reabastecer' },
+    sistema: { to: '/admin/notificaciones', label: 'Ver notificaciones' },
+    recordatorio_cita: { to: '/admin/instalaciones', label: 'Ver citas' },
+    recordatorio_producto: { to: '/admin/productos', label: 'Ver productos' },
+  },
+  tecnico: {
+    recogida: { to: '/tecnico/devoluciones', label: 'Ver devoluciones' },
+    devolucion: { to: '/tecnico/devoluciones', label: 'Ver devoluciones' },
+    cita: { to: '/tecnico/citas', label: 'Ver mis citas' },
+    entrega: { to: '/tecnico/entregas', label: 'Ver mis entregas' },
+    reembolso: { to: '/tecnico/devoluciones', label: 'Ver devoluciones' },
+    pedido: { to: '/tecnico/entregas', label: 'Ver mis entregas' },
+    producto: { to: '/tecnico/novedades', label: 'Ver novedades' },
+    promocion: { to: '/tecnico/novedades', label: 'Ver novedades' },
+    novedad: { to: '/tecnico/novedades', label: 'Ver novedades' },
+    cupon: { to: '/tecnico/novedades', label: 'Ver novedades' },
+    asignacion: { to: '/tecnico/citas', label: 'Ver mis citas' },
+    sistema: { to: '/dashboard/tecnico', label: 'Ver panel' },
+    cuenta: { to: '/dashboard/tecnico', label: 'Ver panel' },
+    registro: { to: '/dashboard/tecnico', label: 'Ver panel' },
+    stock: { to: '/dashboard/tecnico', label: 'Ver panel' },
+    recordatorio_cita: { to: '/tecnico/citas', label: 'Ver mis citas' },
+    recordatorio_producto: { to: '/tecnico/entregas', label: 'Ver mis entregas' },
+  },
+  cliente: {
+    devolucion: { to: '/perfil?tab=pedidos', label: 'Ver mis devoluciones' },
+    reembolso: { to: '/perfil?tab=reembolsos', label: 'Ver mis reembolsos' },
+    cita: { to: '/cliente/citas?vista=mis-citas', label: 'Ver mis citas' },
+    recordatorio_cita: { to: '/cliente/citas?vista=mis-citas', label: 'Calificar servicio' },
+    pedido: { to: '/perfil?tab=pedidos', label: 'Ver mis pedidos' },
+    entrega: { to: '/perfil?tab=pedidos', label: 'Ver mis pedidos' },
+    recogida: { to: '/perfil?tab=pedidos', label: 'Ver mis pedidos' },
+    producto: { to: '/productos', label: 'Ver productos' },
+    promocion: { to: '/productos', label: 'Ver promociones' },
+    novedad: { to: '/perfil?tab=pedidos', label: 'Ver novedad' },
+    cupon: { to: '/productos', label: 'Usar cupón' },
+    asignacion: { to: '/perfil?tab=pedidos', label: 'Ver asignación' },
+    recordatorio_producto: { to: '/perfil?tab=pedidos', label: 'Calificar productos' },
+    sistema: { to: '/notificaciones', label: 'Ver notificaciones' },
+    cuenta: { to: '/perfil', label: 'Ver mi perfil' },
+    registro: { to: '/perfil', label: 'Ver mi perfil' },
+    stock: { to: '/productos', label: 'Ver productos' },
+  },
+};
 
 const formatoFecha = (iso?: string | null) => {
   if (!iso) return '';
@@ -123,84 +190,114 @@ const nombreServicio = (tipo?: string | null) => {
   return tipo || 'servicio';
 };
 
-const esInstalacionNotif = (tipo?: string | null) => {
-  const t = (tipo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return t.includes('instalacion');
-};
+const normalizarTipo = (tipo: string): TipoNotificacion =>
+  TIPOS_VALIDOS.includes(tipo as TipoNotificacion)
+    ? (tipo as TipoNotificacion)
+    : 'sistema';
 
-const claveStorage = (rol: RolNotificaciones) => `notificaciones_leidas_${rol}`;
+const accionPlataforma = (rol: RolNotificaciones, tipo: string) =>
+  ACCIONES_PLATAFORMA[rol][tipo] ?? {
+    to: rol === 'administrador'
+      ? '/admin/notificaciones'
+      : rol === 'tecnico'
+        ? '/dashboard/tecnico'
+        : '/notificaciones',
+    label: 'Ver notificación',
+  };
 
-// accede a localStorage para conservar o recuperar datos locales.
-const usarLeidasStorage = (rol: RolNotificaciones): Record<string, boolean> => {
+const claveStorage = (rol: RolNotificaciones, cuenta: string) =>
+  `notificaciones_leidas_${rol}_${cuenta}`;
+
+const leerLeidasStorage = (clave: string): Record<string, boolean> => {
+  if (!clave) return {};
   try {
-    return JSON.parse(localStorage.getItem(claveStorage(rol)) || '{}');
+    const guardadas = JSON.parse(localStorage.getItem(clave) || '{}');
+    return guardadas && typeof guardadas === 'object' && !Array.isArray(guardadas)
+      ? guardadas
+      : {};
   } catch {
     return {};
   }
 };
 
-// Comunica con el backend mediante PATCH `/notificaciones/${backendId}/leida`, GET '/admin/account-requests', GET '/productos/?limit=100&estado=activo' y otras peticiones de esta vista; accede a localStorage para conservar o recuperar datos locales; registra escuchas de eventos para sincronizar la vista.
+const guardarLeidasStorage = (clave: string, leidas: Record<string, boolean>) => {
+  if (!clave) return;
+  try {
+    localStorage.setItem(clave, JSON.stringify(leidas));
+  } catch {
+    /* noop */
+  }
+};
+
 export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
+  const { user } = useAuth();
+  const cuenta = user ? `${user.id}:${user.correo}` : 'anon';
+  const storageKey = rol ? claveStorage(rol, cuenta) : '';
+
   const [notificaciones, setNotificaciones] = useState<NotifAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [leidas, setLeidas] = useState<Record<string, boolean>>(() =>
-    rol ? usarLeidasStorage(rol) : {},
-  );
+  const [error, setError] = useState<string | null>(null);
 
-  // Ref espejo: el poll del intervalo captura una sola instancia de
-  // `recargar`, así que debe leer SIEMPRE el valor vigente de `leidas`.
-  const leidasRef = useRef(leidas);
+  const leidasRef = useRef<Record<string, boolean>>({});
+  const notificacionesRef = useRef(notificaciones);
+  const cuentaRef = useRef(storageKey);
+  const peticionRef = useRef(0);
+  const marcandoRef = useRef<Set<string>>(new Set());
+
+  notificacionesRef.current = notificaciones;
+
   useEffect(() => {
-    leidasRef.current = leidas;
-  }, [leidas]);
-
-  // Comunica con el backend mediante PATCH `/notificaciones/${backendId}/leida`; accede a localStorage para conservar o recuperar datos locales.
-  const marcarLeida = (id: string) => {
-    if (!rol) return;
-    setNotificaciones((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, leida: true } : n)),
-    );
-    setLeidas((prev) => {
-      if (prev[id]) return prev;
-      const next = { ...prev, [id]: true };
-      localStorage.setItem(claveStorage(rol), JSON.stringify(next));
-      return next;
-    });
-    // Si es una notificación de plataforma (plat-), marcar en el backend
-    if (id.startsWith('plat-')) {
-      const backendId = id.replace('plat-', '');
-      api.patch(`/notificaciones/${backendId}/leida`).catch(() => {});
-    }
-    // Notificar a otros componentes que el conteo cambió
-    window.dispatchEvent(new Event('notificaciones-refresh'));
-  };
+    cuentaRef.current = storageKey;
+    leidasRef.current = leerLeidasStorage(storageKey);
+  }, [storageKey]);
 
   const recargar = useCallback(async (opciones?: { silencioso?: boolean }) => {
     if (!rol) {
+      peticionRef.current += 1;
+      setNotificaciones([]);
+      setError(null);
       setCargando(false);
       return;
     }
+
+    const peticion = ++peticionRef.current;
     if (!opciones?.silencioso) setCargando(true);
+
+    leidasRef.current = leerLeidasStorage(storageKey);
+
     try {
       let notis: NotifAdmin[] = [];
 
       if (rol === 'administrador') {
-        const [solsRes, prodsRes, solsEmpRes, reasigRes] = await Promise.all([
+        const [solsRes, prodsRes, solsEmpRes, reasigRes, plataformaRes] = await Promise.all([
           api.get<SolicitudCuenta[]>('/admin/account-requests'),
           api.get<PaginaProductos>('/productos/?limit=100&estado=activo'),
           api.get<SolicitudEmpleado[]>('/admin/account-requests/empleados'),
           api.get<CitaReasignar[]>('/citas/admin/reasignar-pendientes'),
+          api.get<NotifPlataforma[]>('/notificaciones/mias'),
         ]);
         const solicitudes = solsRes.data || [];
         const solicitudesEmpleados = solsEmpRes.data || [];
         const productos = prodsRes.data?.data || [];
         const porReasignar = reasigRes.data || [];
+        const plataforma = (plataformaRes.data || []).map((n) => ({
+          id: `plat-${n.id_notificacion}`,
+          backendId: n.id_notificacion,
+          tipo: normalizarTipo(n.tipo),
+          titulo: n.titulo,
+          mensaje: n.mensaje,
+          fecha: formatoFecha(n.fecha_creacion),
+          timestamp: Date.parse(n.fecha_creacion || '') || 0,
+          leida: Boolean(n.leida),
+          accion: accionPlataforma(rol, n.tipo),
+        }));
 
         const agotados = productos.filter(
-          (p) => Number(p.stock_producto) <= 0 && !(p.variantes || []).some((v) => v.stock > 0)
+          (p) => Number(p.stock_producto) <= 0 && !(p.variantes || []).some((v) => v.stock > 0),
         );
 
         notis = [
+          ...plataforma,
           ...agotados.map((p) => ({
             id: `stock-${p.id_producto}`,
             tipo: 'stock' as TipoNotificacion,
@@ -245,148 +342,145 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
             accion: { to: '/admin/instalaciones', label: 'Reasignar' },
           })),
         ];
-      } else if (rol === 'tecnico') {
-        const [citasRes, notisRes] = await Promise.all([
-          api.get<CitaTecnico[]>('/tecnicos/mis-citas'),
-          api.get<NotifPlataforma[]>('/notificaciones/mias').catch(() => ({ data: [] as NotifPlataforma[] })),
-        ]);
-        const citas = citasRes.data || [];
-
-        // Notificaciones de plataforma del técnico (recogidas de devoluciones,
-        // citas, etc.) con enlace directo a su módulo.
-        const plataforma = ((notisRes.data || []) as NotifPlataforma[]).map((n) => ({
+      } else {
+        const plataformaRes = await api.get<NotifPlataforma[]>('/notificaciones/mias');
+        notis = (plataformaRes.data || []).map((n) => ({
           id: `plat-${n.id_notificacion}`,
-          tipo: (n.tipo === 'recogida' ? 'entrega' : n.tipo) as TipoNotificacion,
+          backendId: n.id_notificacion,
+          tipo: normalizarTipo(n.tipo),
           titulo: n.titulo,
           mensaje: n.mensaje,
           fecha: formatoFecha(n.fecha_creacion),
           timestamp: Date.parse(n.fecha_creacion || '') || 0,
-          leida: n.leida || Boolean(leidasRef.current[`plat-${n.id_notificacion}`]),
-          accion:
-            n.tipo === 'recogida'
-              ? { to: '/tecnico/devoluciones', label: 'Ver devoluciones' }
-              : { to: '/tecnico/citas', label: 'Ver mis citas' },
+          leida: Boolean(n.leida),
+          accion: accionPlataforma(rol, n.tipo),
         }));
-
-        notis = [
-          ...plataforma,
-          ...citas.map((c) => ({
-            id: `cita-${c.id_cita}`,
-            tipo: 'cita' as TipoNotificacion,
-            titulo: esInstalacionNotif(c.tipo_servicio)
-              ? 'Instalación agendada'
-              : (c.estado === 'Confirmada' ? 'Cita confirmada' : 'Nueva cita asignada'),
-            mensaje: `Servicio de ${nombreServicio(c.tipo_servicio)} para ${c.cliente} el ${formatoFechaHora(c.fecha, c.hora)} a las ${c.hora}`,
-            fecha: formatoFechaHora(c.fecha, c.hora),
-            timestamp: timestampFechaHora(c.fecha, c.hora),
-            leida: c.estado !== 'Pendiente' && c.estado !== 'Confirmada'
-              ? true
-              : Boolean(leidasRef.current[`cita-${c.id_cita}`]),
-            accion: { to: '/tecnico/citas', label: 'Ver mis citas' },
-          })),
-        ];
-      } else {
-        const [citasRes, pedidosRes, notisRes] = await Promise.all([
-          api.get<CitaCliente[]>('/citas/mis-citas'),
-          api.get<PedidoCliente[]>('/pedidos/mis-pedidos'),
-          api.get<NotifPlataforma[]>('/notificaciones/mias'),
-        ]);
-        const citas = citasRes.data || [];
-        const pedidos = pedidosRes.data || [];
-
-        const plataforma = ((notisRes.data || []) as NotifPlataforma[])
-          .filter((n) => (TIPOS_PLATAFORMA_CLIENTE as string[]).includes(n.tipo))
-          .map((n) => ({
-            id: `plat-${n.id_notificacion}`,
-            tipo: n.tipo as TipoNotificacion,
-            titulo: n.titulo,
-            mensaje: n.mensaje,
-            fecha: formatoFecha(n.fecha_creacion),
-            timestamp: Date.parse(n.fecha_creacion || '') || 0,
-            leida: n.leida || Boolean(leidasRef.current[`plat-${n.id_notificacion}`]),
-            accion:
-              n.tipo === 'devolucion'
-                ? { to: '/perfil?tab=pedidos', label: 'Ver mis devoluciones' }
-                : n.tipo === 'recordatorio_cita'
-                  ? { to: '/cliente/citas?vista=mis-citas', label: 'Calificar servicio' }
-                  : n.tipo === 'recordatorio_producto'
-                    ? { to: '/perfil?tab=pedidos', label: 'Calificar productos' }
-                    : { to: '/perfil?tab=reembolsos', label: 'Ver mis reembolsos' },
-          }));
-
-        notis = [
-          ...plataforma,
-          ...citas.map((c) => ({
-            id: `cita-${c.id_cita}`,
-            tipo: 'cita' as TipoNotificacion,
-            titulo: esInstalacionNotif(c.tipo_servicio)
-              ? 'Instalación agendada'
-              : (c.estado === 'Confirmada' ? 'Cita confirmada' : 'Solicitud de cita registrada'),
-            mensaje: `Tienes una cita de ${nombreServicio(c.tipo_servicio)} el ${formatoFechaHora(c.fecha, c.hora)} a las ${c.hora}`,
-            fecha: formatoFechaHora(c.fecha, c.hora),
-            timestamp: timestampFechaHora(c.fecha, c.hora),
-            leida: c.estado !== 'Pendiente' && c.estado !== 'Confirmada'
-              ? true
-              : Boolean(leidasRef.current[`cita-${c.id_cita}`]),
-            accion: { to: '/cliente/citas?vista=mis-citas', label: 'Ver mis citas' },
-          })),
-          ...pedidos.map((p) => ({
-            id: `pedido-${p.id_pedido}`,
-            tipo: 'pedido' as TipoNotificacion,
-            titulo: 'Nuevo pedido',
-            mensaje: `Tu pedido #${p.id_pedido} por $${Number(p.total || 0).toLocaleString()} está ${p.estado?.toLowerCase() || 'en proceso'}`,
-            fecha: formatoFecha(p.fecha),
-            timestamp: Date.parse(p.fecha || '') || 0,
-            leida: p.estado !== 'Pago pendiente' && p.estado !== 'Pagado'
-              ? true
-              : Boolean(leidasRef.current[`pedido-${p.id_pedido}`]),
-            accion: { to: '/perfil?tab=pedidos', label: 'Ver mis pedidos' },
-          })),
-        ];
       }
+
+      if (peticion !== peticionRef.current) return;
 
       const ordenadas = notis.sort((a, b) => b.timestamp - a.timestamp);
       setNotificaciones(ordenadas.slice(0, 60));
+      setError(null);
     } catch (err: any) {
-      setNotificaciones([]);
-      // 401/403 en los endpoints del rol = la cookie del navegador pertenece a
-      // OTRA cuenta (se inició sesión en otra pestaña). Se pide a AuthContext
-      // revalidar la pestaña para que deje de sondear con un rol que ya no es
-      // suyo (evita los bucles de 403 en el panel administrativo).
+      if (peticion !== peticionRef.current) return;
       const status = err?.response?.status;
       if (status === 401 || status === 403) {
         window.dispatchEvent(new CustomEvent('neodomus:revalidar-sesion'));
       }
+      setError('No se pudieron cargar las notificaciones.');
     } finally {
-      setCargando(false);
+      if (peticion === peticionRef.current) setCargando(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rol]);
+  }, [rol, storageKey]);
 
   useEffect(() => {
-    recargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!rol) {
+      peticionRef.current += 1;
+      setNotificaciones([]);
+      setCargando(false);
+      return;
+    }
+    void recargar();
+    return () => {
+      peticionRef.current += 1;
+    };
+  }, [rol, storageKey, recargar]);
 
   useEffect(() => {
     if (!rol) return;
     const intervalo = window.setInterval(() => {
-      recargar({ silencioso: true });
+      void recargar({ silencioso: true });
     }, 30000);
     return () => window.clearInterval(intervalo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rol]);
+  }, [rol, recargar]);
 
   useEffect(() => {
-    const onRefresh = () => recargar({ silencioso: true });
+    const onRefresh = () => {
+      void recargar({ silencioso: true });
+    };
     window.addEventListener('notificaciones-refresh', onRefresh);
     return () => window.removeEventListener('notificaciones-refresh', onRefresh);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rol]);
+  }, [recargar]);
+
+  const marcarLeida = useCallback(async (id: string): Promise<boolean> => {
+    if (!rol || marcandoRef.current.has(id)) return false;
+    const actual = notificacionesRef.current.find((n) => n.id === id);
+    if (!actual) return false;
+    if (actual.leida) return true;
+
+    const cuentaAlIniciar = cuentaRef.current;
+    marcandoRef.current.add(id);
+
+    try {
+      if (actual.backendId != null) {
+        await api.patch(`/notificaciones/${actual.backendId}/leida`);
+        if (cuentaRef.current !== cuentaAlIniciar) return false;
+      }
+
+      if (actual.backendId == null && !leidasRef.current[id]) {
+        const next = { ...leidasRef.current, [id]: true };
+        leidasRef.current = next;
+        guardarLeidasStorage(storageKey, next);
+      }
+
+      setNotificaciones((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, leida: true } : n)),
+      );
+
+      setError(null);
+      window.dispatchEvent(new Event('notificaciones-refresh'));
+      return true;
+    } catch {
+      if (cuentaRef.current === cuentaAlIniciar) {
+        setError('No se pudo marcar la notificación como leída.');
+      }
+      return false;
+    } finally {
+      marcandoRef.current.delete(id);
+    }
+  }, [rol, storageKey]);
+
+  const leerTodas = useCallback(async (): Promise<boolean> => {
+    if (!rol) return false;
+    const actuales = notificacionesRef.current;
+    if (actuales.length === 0 || actuales.every((n) => n.leida)) return true;
+
+    const cuentaAlIniciar = cuentaRef.current;
+
+    try {
+      if (actuales.some((n) => n.backendId != null && !n.leida)) {
+        await api.patch('/notificaciones/leer-todas');
+        if (cuentaRef.current !== cuentaAlIniciar) return false;
+      }
+
+      const derivadas = actuales.filter((n) => n.backendId == null).map((n) => n.id);
+
+      if (derivadas.length > 0) {
+        const next = { ...leidasRef.current };
+        derivadas.forEach((id) => {
+          next[id] = true;
+        });
+        leidasRef.current = next;
+        guardarLeidasStorage(storageKey, next);
+      }
+
+      setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
+
+      setError(null);
+      window.dispatchEvent(new Event('notificaciones-refresh'));
+      return true;
+    } catch {
+      if (cuentaRef.current === cuentaAlIniciar) {
+        setError('No se pudieron marcar las notificaciones como leídas.');
+      }
+      return false;
+    }
+  }, [rol, storageKey]);
 
   const noLeidas = notificaciones.filter((n) => !n.leida).length;
 
-  return { notificaciones, cargando, noLeidas, recargar, marcarLeida };
+  return { notificaciones, cargando, noLeidas, error, recargar, marcarLeida, leerTodas };
 };
 
 export const useAdminNotificaciones = () => useNotificacionesRol('administrador');

@@ -64,13 +64,27 @@ def _serializar_reembolso(db: Session, r: Reembolso) -> dict:
     id_cliente = pedido.id_cliente_pe if pedido else (cita.id_cliente if cita else None)
     if pedido:
         referencia = f"Pedido #{pedido.id_pedido}"
-        detalle = f"Pedido · {pedido.fecha_peedido:%d/%m/%Y} · ${float(pedido.total_pedido or 0):,.0f}"
+        fecha_pedido = (
+            f"{pedido.fecha_peedido:%d/%m/%Y}" if pedido.fecha_peedido else "sin fecha"
+        )
+        detalle = f"Pedido �� {fecha_pedido} �� ${float(pedido.total_pedido or 0):,.0f}"
     elif cita:
         referencia = f"Cita #{cita.id_cita}"
-        detalle = f"{cita.tipo_servicio} · {cita.fecha} {cita.hora}"
+        detalle = f"{cita.tipo_servicio} �� {cita.fecha} {cita.hora}"
     else:
-        referencia = "—"
-        detalle = None
+        # Reembolsos históricos cuyos registros de cita/pedido ya no existen:
+        # conservan al menos su propio número y la transacción original.
+        referencia = f"Reembolso #{r.id_reembolso}"
+        detalle = " �� ".join(
+            parte
+            for parte in (
+                f"Transacción original {r.numero_transaccion_original}"
+                if r.numero_transaccion_original
+                else None,
+                r.motivo,
+            )
+            if parte
+        ) or None
     return {
         "id_reembolso": r.id_reembolso,
         "id_cita": r.id_cita,

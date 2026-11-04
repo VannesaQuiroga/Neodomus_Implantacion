@@ -111,6 +111,7 @@ const AdminDevoluciones = () => {
   const [elegibles, setElegibles] = useState<ElegibleItem[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
+  const [errorReembolsos, setErrorReembolsos] = useState(false);
   const [procesando, setProcesando] = useState<number | null>(null);
   const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string; is_active: boolean }[]>([]);
 
@@ -140,10 +141,14 @@ const AdminDevoluciones = () => {
   const cargar = async (silencioso = false): Promise<SolicitudItem[]> => {
     if (!silencioso) setCargando(true);
     setError(false);
+    setErrorReembolsos(false);
     try {
       const [resS, resR, resE, resT] = await Promise.all([
         api.get<SolicitudItem[]>('/devoluciones/admin/solicitudes'),
-        api.get<ReembolsoItem[]>('/reembolsos').catch(() => ({ data: [] as ReembolsoItem[] })),
+        api.get<ReembolsoItem[]>('/reembolsos').catch(() => {
+          setErrorReembolsos(true);
+          return { data: [] as ReembolsoItem[] };
+        }),
         api.get<ElegibleItem[]>('/reembolsos/elegibles').catch(() => ({ data: [] as ElegibleItem[] })),
         api.get<{ id_tecnico: number; first_name: string; last_name: string; is_active: boolean }[]>(
           '/tecnicos',
@@ -523,6 +528,19 @@ const AdminDevoluciones = () => {
             ))}
           </div>
         )
+      ) : errorReembolsos ? (
+        <div className="ap-card">
+          <div className="ap-states error">
+            <div className="ap-states-icon">
+              <FaCircleInfo />
+            </div>
+            <h3>{t('adm.instalaciones.errorTitulo')}</h3>
+            <p>{t('adm.instalaciones.errorDesc')}</p>
+            <button type="button" className="ap-btn ap-btn-ghost" onClick={() => cargar()}>
+              {t('adm.instalaciones.reintentar')}
+            </button>
+          </div>
+        </div>
       ) : (
         <>
           <div className="ap-card ap-tarifas-card">

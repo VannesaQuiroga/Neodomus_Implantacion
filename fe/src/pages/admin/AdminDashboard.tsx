@@ -193,7 +193,7 @@ const AdminDashboard = () => {
               <div className="ap-kpi-label">
                 <FaCalendarCheck /> {t('adm.dashboard.kpiCitas')}
               </div>
-              <div className="ap-kpi-value">{datos.citas_por_estado.Confirmada || 0}</div>
+              <div className="ap-kpi-value">{datos.citas_total}</div>
               <div className="ap-mini-sub">{t('adm.dashboard.citasPendientes', { n: datos.citas_por_estado.Pendiente || 0 })}</div>
             </div>
             <div className="ap-card ap-kpi">

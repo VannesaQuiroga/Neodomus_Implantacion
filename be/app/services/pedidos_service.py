@@ -28,7 +28,9 @@ from app.models.pedido import DetallePedido, Pedido
 from app.models.producto import Producto
 from app.models.tecnico import Tecnico
 from app.services import pagos_service
+from app.services.disponibilidad_service import producto_disponible
 from app.services.inventario_service import descontar_stock
+from app.services.precio_service import precio_unitario as calcular_precio_unitario
 
 
 # Precisión de longitud para productos vendidos por metros: 2 decimales (1 cm).
@@ -136,16 +138,26 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
         producto = db.query(Producto).filter(Producto.id_producto == id_producto).first()
         if not producto:
             raise HTTPException(status_code=404, detail=f"Producto {id_producto} no encontrado")
-        if producto.estado_producto != "activo":
+        if producto.estado_producto != "activo" or not producto.visible_cliente:
             raise HTTPException(status_code=400, detail=f"El producto {producto.nombre_producto} no está disponible")
+        if not producto_disponible(producto):
+            raise HTTPException(
+                status_code=400,
+                detail=f"El producto {producto.nombre_producto} no tiene existencias disponibles",
+            )
 
         # Variante elegida (color/tamaño/medida): precio y stock propios.
         variante = None
         if id_variante is not None:
-            from app.models.producto_variante import ProductoVariante
-
+            try:
+                id_variante_int = int(id_variante)
+            except (TypeError, ValueError):
+                raise HTTPException(
+                    status_code=400,
+                    detail="La variante seleccionada no es v\u00e1lida",
+                )
             variante = next(
-                (v for v in (producto.variantes or []) if v.id == int(id_variante)),
+                (v for v in (producto.variantes or []) if v.id == id_variante_int),
                 None,
             )
             if variante is None:
@@ -153,20 +165,41 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
                     status_code=400,
                     detail="La combinación de color/medida seleccionada ya no existe",
                 )
-            if (variante.stock or 0) <= 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"'{producto.nombre_producto}' en {variante.nombre}"
-                    + (f" ({variante.tamaño})" if variante.tamaño else "")
-                    + " está agotado",
-                )
+        elif producto.variantes and color:
+            medida = (item.get("tamaño") or item.get("medida") or "").strip()
+            variante = next(
+                (
+                    v
+                    for v in producto.variantes
+                    if (v.nombre or "").strip().lower() == color.lower()
+                    and (
+                        not medida
+                        or (v.tamaño or "").strip() == medida
+                        or (
+                            v.ancho_cm
+                            and v.alto_cm
+                            and f"{v.ancho_cm} cm por {v.alto_cm} cm" == medida
+                        )
+                        or (
+                            v.ancho_cm
+                            and not v.alto_cm
+                            and f"{v.ancho_cm} cm" == medida
+                        )
+                    )
+                ),
+                None,
+            )
 
-        precio_unitario = (
-            (variante.precio if variante and variante.precio is not None else None)
-            or producto.precio_venta_producto
-            or 0
-        )
-        precio_dec = Decimal(str(precio_unitario))
+        if variante is not None and (variante.stock or 0) <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{producto.nombre_producto}' en {variante.nombre}"
+                + (f" ({variante.tamaño})" if variante.tamaño else "")
+                + " está agotado",
+            )
+
+        precio_dec = calcular_precio_unitario(producto, variante)
+        precio_unitario = float(precio_dec)
 
         # Venta por metros: la cantidad ES la longitud exacta en metros.
         if producto.venta_por_metros:
@@ -1348,11 +1381,9 @@ async def crear_pedido(
         estado_pedido=estado_pedido,
     )
     db.add(pedido)
-    db.commit()
-    db.refresh(pedido)
+    db.flush()
 
     # Detalles de productos.
-    agotados: list = []
     for linea in lineas_producto:
         producto = linea["producto"]
         variante = linea.get("variante")
@@ -1382,16 +1413,6 @@ async def crear_pedido(
             descripcion_detalle=descripcion,
         )
         db.add(detalle)
-        if estado_pago == "aprobado":
-            if producto.venta_por_metros and linea["metros"]:
-                unidades = linea["metros"]
-            else:
-                unidades = linea["cantidad"]
-            # El stock se descuenta de la VARIANTE si el item la lleva;
-            # el stock general del producto también baja por control total.
-            resultado = descontar_stock(db, producto, variante, unidades)
-            if resultado["producto_agotado"] or resultado["variante_agotada"]:
-                agotados.append(producto)
 
     # Detalles de servicios.
     for serv in lineas_servicio:
@@ -1439,27 +1460,75 @@ async def crear_pedido(
         ),
     )
     db.add(pago)
-    db.commit()
-    db.refresh(pago)
 
     factura = None
     ordenes_instalacion: list[dict] = []
     entrega: dict | None = None
+    agotados: list = []
+    descontados: list = []
+    avisos: list = []
     if estado_pago == "aprobado":
-        factura = await _crear_factura_y_enviar(db, pedido, pago, cliente)
+        # Finalización atómica: stock + factura + entrega/órdenes + marcador
+        # ``confirmacion_completa`` se confirman en UN solo commit. El aviso de
+        # stock bajo se difiere a post-commit (su notificación confirma su
+        # propia transacción).
+        for linea in lineas_producto:
+            producto = linea["producto"]
+            variante = linea.get("variante")
+            if producto.venta_por_metros and linea["metros"]:
+                unidades = linea["metros"]
+            else:
+                unidades = linea["cantidad"]
+            resultado = descontar_stock(
+                db, producto, variante, unidades, notificar_stock_bajo=False,
+            )
+            descontados.append(producto)
+            if resultado["producto_agotado"] or resultado["variante_agotada"]:
+                agotados.append(producto)
+
+        factura = _crear_factura(db, pedido, pago, commit=False)
+
         if lineas_servicio:
             ordenes_instalacion = _crear_ordenes_instalacion_pedido(
-                db, pedido, cliente, lineas_servicio
+                db, pedido, cliente, lineas_servicio, commit=False, avisos=avisos
             )
-            # El técnico 1 de la instalación queda encargado del despacho.
             for orden in ordenes_instalacion:
                 if orden.get("entrega"):
                     entrega = orden["entrega"]
                     break
         elif lineas_producto:
-            # Pedido de solo productos: se asigna técnico para la entrega con
-            # fecha dentro de los próximos 5 días hábiles.
-            entrega = _asignar_entrega(db, pedido, cliente)
+            entrega = _asignar_entrega(db, pedido, cliente, commit=False, avisos=avisos)
+
+        pedido.confirmacion_completa = True
+
+    # Único commit de negocio: pedido + detalles + pago + stock + factura +
+    # entrega/órdenes + marcador. Un fallo previo revierte todo sin parciales.
+    db.commit()
+    db.refresh(pedido)
+    db.refresh(pago)
+
+    # ── Fase post-commit: avisos aislados (no deshacen ni repiten nada) ──
+    if estado_pago == "aprobado":
+        try:
+            await _enviar_factura(db, factura, pedido, cliente)
+        except Exception:
+            db.rollback()
+
+        for aviso in avisos:
+            try:
+                aviso()
+            except Exception:
+                db.rollback()
+
+        for producto in descontados:
+            try:
+                from app.services.inventario_service import _verificar_stock_bajo
+
+                _verificar_stock_bajo(db, producto)
+            except Exception:
+                db.rollback()
+
+        _alertar_admin_stock_agotado(db, agotados)
 
     # Notificar al cliente sobre el pedido creado.
     try:
@@ -1482,10 +1551,6 @@ async def crear_pedido(
         db.commit()
     except Exception:
         pass
-
-    # Notificar al administrador por stock agotado en segundo plano
-    # (no bloquea el checkout).
-    _alertar_admin_stock_agotado(db, agotados)
 
     return {
         "pedido": pedido,
@@ -1703,3 +1768,119 @@ async def confirmar_pago_pendiente(db: Session, pedido_id: int, cliente: Cliente
         "entrega": entrega,
     }
 
+
+
+async def reintentar_pago_pedido(
+    db: Session,
+    cliente: Cliente,
+    pedido_id: int,
+    metodo_pago: str,
+    datos_pago: dict,
+) -> dict:
+    """Reintenta el pago de un pedido rechazado sin duplicar el pedido.
+
+    Reutiliza el mismo pedido y el mismo registro de pago. Si el reintento es
+    aprobado, la finalización (stock + factura + entrega/órdenes) se delega en
+    ``confirmar_pago_pendiente``, que es atómica e idempotente.
+    """
+    pedido = (
+        db.query(Pedido)
+        .filter(Pedido.id_pedido == pedido_id, Pedido.id_cliente_pe == cliente.id_cliente)
+        .with_for_update()
+        .first()
+    )
+    if not pedido:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    pago = (
+        db.query(Pago)
+        .filter(Pago.id_pedido == pedido.id_pedido)
+        .with_for_update()
+        .first()
+    )
+    if not pago:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Pago no encontrado para este pedido")
+
+    if pago.estado == "aprobado":
+        factura = (
+            db.query(Factura)
+            .filter(Factura.id_pedido == pedido.id_pedido)
+            .with_for_update()
+            .first()
+        )
+        completo = pedido.confirmacion_completa is True
+        db.rollback()
+        if completo:
+            return {
+                "pedido": pedido,
+                "pago": pago,
+                "factura": factura,
+                "ordenes_instalacion": [],
+                "entrega": None,
+                "completado": True,
+            }
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "El pago ya fue aprobado pero la operación quedó incompleta. "
+                "Requiere conciliación manual."
+            ),
+        )
+
+    if pago.estado != "rechazado" or pedido.estado_pedido != "Pago rechazado":
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Solo se puede reintentar el pago de un pedido rechazado",
+        )
+
+    # El importe sale del pedido (nunca del cliente): el total ya descontado y
+    # validado en el checkout es la única fuente de verdad para el cargo.
+    total = float(pedido.total_pedido or 0)
+    resultado_pago = pagos_service.procesar_pago(
+        metodo_pago,
+        datos_pago or {},
+        monto=total,
+        reference=f"NEODOMUS-{cliente.id_cliente}-{pedido.id_pedido}",
+        customer_email=cliente.email,
+    )
+    estado_pago = resultado_pago["estado"]
+
+    pago.metodo_pago = metodo_pago
+    pago.numero_transaccion = resultado_pago.get("numero_transaccion")
+    pago.monto = total
+    pago.banco = resultado_pago.get("banco")
+    pago.titular = resultado_pago.get("titular")
+    pago.ultimos_digitos = resultado_pago.get("ultimos_digitos")
+    pago.correo_paypal = resultado_pago.get("correo_paypal")
+    pago.codigo_punto_pago = resultado_pago.get("codigo_punto_pago")
+    pago.punto_pago = resultado_pago.get("punto_pago")
+    pago.referencia_pago = resultado_pago.get("referencia_pago")
+    pago.fecha_limite_pago = (
+        datetime.fromisoformat(resultado_pago["fecha_limite"])
+        if resultado_pago.get("fecha_limite")
+        else None
+    )
+    pago.fecha_pago = None
+
+    if estado_pago == "aprobado":
+        # Finaliza de forma ATÓMICA dentro de la misma transacción (un solo
+        # commit). No se deja un estado "pendiente" intermedio observable ni
+        # una ventana entre commits que permita duplicar stock/factura/avisos.
+        pago.estado = "pendiente"
+        pedido.estado_pedido = "Pago pendiente"
+        return await confirmar_pago_pendiente(db, pedido.id_pedido, cliente)
+
+    pago.estado = estado_pago
+    pedido.estado_pedido = "Pago rechazado" if estado_pago == "rechazado" else "Pago pendiente"
+    db.commit()
+
+    return {
+        "pedido": pedido,
+        "pago": pago,
+        "factura": None,
+        "ordenes_instalacion": [],
+        "entrega": None,
+    }

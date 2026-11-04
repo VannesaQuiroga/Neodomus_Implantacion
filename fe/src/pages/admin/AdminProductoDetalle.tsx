@@ -110,6 +110,11 @@ const AdminProductoDetalle = () => {
   const proveedorParam = searchParams.get('proveedor');
   const categoriaInicial = esNuevo && categoriaParam && /^\d+$/.test(categoriaParam) ? categoriaParam : '';
   const proveedorInicial = esNuevo && proveedorParam && /^\d+$/.test(proveedorParam) ? proveedorParam : '';
+  const filtrosVolver = new URLSearchParams();
+  if (categoriaParam && /^\d+$/.test(categoriaParam)) filtrosVolver.set('categoria', categoriaParam);
+  else if (proveedorParam && /^\d+$/.test(proveedorParam)) filtrosVolver.set('proveedor', proveedorParam);
+  const queryFiltros = filtrosVolver.toString();
+  const volverUrl = queryFiltros ? `/admin/productos?${queryFiltros}` : '/admin/productos';
 
   const [producto, setProducto] = useState<ProductoAdmin | null>(null);
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
@@ -423,7 +428,7 @@ const AdminProductoDetalle = () => {
         }
         notify(t('adm.productoDetalle.notifyProductoCreado'));
         window.dispatchEvent(new CustomEvent('admin-producto-updated'));
-        navigate(`/admin/productos/${nuevoId}`, { replace: true });
+        navigate(`/admin/productos/${nuevoId}${queryFiltros ? `?${queryFiltros}` : ''}`, { replace: true });
         return;
       } else {
         await api.put(`/productos/${id}`, payload);
@@ -518,7 +523,7 @@ const AdminProductoDetalle = () => {
       const res = await api.delete(`/productos/${id}`);
       window.dispatchEvent(new CustomEvent('admin-producto-updated'));
       notify(res.data?.msg || t('adm.productoDetalle.notifyProductoEliminado'));
-      window.setTimeout(() => navigate('/admin/productos', { replace: true }), 600);
+      window.setTimeout(() => navigate(volverUrl, { replace: true }), 600);
     } catch (err: any) {
       const msg = err.response?.data?.detail;
       notify(typeof msg === 'string' ? msg : t('adm.productoDetalle.notifyEliminarError'), 'err');
@@ -543,7 +548,7 @@ const AdminProductoDetalle = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Link to="/admin/productos" className="ap-back-link">
+      <Link to={volverUrl} className="ap-back-link">
         <FaArrowLeft /> {t('adm.productoDetalle.volver')}
       </Link>
 
@@ -1290,7 +1295,7 @@ const AdminProductoDetalle = () => {
               className="ap-btn ap-btn-ghost"
               onClick={() => {
                 setEditar(esNuevo);
-                if (!esNuevo) navigate('/admin/productos', { replace: true });
+                if (!esNuevo) navigate(volverUrl, { replace: true });
               }}
               disabled={guardando}
             >

@@ -237,3 +237,13 @@ def eliminar_imagen_producto(imagen_url: str) -> None:
     prefijo = f"{settings.MINIO_PUBLIC_ENDPOINT}/{settings.MINIO_BUCKET}/"
     if imagen_url and imagen_url.startswith(prefijo):
         eliminar_objeto(imagen_url[len(prefijo):])
+
+
+def eliminar_imagen_perfil(imagen_url: str) -> None:
+    """Elimina del bucket público la imagen de perfil apuntada por su URL.
+
+    Normaliza tanto URL pública (``http://.../{bucket}/{clave}``) como clave
+    simple; si no se puede resolver, no hace nada (best-effort)."""
+    if not imagen_url:
+        return
+    eliminar_objeto(_clave_desde_referencia(imagen_url))

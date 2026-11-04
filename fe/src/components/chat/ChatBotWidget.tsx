@@ -2,27 +2,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { FaRobot, FaMessage, FaXmark } from 'react-icons/fa6';
 import '@styles/chatbot.css';
-import { BOT_INICIAL, BOT_SUGERENCIAS, responderBot } from '../../data/botData';
-
-interface ChatMsg {
-  de: 'bot' | 'usuario';
-  texto: string;
-}
+import { BOT_SUGERENCIAS } from '../../data/botData';
+import { useBotChat } from '../../hooks/useBotChat';
 
 // registra escuchas de eventos para sincronizar la vista.
 const ChatBotWidget = () => {
   const [abierto, setAbierto] = useState(false);
-  const [chats, setChats] = useState<ChatMsg[]>([{ de: 'bot', texto: BOT_INICIAL }]);
-  const [input, setInput] = useState('');
-  const [escribiendo, setEscribiendo] = useState(false);
+  const { chats, input, setInput, escribiendo, enviar } = useBotChat();
   const msgsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (msgsRef.current) {
       msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
     }
   }, [chats, escribiendo, abierto]);
+
+  useEffect(() => {
+    if (abierto && !escribiendo) inputRef.current?.focus();
+  }, [abierto, escribiendo]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -33,18 +32,6 @@ const ChatBotWidget = () => {
     if (abierto) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [abierto]);
-
-  const enviar = (texto: string) => {
-    const mensaje = texto.trim();
-    if (!mensaje || escribiendo) return;
-    setChats((prev) => [...prev, { de: 'usuario', texto: mensaje }]);
-    setInput('');
-    setEscribiendo(true);
-    window.setTimeout(() => {
-      setChats((prev) => [...prev, { de: 'bot', texto: responderBot(mensaje) }]);
-      setEscribiendo(false);
-    }, 450);
-  };
 
   return (
     <div className="cbw-wrap" ref={panelRef}>
@@ -99,6 +86,7 @@ const ChatBotWidget = () => {
 
           <div className="cbw-input-row">
             <input
+              ref={inputRef}
               type="text"
               className="cbw-input"
               placeholder="Escribe tu pregunta..."

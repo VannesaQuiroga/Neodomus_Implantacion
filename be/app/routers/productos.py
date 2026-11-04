@@ -1,6 +1,6 @@
 # Rutas de productos. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, Depends, Query, HTTPException, File, UploadFile, Request
-from sqlalchemy import select, and_, or_, exists
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -23,6 +23,11 @@ from app.utils.security import (
     ACCESS_COOKIE_NAME,
 )
 from app.services import minio_service
+from app.services.disponibilidad_service import (
+    filtro_disponible_publico,
+    producto_disponible,
+    stock_disponible_producto,
+)
 
 # Umbral de stock bajo (configurable). Productos con stock >= STOCK_MINIMO
 # se consideran "disponible"; entre 1 y STOCK_MINIMO-1 "bajo"; 0 => "agotado".
@@ -88,6 +93,8 @@ class ProductoResponse(BaseModel):
     tamaño: Optional[str] = None
     estado_producto: str = "activo"
     stock_producto: float = 0
+    stock_disponible: float = 0
+    disponible: bool = False
     stock_estado: str = "disponible"
     stock_minimo: int = STOCK_MINIMO
     descuento_activo: Optional[float] = None
@@ -256,6 +263,8 @@ def _serializar(p: Producto) -> ProductoResponse:
         tamaño=p.tamaño,
         estado_producto=p.estado_producto or "activo",
         stock_producto=p.stock_producto or 0,
+        stock_disponible=float(stock_disponible_producto(p)),
+        disponible=producto_disponible(p),
         stock_estado=_estado_stock(p.stock_producto or 0),
         stock_minimo=STOCK_MINIMO,
         descuento_activo=descuento,
@@ -460,19 +469,11 @@ def listar_productos(
     elif estado == "inactivo":
         query = query.filter(Producto.estado_producto == "inactivo")
     if current_user is None:
-        # El público solo ve productos activos, visibles y con stock suficiente (> STOCK_MINIMO)
-        # o con variantes que tengan stock suficiente.
+        # El público solo ve productos activos, visibles y realmente comprables.
         query = query.filter(
+            Producto.estado_producto == "activo",
             Producto.visible_cliente == True,  # noqa: E712
-            or_(
-                Producto.stock_producto > STOCK_MINIMO,
-                exists().where(
-                    and_(
-                        ProductoVariante.id_producto == Producto.id_producto,
-                        ProductoVariante.stock > STOCK_MINIMO,
-                    )
-                ),
-            )
+            filtro_disponible_publico(),
         )
     if search:
         query = query.filter(Producto.nombre_producto.ilike(f"%{search}%"))
@@ -683,10 +684,9 @@ def obtener_producto(
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     if current_user is None:
-        if p.estado_producto == "inactivo":
+        if p.estado_producto == "inactivo" or not p.visible_cliente:
             raise HTTPException(status_code=404, detail="Producto no encontrado")
-        con_stock = (p.stock_producto or 0) > STOCK_MINIMO or any(v.stock > STOCK_MINIMO for v in p.variantes)
-        if not con_stock:
+        if not producto_disponible(p):
             raise HTTPException(status_code=404, detail="Producto no encontrado")
     return _serializar(p)
 
@@ -973,7 +973,14 @@ def toggle_visibilidad_cliente(
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    producto.visible_cliente = not bool(producto.visible_cliente)
+    nuevo_visible = not bool(producto.visible_cliente)
+    if nuevo_visible and not producto_disponible(producto):
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede publicar un producto sin stock disponible. Repón existencias primero.",
+        )
+
+    producto.visible_cliente = nuevo_visible
     db.commit()
     db.refresh(producto)
 

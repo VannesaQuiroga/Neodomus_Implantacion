@@ -485,7 +485,10 @@ const AdminProductos = () => {
                     </td>
                     <td>
                       <div className="ap-table-acciones">
-                        <Link to={`/admin/productos/${producto.id_producto}`} className="ap-btn ap-btn-ghost">
+                        <Link
+                          to={`/admin/productos/${producto.id_producto}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+                          className="ap-btn ap-btn-ghost"
+                        >
                           {t('adm.productos.gestionar')}
                         </Link>
                         <button

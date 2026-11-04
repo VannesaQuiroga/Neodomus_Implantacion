@@ -26,6 +26,8 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import AuthImage from '@components/common/AuthImage';
+import { Paginacion } from '@components/common/Paginacion';
+import { usePaginacion } from '../../hooks/usePaginacion';
 
 interface EvidenciaNovedad {
   id_evidencia_n: number;
@@ -114,6 +116,7 @@ const AdminNovedades = () => {
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [tecnicos, setTecnicos] = useState<TecnicoSimple[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
 
   // Filtros
@@ -159,6 +162,7 @@ const AdminNovedades = () => {
   // Comunica con el backend mediante GET '/novedades', GET '/tecnicos'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) setCargando(true);
+    setError(false);
     try {
       const [novRes, tecRes] = await Promise.all([
         api.get<Novedad[]>('/novedades'),
@@ -167,7 +171,8 @@ const AdminNovedades = () => {
       setNovedades(novRes.data);
       setTecnicos(tecRes.data);
     } catch {
-      if (!silencioso) setToast({ msg: 'Error al cargar novedades', tipo: 'err' });
+      if (!silencioso) setError(true);
+      else setToast({ msg: 'Error al cargar novedades', tipo: 'err' });
     } finally {
       setCargando(false);
     }
@@ -218,6 +223,13 @@ const AdminNovedades = () => {
   }, [novedades, busqueda, filtroEstado, filtroTipo, filtroPrioridad, filtroTecnico, filtroPedido, filtroRelacion, filtroCliente, filtroConEvidencia]);
 
   const hayFiltros = busqueda || filtroEstado || filtroTipo || filtroPrioridad || filtroTecnico || filtroPedido || filtroRelacion || filtroCliente || filtroConEvidencia;
+
+  const { page, setPage, totalPages, pageItems, numeroFila } = usePaginacion(filtradas, 10);
+
+  // Al cambiar cualquier filtro/búsqueda se vuelve a una página válida (la 1).
+  useEffect(() => {
+    setPage(1);
+  }, [busqueda, filtroEstado, filtroTipo, filtroPrioridad, filtroTecnico, filtroPedido, filtroRelacion, filtroCliente, filtroConEvidencia, setPage]);
 
   const limpiarFiltros = () => {
     setBusqueda('');
@@ -504,6 +516,17 @@ const AdminNovedades = () => {
           <div className="ap-loader" />
           <p>Cargando novedades...</p>
         </div>
+      ) : error ? (
+        <div className="ap-states error">
+          <div className="ap-states-icon">
+            <FaCircleInfo />
+          </div>
+          <h3>No se pudieron cargar las novedades</h3>
+          <p>Ocurrió un error al comunicarse con el servidor.</p>
+          <button type="button" className="ap-btn ap-btn-primary" onClick={() => cargar()}>
+            <FaRotateLeft /> Reintentar
+          </button>
+        </div>
       ) : filtradas.length === 0 ? (
         <div className="ap-states">
           <div className="ap-states-icon">
@@ -522,6 +545,7 @@ const AdminNovedades = () => {
           )}
         </div>
       ) : (
+        <>
         <div className="ap-table-wrap">
           <table className="ap-table">
             <thead>
@@ -540,11 +564,12 @@ const AdminNovedades = () => {
               </tr>
             </thead>
             <tbody>
-              {filtradas.map((n) => (
+              {pageItems.map((n, idx) => (
                 <tr key={n.id_novedad}>
-                  <td style={{ fontWeight: 700, color: '#d4a54b' }}>{n.id_novedad}</td>
+                  <td style={{ fontWeight: 700, color: '#d4a54b' }}>{numeroFila(idx)}</td>
                   <td>
                     <span style={{ fontSize: '0.85rem' }}>{n.tipo_novedad}</span>
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#8f8f8f' }}>ID {n.id_novedad}</span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -618,6 +643,8 @@ const AdminNovedades = () => {
             </tbody>
           </table>
         </div>
+        <Paginacion page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
       )}
 
       {/* ── Modal de detalle ────────────────────────────────── */}

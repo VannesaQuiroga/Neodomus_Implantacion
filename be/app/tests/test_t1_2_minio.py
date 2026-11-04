@@ -32,13 +32,8 @@ def _cruda(ref: str) -> str:
 
 class PrivacidadMinioTestCase(BaseT1TestCase):
     def _minio_disponible(self):
-        try:
-            from minio import Minio
-            c = Minio(settings.MINIO_ENDPOINT, access_key=settings.MINIO_ACCESS_KEY,
-                      secret_key=settings.MINIO_SECRET_KEY, secure=settings.MINIO_SECURE)
-            return c.bucket_exists(settings.MINIO_BUCKET)
-        except Exception:
-            return False
+        from app.tests.testdb import minio_de_pruebas_disponible
+        return minio_de_pruebas_disponible()
 
     def test_evidencia_privada_sin_lectura_anonima(self):
         if not self._minio_disponible():

@@ -1011,12 +1011,21 @@ def gestionar_cita_admin(
     db: Session = Depends(get_db),
 ):
     """Actualiza estado y técnico asignado de una cita (solo admin)"""
-    cita = db.query(Cita).filter(Cita.id_cita == cita_id).first()
+    consulta = db.query(Cita).filter(Cita.id_cita == cita_id)
+    if data.estado == "Cancelada":
+        # Bloquear y releer la cita vigente: dos cancelaciones concurrentes no
+        # pueden generar dos historiales ni dos reembolsos.
+        consulta = consulta.with_for_update().populate_existing()
+    cita = consulta.first()
     if not cita:
         raise HTTPException(status_code=404, detail="Cita no encontrada")
     # Recordar los técnicos previos para avisar por correo SOLO a los nuevos.
     tecnicos_previos = {cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3}
     estado_previo = cita.estado
+    es_cancelacion = data.estado == "Cancelada" and estado_previo not in (
+        None,
+        "Cancelada",
+    )
     if data.estado is not None:
         if data.estado not in ESTADOS_CITA:
             raise HTTPException(status_code=400, detail="Estado de cita no válido")
@@ -1133,6 +1142,24 @@ def gestionar_cita_admin(
     equipo = [t for t in (cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3) if t is not None]
     if len(set(equipo)) != len(equipo):
         raise HTTPException(status_code=400, detail="Los técnicos asignados deben ser distintos")
+    # Cancelación por el administrador: reembolso automático SOLO del servicio
+    # (el valor de los productos no se toca; esos los entrega el técnico).
+    # El helper no confirma: estado, historial y reembolso viven en esta misma
+    # transacción y el endpoint es el único responsable del commit.
+    reembolso_resumen = None
+    if es_cancelacion:
+        from app.services.asignacion_service import (
+            preparar_cancelacion_con_reembolso,
+        )
+
+        reembolso_resumen = preparar_cancelacion_con_reembolso(
+            db,
+            cita,
+            motivo="Cancelación realizada por el administrador",
+            administrador_id=current_admin.id_usuario,
+            estado_anterior=estado_previo,
+        )
+
     db.commit()
     db.refresh(cita)
 
@@ -1147,21 +1174,9 @@ def gestionar_cita_admin(
         )
         _notificar_tecnicos_cita(db, cita, cliente, solo_ids=nuevos)
 
-    # Cancelación por el administrador: reembolso automático SOLO del servicio
-    # (el valor de los productos no se toca; esos los entrega el técnico).
-    reembolso_resumen = None
-    if data.estado == "Cancelada" and estado_previo not in (None, "Cancelada"):
-        from app.services.asignacion_service import cancelar_cita_con_reembolso
-
-        reembolso_resumen = cancelar_cita_con_reembolso(
-            db,
-            cita,
-            motivo="Cancelación realizada por el administrador",
-            administrador_id=current_admin.id_usuario,
-        )
-
     # Requisito: POR CADA cambio de estado se notifica al cliente (correo +
-    # plataforma) con estado nuevo, fecha/hora del cambio y descripción.
+    # plataforma) con estado nuevo, fecha/hora del cambio y descripción. Los
+    # avisos van después del commit y su fallo nunca revierte la operación.
     if data.estado is not None and data.estado != estado_previo:
         from app.services.notificaciones import notificar_cita_estado_cliente
 
@@ -1169,24 +1184,27 @@ def gestionar_cita_admin(
             db.query(Cliente).filter(Cliente.id_cliente == cita.id_cliente).first()
         )
         if cliente_cambio:
-            notificar_cita_estado_cliente(
-                db,
-                cliente_id=cliente_cambio.id_cliente,
-                correo=cliente_cambio.email,
-                cliente_nombre=(
-                    f"{cliente_cambio.first_name} {cliente_cambio.last_name}".strip()
-                    or "Cliente"
-                ),
-                datos={
-                    "servicio": cita.tipo_servicio,
-                    "fecha": cita.fecha.strftime("%d/%m/%Y"),
-                    "hora": cita.hora,
-                    "tecnico": cita.nombre_tecnico or "Por asignar",
-                    "descripcion": cita.descripcion,
-                },
-                nuevo_estado=cita.estado,
-                motivo=reembolso_resumen and "El servicio cancelado será reembolsado.",
-            )
+            try:
+                notificar_cita_estado_cliente(
+                    db,
+                    cliente_id=cliente_cambio.id_cliente,
+                    correo=cliente_cambio.email,
+                    cliente_nombre=(
+                        f"{cliente_cambio.first_name} {cliente_cambio.last_name}".strip()
+                        or "Cliente"
+                    ),
+                    datos={
+                        "servicio": cita.tipo_servicio,
+                        "fecha": cita.fecha.strftime("%d/%m/%Y"),
+                        "hora": cita.hora,
+                        "tecnico": cita.nombre_tecnico or "Por asignar",
+                        "descripcion": cita.descripcion,
+                    },
+                    nuevo_estado=cita.estado,
+                    motivo=reembolso_resumen and "El servicio cancelado será reembolsado.",
+                )
+            except Exception as e:
+                print(f"Error notificando cambio de estado de la cita {cita.id_cita}: {e}")
 
     cliente = db.query(Cliente).filter(Cliente.id_cliente == cita.id_cliente).first()
     id_comision, com_porcentaje, com_valor = _info_comision(db, cita)
@@ -1216,11 +1234,9 @@ def gestionar_cita_admin(
         reembolso=reembolso_resumen,
     )
 
-    # Las citas canceladas se ELIMINAN del sistema: el reembolso y el historial
-    # se preservan (FK SET NULL / CASCADE), las evidencias y productos de la
-    # cita caen por CASCADE y las facturas quedan desvinculadas.
-    if data.estado == "Cancelada" and estado_previo not in (None, "Cancelada"):
-        # Capturar el hueco ANTES de borrar para ofrecerlo a otros clientes.
+    # La cita cancelada se conserva con estado "Cancelada": así el reembolso
+    # mantiene su referencia y el historial administrativo no desaparece.
+    if es_cancelacion:
         hueco = {
             "fecha": cita.fecha,
             "hora": cita.hora,
@@ -1229,24 +1245,6 @@ def gestionar_cita_admin(
             "nombre_tecnico": cita.nombre_tecnico,
             "id_cliente_excluido": cita.id_cliente,
         }
-        db.execute(
-            text("DELETE FROM calificaciones WHERE id_cita_c = :id"),
-            {"id": cita.id_cita},
-        )
-        db.execute(
-            text("UPDATE facturas SET id_cita = NULL WHERE id_cita = :id"),
-            {"id": cita.id_cita},
-        )
-        db.execute(
-            text("UPDATE citas SET id_comision_c = NULL WHERE id_cita = :id"),
-            {"id": cita.id_cita},
-        )
-        db.commit()
-        db.execute(
-            text("DELETE FROM citas WHERE id_cita = :id"),
-            {"id": cita.id_cita},
-        )
-        db.commit()
         _generar_ofertas_por_cancelacion(db, **hueco)
 
     return respuesta

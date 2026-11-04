@@ -397,6 +397,42 @@ class FalloAvisoTestCase(BaseT2):
             db.close()
 
 
+class FalloTransporteCorreoTestCase(BaseT2):
+    def test_fallo_smtp_no_revierte_compra_ni_duplica_factura_o_pago(self):
+        self._tecnico("a")
+        p = self._producto("a", 5)
+        pid, pago_id = self._pedido([{"producto": p, "cantidad": 2}])
+
+        async def fallo_smtp(*_args, **_kwargs):
+            raise RuntimeError("transporte SMTP simulado caído")
+
+        with patch("app.services.pedidos_service.enviar_factura_por_correo", new=fallo_smtp), \
+             patch("app.services.notificaciones.notificar_pago_confirmado_cliente"), \
+             patch("app.services.pedidos_service._alertar_admin_stock_agotado"):
+            r1 = _run(confirmar_pago_pendiente(self.db, pid, self.cliente))
+            r2 = _run(confirmar_pago_pendiente(self.db, pid, self.cliente))
+
+        self.assertEqual(r1["pedido"].estado_pedido, "Pagado")
+        self.assertEqual(r1["pago"].estado, "aprobado")
+        self.assertFalse(r1["factura"].enviada_por_correo)
+        self.assertEqual(r2["factura"].id_factura, r1["factura"].id_factura)
+
+        self.db.expire_all()
+        pedido, pago, n_factura = self._leer(pid)
+        self.assertEqual(pedido.estado_pedido, "Pagado")
+        self.assertEqual(pago.id_pago, pago_id)
+        self.assertEqual(pago.estado, "aprobado")
+        self.assertEqual(n_factura, 1)
+        db = SessionLocal()
+        try:
+            self.assertEqual(
+                db.query(Producto).filter(Producto.id_producto == p.id_producto).first().stock_producto,
+                3,
+            )
+        finally:
+            db.close()
+
+
 class CantidadesVariantesTestCase(BaseT2):
     def test_metros_exactos_descuentan_fraccion(self):
         # A: stock 5, venta 1.5 m → descuenta exactamente 1.5 y queda 3.5.
@@ -740,7 +776,7 @@ class CheckoutMetrosTestCase(BaseT2):
 
         with patch("app.services.pagos_service.procesar_pago", return_value={
                 "estado": "aprobado", "numero_transaccion": "TXN-123"}), \
-             patch("app.services.pedidos_service._crear_factura_y_enviar", new=_async_noop), \
+             patch("app.services.pedidos_service._enviar_factura", new=_async_noop), \
              patch("app.services.pedidos_service._asignar_entrega", return_value=None), \
              patch("app.services.notificaciones.notificar_pedido_creado_cliente"), \
              patch("app.services.pedidos_service._alertar_admin_stock_agotado"):

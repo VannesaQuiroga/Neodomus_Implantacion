@@ -45,6 +45,7 @@ const TechnicalPerfil = () => {
 
   const [activo, setActivo] = useState<TabTecnico>('cuenta');
   const [avatar, setAvatar] = useState<string | null>(() => getTechnicalAvatar());
+  const [avatarRoto, setAvatarRoto] = useState(false);
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [email, setEmail] = useState('');
@@ -139,6 +140,7 @@ const TechnicalPerfil = () => {
   useEffect(() => {
     const sync = () => {
       setAvatar(getTechnicalAvatar());
+      setAvatarRoto(false);
     };
     window.addEventListener('technical-profile-updated', sync);
     return () => window.removeEventListener('technical-profile-updated', sync);
@@ -167,6 +169,7 @@ const TechnicalPerfil = () => {
       if (url) {
         setAvatar(url);
         setTechnicalAvatar(url);
+        setAvatarRoto(false);
       }
       notify(t('tec.fotoActualizada'));
     } catch (err: any) {
@@ -176,6 +179,7 @@ const TechnicalPerfil = () => {
 
   const handleEliminarFoto = () => {
     setAvatar(null);
+    setAvatarRoto(false);
     removeTechnicalAvatar();
     notify(t('tec.fotoEliminada'));
   };
@@ -220,8 +224,8 @@ const TechnicalPerfil = () => {
 
       <div className="pf-avatar-zone">
         <div className="pf-avatar-big">
-          {avatar ? (
-            <img src={avatar} alt={t('tec.fotoPerfil')} />
+          {avatar && !avatarRoto ? (
+            <img src={avatar} alt={t('tec.fotoPerfil')} onError={() => setAvatarRoto(true)} />
           ) : (
             <span className="pf-avatar-iniciales" aria-hidden="true">{getIniciales(nombreCompleto)}</span>
           )}

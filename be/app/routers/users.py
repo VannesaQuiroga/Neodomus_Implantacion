@@ -425,23 +425,85 @@ async def subir_foto_perfil(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
 ):
-    """Sube una foto de perfil del empleado a MinIO y la asocia a su cuenta."""
-    if not archivo.content_type or not archivo.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+    """Sube una foto de perfil del empleado a MinIO y la asocia a su cuenta.
+
+    Valida el CONTENIDO real con Pillow (no confía en content_type/extensión):
+    solo formatos raster JPEG/PNG/WEBP, ≤ 5 MB y ≤ 8000×8000 píxeles. Rechaza
+    HTML/SVG disfrazados de imagen. El nombre del objeto es único, de modo que
+    reemplazar la foto genera una URL nueva (sin caché del navegador).
+    """
+    import io
+    import uuid
+    from pathlib import Path
+
+    from PIL import Image
+
+    if not archivo or not archivo.filename:
+        raise HTTPException(status_code=400, detail="Selecciona un archivo de imagen")
+
+    FORMATOS_PERMITIDOS = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}
+    ext = Path(archivo.filename or "").suffix.lower()
+    if ext not in FORMATOS_PERMITIDOS:
+        raise HTTPException(status_code=400, detail="Formato no permitido (usa JPG, PNG o WEBP)")
+
     contenido = await archivo.read()
+    if not contenido:
+        raise HTTPException(status_code=400, detail="El archivo está vacío")
     if len(contenido) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB")
-    ext = archivo.filename.rsplit(".", 1)[-1] if archivo.filename and "." in archivo.filename else "jpg"
-    nombre = f"perfil_usuario_{current_user.id_usuario}.{ext}"
-    from app.services.minio_service import subir_imagen, eliminar_objeto
-    if current_user.foto_url:
-        prefijo = f"{current_user.foto_url.split('/minio/')[-1]}" if "/minio/" in current_user.foto_url else None
-        if prefijo:
-            eliminar_objeto(prefijo)
+
+    # Verificación real del contenido: integridad y formato raster.
+    try:
+        with Image.open(io.BytesIO(contenido)) as img:
+            img.verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+
+    try:
+        with Image.open(io.BytesIO(contenido)) as img:
+            formato = (img.format or "").upper()
+            ancho, alto = img.size
+    except Exception:
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+
+    if formato != FORMATOS_PERMITIDOS[ext]:
+        raise HTTPException(status_code=400, detail="La extensión no coincide con el contenido real")
+    if ancho <= 0 or alto <= 0 or ancho > 8000 or alto > 8000:
+        raise HTTPException(status_code=400, detail="Dimensiones de imagen no permitidas")
+
+    from app.services.minio_service import eliminar_imagen_perfil, subir_imagen
+
+    nombre = f"perfil_usuario_{current_user.id_usuario}_{uuid.uuid4().hex}{ext}"
+    # 1) Sube la foto nueva (si falla, la foto vigente queda intacta).
     url = subir_imagen("perfiles", nombre, contenido)
+    anterior = current_user.foto_url
     current_user.foto_url = url
-    db.commit()
+    # 2) Confirma la referencia nueva en BD. Si el commit falla, se revierte la
+    # referencia y se limpia SOLO el objeto nuevo (huérfano), conservando el
+    # anterior hasta que la referencia nueva quede persistida.
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        try:
+            eliminar_imagen_perfil(url)
+        except Exception:
+            pass
+        raise
     db.refresh(current_user)
+    # 3) Borra el objeto anterior solo DESPUÉS de confirmar la referencia nueva.
+    # Si esta limpieza falla, se conserva la foto nueva (ya válida) y se registra
+    # el fallo sin exponer secretos ni URLs.
+    if anterior:
+        try:
+            eliminar_imagen_perfil(anterior)
+        except Exception:
+            import logging
+
+            logging.getLogger("neodomus").warning(
+                "No se pudo eliminar la foto de perfil anterior (usuario %s)",
+                current_user.id_usuario,
+            )
     return _perfil_empleado(current_user, db)
 
 

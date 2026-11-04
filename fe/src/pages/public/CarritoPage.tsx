@@ -1,75 +1,102 @@
+import { MetrosSelect } from '@components/common/MetrosSelect';
 // Pantalla CarritoPage de Neodomus. Reúne el estado y las acciones de su vista.
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaTrashCan, FaCartShopping, FaCircleCheck, FaExclamation, FaPen, FaTriangleExclamation } from 'react-icons/fa6';
 import { useCart, type CartItem } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
-import { formatMetros } from '@utils/metros';
+import {
+  productoDisponible,
+  stockDisponibleProducto,
+  stockDisponibleVariante,
+} from '@utils/productoDisponibilidad';
+import { precioUnitarioProducto, subtotalLinea } from '@utils/productoPrecio';
 import api from '@services/api';
 import ProductoCard from '@components/productos/ProductoCard';
 import '@styles/carrito.css';
 import '@styles/productos-publicos.css';
 
+const itemKey = (item: { id_producto: number; color?: string; medida?: string; tamaño?: string; metros?: number; venta_por_metros?: boolean }) =>
+  [item.id_producto, item.color?.toLowerCase(), (item.medida || item.tamaño || '').toLowerCase(), item.venta_por_metros && item.metros ? `${item.metros}m` : null].filter(Boolean).join('-');
+
+const claveStock = (item: { id_producto: number; id_variante?: number; color?: string; medida?: string; tamaño?: string }) =>
+  [
+    item.id_producto,
+    item.id_variante ?? '',
+    item.color?.toLowerCase() ?? '',
+    (item.medida || item.tamaño || '').toLowerCase(),
+  ].join(':');
+
 // Comunica con el backend mediante GET `/productos/${item.id_producto}`, GET '/productos/?limit=100'; accede a sessionStorage para conservar o recuperar datos locales.
 const CarritoPage = () => {
   const navigate = useNavigate();
   const { t } = useIdioma();
-  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente } = useCart();  const { isAuthenticated, rol } = useAuth();
+  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarItem, tieneStockInsuficiente } = useCart();  const { isAuthenticated, rol } = useAuth();
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
   const [displayValues, setDisplayValues] = useState<Record<string, string>>({});
   const [sugeridos, setSugeridos] = useState<any[]>([]);
 
   const totalTecnicos = Math.max(1, ...items.map((item) => item.tecnicos_requeridos || 1));
 
+  const firmaValidacion = items.map(claveStock).join('|');
+
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   const showToast = (msg: string, tipo: 'success' | 'error' = 'success') => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const itemKey = (item: { id_producto: number; color?: string; medida?: string; tamaño?: string; metros?: number; venta_por_metros?: boolean }) =>
-    [item.id_producto, item.color?.toLowerCase(), (item.medida || item.tamaño || '').toLowerCase(), item.venta_por_metros && item.metros ? `${item.metros}m` : null].filter(Boolean).join('-');
-
   const validarStockBackend = useCallback(async () => {
-    for (const item of items) {
+    for (const item of itemsRef.current) {
       try {
         const res = await api.get(`/productos/${item.id_producto}`);
-        const stock = item.venta_por_metros
-          ? (res.data.stock_producto ?? 0)
-          : (item.id_variante
-              ? (res.data.variantes?.find((v: any) => v.id === item.id_variante)?.stock ?? 0)
-              : (res.data.stock_producto ?? 0));
-        actualizarStock(itemKey(item), stock);
+        const producto = res.data;
+        const medidaItem = (item.medida || item.tamaño || '').trim().toLowerCase();
+        const variante = item.id_variante
+          ? producto.variantes?.find((v: any) => v.id === item.id_variante)
+          : item.color
+            ? producto.variantes?.find((v: any) => {
+                const medida = (v.etiqueta_medida || v.tamaño || '').trim().toLowerCase();
+                return v.nombre === item.color && (!medidaItem || medida === medidaItem);
+              })
+            : null;
+        const stock = variante
+          ? stockDisponibleVariante(producto, variante)
+          : (producto.variantes?.length ? 0 : stockDisponibleProducto(producto));
+        actualizarItem(itemKey(item), {
+          stock_maximo: stock,
+          precio_venta_producto: precioUnitarioProducto(producto, variante),
+        });
       } catch {
-        /* noop */
+        actualizarItem(itemKey(item), { stock_maximo: 0 });
       }
     }
-  }, [items, actualizarStock]);
+  }, [actualizarItem]);
 
   useEffect(() => {
-    if (items.length > 0) {
+    if (itemsRef.current.length > 0) {
       validarStockBackend();
     }
-  }, [items.length]);
+  }, [firmaValidacion, validarStockBackend]);
 
   // Productos sugeridos (WEB): disponibles, no en carrito, reales del sistema
+  const idsCarrito = items.map(i => i.id_producto).join(',');
   useEffect(() => {
     // Comunica con el backend mediante GET '/productos/?limit=100'.
+    const ids = new Set(idsCarrito ? idsCarrito.split(',').map(Number) : []);
     const cargarSugeridos = async () => {
       try {
         const res = await api.get('/productos/?limit=100');
         const lista: any[] = res.data?.data || res.data || [];
-        const idsEnCarrito = new Set(items.map(i => i.id_producto));
-        const conStock = (p: any) => {
-          const stock = p.variantes?.length
-            ? p.variantes.reduce((a: number, v: any) => a + (v.stock || 0), 0)
-            : (p.stock_producto ?? 0);
-          return stock > 0;
-        };
-        let candidatos = lista.filter(p => conStock(p) && !idsEnCarrito.has(p.id_producto));
+        let candidatos = lista.filter(p => productoDisponible(p) && !ids.has(p.id_producto));
         if (candidatos.length === 0) {
-          candidatos = lista.filter(p => conStock(p));
+          candidatos = lista.filter(p => productoDisponible(p));
         }
         const mezclados = [...candidatos].sort(() => 0.5 - Math.random()).slice(0, 4);
         setSugeridos(mezclados);
@@ -78,7 +105,7 @@ const CarritoPage = () => {
       }
     };
     cargarSugeridos();
-  }, [items]);
+  }, [idsCarrito]);
 
   // Sugeridos reutilizan la tarjeta completa de Productos (ProductoCard) con toda su lógica
 
@@ -86,6 +113,8 @@ const CarritoPage = () => {
     const params = new URLSearchParams();
     params.set('editar', key);
     if (item.color) params.set('color', item.color);
+    const medida = item.medida || item.tamaño;
+    if (medida) params.set('medida', medida);
     if (item.metros != null) params.set('metros', String(item.metros));
     if (item.venta_por_metros) params.set('cantidad', String(item.cantidad));
     else params.set('cantidad', String(item.cantidad));
@@ -206,18 +235,10 @@ const CarritoPage = () => {
                     <div className="carrito-cantidad">
                       {item.venta_por_metros ? (
                         <div className="carrito-metros-unidades">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className="carrito-metros-select"
-                            defaultValue={formatMetros(item.metros)}
-                            key={`metros-${itemKey(item)}-${item.metros}`}
-                            onBlur={(e) => handleMetrosChange(item, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                            }}
-                            aria-label="Metros por unidad"
-                          />
+                          <MetrosSelect className="carrito-metros-select" value={item.metros || 0}
+                            max={item.stock_maximo == null ? null : item.stock_maximo / Math.max(1, item.cantidad)}
+                            onChange={(value) => handleMetrosChange(item, String(value))}
+                            aria-label="Metros por unidad" />
                           <div className="carrito-unidades-control">
                             <button
                               type="button"
@@ -300,7 +321,11 @@ const CarritoPage = () => {
                       )}
 
                       <span className="carrito-item-subtotal">
-                        ${(item.precio_venta_producto * (item.venta_por_metros ? (item.metros || 0) * (item.cantidad || 1) : item.cantidad)).toLocaleString()} COP
+                        ${subtotalLinea(
+                          item.precio_venta_producto,
+                          item.cantidad,
+                          item.venta_por_metros ? item.metros || 0 : null,
+                        ).toLocaleString()} COP
                       </span>
 
                       <button

@@ -1,5 +1,6 @@
+import { CardPaymentInput } from '@components/common/CardPaymentInput';
 // Pantalla CheckoutPage de Neodomus. Reúne el estado y las acciones de su vista.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FaArrowLeft,
@@ -23,6 +24,7 @@ import api, { descargarFactura } from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
+import { subtotalLinea } from '@utils/productoPrecio';
 import '@styles/checkout.css';
 import '@styles/citas.css';
 
@@ -110,6 +112,55 @@ interface ResultadoCheckout {
 const formatoPeso = (value: number) =>
   value.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
+const PAGO_REINTENTO_KEY = 'checkout_pago_reintento';
+const METODOS_TARJETA: Metodo[] = ['tarjeta_debito', 'tarjeta_credito'];
+
+const validarTarjeta = (pago: {
+  numero: string;
+  titular: string;
+  expiracion: string;
+  cvv: string;
+}): string | null => {
+  if (!pago.numero || !pago.titular || !pago.expiracion || !pago.cvv) {
+    return 'Completa los datos de la tarjeta.';
+  }
+  if (!/^\d{13,19}$/.test(pago.numero)) {
+    return 'El número de tarjeta debe tener entre 13 y 19 dígitos.';
+  }
+  const fecha = /^(\d{2})\/(\d{2})$/.exec(pago.expiracion);
+  if (!fecha || Number(fecha[1]) < 1 || Number(fecha[1]) > 12) {
+    return 'Usa el formato de expiración MM/AA.';
+  }
+  const ahora = new Date();
+  const anio = 2000 + Number(fecha[2]);
+  if (anio < ahora.getFullYear() || (anio === ahora.getFullYear() && Number(fecha[1]) < ahora.getMonth() + 1)) {
+    return 'La tarjeta está vencida.';
+  }
+  if (!/^\d{3,4}$/.test(pago.cvv)) {
+    return 'El CVV debe tener 3 o 4 dígitos.';
+  }
+  return null;
+};
+
+// Nunca se persisten el número completo de la tarjeta ni el CVV.
+const datosReintento = (metodo: Metodo, pago: Record<string, any>, pedidoId: number) => ({
+  metodo,
+  pedido_id: pedidoId,
+  titular: pago.titular || '',
+  expiracion: pago.expiracion || '',
+  banco: pago.banco || '',
+  correo_paypal: pago.correo_paypal || '',
+  punto_pago: pago.punto_pago || '',
+  cuotas: pago.cuotas ?? 1,
+});
+
+// Elimina de una caché antigua únicamente los campos sensibles (número y CVV).
+const limpiarCacheSensible = (datos: Record<string, any>): Record<string, any> => {
+  if (datos.numero === undefined && datos.cvv === undefined) return datos;
+  const { numero: _numero, cvv: _cvv, ...resto } = datos;
+  return resto;
+};
+
 // Comunica con el backend mediante GET '/pedidos/metodos-pago', GET '/clients/me', GET `/tecnicos/publicos?${params.toString()}` y otras peticiones de esta vista; accede a sessionStorage para conservar o recuperar datos locales.
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -129,12 +180,13 @@ const CheckoutPage = () => {
     cuotas: 1,
   });
   // Credenciales del último intento rechazado (para reintentar sin reescribir
-  // todo). El CVV nunca se guarda: debe ingresarse de nuevo en cada intento.
-  const PAGO_REINTENTO_KEY = 'checkout_pago_reintento';
+  // todo). El número completo y el CVV nunca se guardan.
   const [bancos, setBancos] = useState<string[]>([]);
   const [metodosDisponibles, setMetodosDisponibles] = useState<Metodo[] | null>(null);
   const [servicios, setServicios] = useState<LineaServicio[]>([]);
   const [procesando, setProcesando] = useState(false);
+  const procesandoRef = useRef(false);
+  const [reintentoPedidoId, setReintentoPedidoId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [resultado, setResultado] = useState<ResultadoCheckout | null>(null);
   const [descargando, setDescargando] = useState(false);
@@ -290,10 +342,30 @@ const CheckoutPage = () => {
     setServicios((prev) => prev.filter((s) => s.id !== id));
   };
 
+  // Al cambiar de método se limpian campos y errores que ya no aplican.
+  const cambiarMetodo = (nuevo: Metodo) => {
+    if (nuevo === metodo) return;
+    setMetodo(nuevo);
+    setError('');
+    setPago((prev) => {
+      const siguiente = { ...prev, resultado_simulacion: '' };
+      if (!METODOS_TARJETA.includes(nuevo)) {
+        siguiente.numero = '';
+        siguiente.expiracion = '';
+        siguiente.cvv = '';
+      }
+      if (nuevo !== 'pse') siguiente.banco = '';
+      if (nuevo !== 'paypal') siguiente.correo_paypal = '';
+      if (nuevo !== 'punto_pago') siguiente.punto_pago = '';
+      return siguiente;
+    });
+  };
+
   // Comunica con el backend mediante POST '/pedidos'; accede a sessionStorage para conservar o recuperar datos locales.
   const handlePagar = async () => {
+    if (procesandoRef.current) return;
     setError('');
-    if (items.length === 0) {
+    if (items.length === 0 && !reintentoPedidoId) {
       setError('Tu carrito está vacío. Agrega productos antes de finalizar la compra.');
       return;
     }
@@ -307,8 +379,9 @@ const CheckoutPage = () => {
       payloadPago.titular = pago.titular;
       payloadPago.expiracion = pago.expiracion;
       payloadPago.cvv = pago.cvv;
-      if (!pago.numero || !pago.titular || !pago.expiracion || !pago.cvv) {
-        setError('Completa los datos de la tarjeta.');
+      const errorTarjeta = validarTarjeta(pago);
+      if (errorTarjeta) {
+        setError(errorTarjeta);
         return;
       }
       if (!pago.resultado_simulacion) {
@@ -365,9 +438,12 @@ const CheckoutPage = () => {
       }
     }
 
+    procesandoRef.current = true;
     setProcesando(true);
     try {
-      const res = await api.post('/pedidos', {
+      const res = await api.post(
+        reintentoPedidoId ? `/pedidos/${reintentoPedidoId}/reintentar-pago` : '/pedidos',
+        reintentoPedidoId ? payloadPago : {
         items: items.map((i) => ({
           id_producto: i.id_producto,
           cantidad: i.venta_por_metros ? 1 : i.cantidad,
@@ -402,6 +478,12 @@ const CheckoutPage = () => {
       }
       const estadoPago = data.pago?.estado;
       if (estadoPago === 'aprobado') {
+        setReintentoPedidoId(null);
+        try {
+          sessionStorage.removeItem(PAGO_REINTENTO_KEY);
+        } catch {
+          /* almacenamiento no disponible */
+        }
         clearCart();
         window.dispatchEvent(new CustomEvent('notificaciones-refresh'));
         setResultado({
@@ -423,11 +505,12 @@ const CheckoutPage = () => {
         });
       } else {
         // Pago rechazado: guardar credenciales del intento para el reintento.
-        const { cvv: _cvv, resultado_simulacion: _sim, ...credenciales } = pago;
+        const pedidoId = Number(data.pedido?.id_pedido);
+        if (pedidoId) setReintentoPedidoId(pedidoId);
         try {
           sessionStorage.setItem(
             PAGO_REINTENTO_KEY,
-            JSON.stringify({ metodo, ...credenciales, cuotas: pago.cuotas }),
+            JSON.stringify(datosReintento(metodo, pago, pedidoId)),
           );
         } catch {
           /* almacenamiento no disponible */
@@ -436,13 +519,14 @@ const CheckoutPage = () => {
           tipo: 'rechazado',
           pedido: data.pedido,
           pago: data.pago,
-          mensaje: 'El pago fue rechazado por el sistema. Tus datos de pago quedaron guardados para el reintento.',
+          mensaje: 'El pago fue rechazado por el sistema. Puedes reintentar sin duplicar el pedido.',
         });
       }
     } catch (err: any) {
       const detalle = err.response?.data?.detail || err.response?.data?.message || 'No se pudo procesar el pedido. Intenta de nuevo.';
       setError(typeof detalle === 'string' ? detalle : 'No se pudo procesar el pedido. Intenta de nuevo.');
     } finally {
+      procesandoRef.current = false;
       setProcesando(false);
     }
   };
@@ -487,6 +571,7 @@ const CheckoutPage = () => {
   // accede a sessionStorage para conservar o recuperar datos locales.
   const reiniciar = () => {
     setResultado(null);
+    setReintentoPedidoId(null);
     setError('');
     setServicios([]);
     setPago({ numero: '', titular: '', expiracion: '', cvv: '', banco: '', correo_paypal: '', resultado_simulacion: '', punto_pago: '', cuotas: 1 });
@@ -500,16 +585,19 @@ const CheckoutPage = () => {
   // Volver a intentar tras un rechazo: restaura método y credenciales
   // guardadas del último intento (el CVV se pide de nuevo por seguridad).
   const reintentarPago = () => {
+    const pedidoId = Number(resultado?.pedido?.id_pedido) || null;
     try {
       const guardado = sessionStorage.getItem(PAGO_REINTENTO_KEY);
       if (guardado) {
-        const datos = JSON.parse(guardado);
+        const datos = limpiarCacheSensible(JSON.parse(guardado));
+        sessionStorage.setItem(PAGO_REINTENTO_KEY, JSON.stringify(datos));
         if (datos.metodo) setMetodo(datos.metodo as Metodo);
+        setReintentoPedidoId(Number(datos.pedido_id) || pedidoId);
         setPago((prev) => ({
           ...prev,
-          numero: datos.numero || '',
           titular: datos.titular || '',
           expiracion: datos.expiracion || '',
+          numero: '',
           cvv: '',
           banco: datos.banco || '',
           correo_paypal: datos.correo_paypal || '',
@@ -517,11 +605,12 @@ const CheckoutPage = () => {
           cuotas: datos.cuotas ?? 1,
           resultado_simulacion: '',
         }));
+      } else {
+        setReintentoPedidoId(pedidoId);
       }
     } catch {
       /* datos corruptos: se ignora */
     }
-    sessionStorage.removeItem(PAGO_REINTENTO_KEY);
     setResultado(null);
     setError('');
   };
@@ -532,17 +621,21 @@ const CheckoutPage = () => {
     try {
       const guardado = sessionStorage.getItem(PAGO_REINTENTO_KEY);
       if (!guardado) return;
-      const datos = JSON.parse(guardado);
+      const datos = limpiarCacheSensible(JSON.parse(guardado));
+      sessionStorage.setItem(PAGO_REINTENTO_KEY, JSON.stringify(datos));
       if (datos.metodo) setMetodo(datos.metodo as Metodo);
+      setReintentoPedidoId(Number(datos.pedido_id) || null);
       setPago((prev) => ({
         ...prev,
-        numero: datos.numero || '',
+        numero: '',
         titular: datos.titular || '',
         expiracion: datos.expiracion || '',
+        cvv: '',
         banco: datos.banco || '',
         correo_paypal: datos.correo_paypal || '',
         punto_pago: datos.punto_pago || '',
         cuotas: datos.cuotas ?? prev.cuotas,
+        resultado_simulacion: '',
       }));
     } catch {
       /* noop */
@@ -713,11 +806,12 @@ const CheckoutPage = () => {
           <h1>Pago rechazado</h1>
           <p>{resultado.mensaje}</p>
           <p className="checkout-rechazado-detalle">
-            Tu carrito se mantuvo intacto: los productos siguen disponibles en el checkout.
+            Tu carrito se mantuvo intacto. Por seguridad, ingresa de nuevo el número de
+            tarjeta y el CVV al reintentar.
           </p>
           <div className="checkout-success-acciones">
             <button type="button" className="checkout-pdf-btn" onClick={reintentarPago}>
-              <FaArrowLeft /> Reintentar con los mismos datos
+              <FaArrowLeft /> Reintentar pago
             </button>
             <button type="button" className="checkout-volver-btn" onClick={() => navigate('/carrito')}>
               Ver mi carrito
@@ -954,7 +1048,7 @@ const CheckoutPage = () => {
                       key={m.codigo}
                       type="button"
                       className={`checkout-metodo ${metodo === m.codigo ? 'activo' : ''}`}
-                      onClick={() => setMetodo(m.codigo)}
+                      onClick={() => cambiarMetodo(m.codigo)}
                     >
                       <Icono /> {m.nombre}
                     </button>
@@ -967,12 +1061,10 @@ const CheckoutPage = () => {
                   <>
                     <div className="checkout-field">
                       <label>Número de tarjeta</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
+                      <CardPaymentInput field="number"
                         placeholder="4242 4242 4242 4242"
                         value={pago.numero}
-                        onChange={(e) => setPago({ ...pago, numero: e.target.value.replace(/\D/g, '') })}
+                        onValueChange={(value) => setPago({ ...pago, numero: value })}
                       />
                     </div>
                     <div className="checkout-field">
@@ -987,21 +1079,18 @@ const CheckoutPage = () => {
                     <div className="checkout-field-row">
                       <div className="checkout-field">
                         <label>Expiración</label>
-                        <input
-                          type="text"
+                        <CardPaymentInput field="expiry"
                           placeholder="MM/AA"
                           value={pago.expiracion}
-                          onChange={(e) => setPago({ ...pago, expiracion: e.target.value.replace(/[^\d/]/g, '') })}
+                          onValueChange={(value) => setPago({ ...pago, expiracion: value })}
                         />
                       </div>
                       <div className="checkout-field">
                         <label>CVV</label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
+                        <CardPaymentInput field="cvv"
                           placeholder="123"
                           value={pago.cvv}
-                          onChange={(e) => setPago({ ...pago, cvv: e.target.value.replace(/\D/g, '') })}
+                          onValueChange={(value) => setPago({ ...pago, cvv: value })}
                         />
                       </div>
                     </div>
@@ -1067,7 +1156,7 @@ const CheckoutPage = () => {
                     <label>Correo de PayPal</label>
                     <input
                       type="email"
-                      placeholder="tucorreo@ejemplo.com"
+                      placeholder="Correo de tu cuenta PayPal"
                       value={pago.correo_paypal}
                       onChange={(e) => setPago({ ...pago, correo_paypal: e.target.value })}
                     />
@@ -1107,7 +1196,11 @@ const CheckoutPage = () => {
             <div className="checkout-resumen-items">
               {items.map((item) => {
                 const totalM = item.venta_por_metros ? (item.metros || 0) * (item.cantidad || 1) : 0;
-                const importe = item.precio_venta_producto * (item.venta_por_metros ? totalM : item.cantidad);
+                const importe = subtotalLinea(
+                  item.precio_venta_producto,
+                  item.cantidad,
+                  item.venta_por_metros ? item.metros || 0 : null,
+                );
                 const tecnicosReq = Number(item.tecnicos_requeridos) || 0;
                 return (
                   <div className="checkout-resumen-item" key={`${item.id_producto}-${item.metros || 0}-${item.cantidad}`}>
@@ -1149,7 +1242,7 @@ const CheckoutPage = () => {
               type="button"
               className="checkout-pagar-btn"
               onClick={handlePagar}
-              disabled={procesando || items.length === 0}
+              disabled={procesando || (items.length === 0 && !reintentoPedidoId)}
             >
               {procesando ? <FaSpinner className="spin" /> : <FaCreditCard />}
               {procesando ? 'Procesando pago...' : 'Pagar y confirmar'}

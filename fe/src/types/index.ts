@@ -145,6 +145,8 @@ export interface ProductoAdmin {
   tamaño?: string | null;
   estado_producto: string;
   stock_producto: number;
+  stock_disponible?: number;
+  disponible?: boolean;
   stock_estado: 'disponible' | 'bajo' | 'agotado';
   stock_minimo: number;
   marca?: string | null;

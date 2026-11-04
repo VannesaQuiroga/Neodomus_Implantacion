@@ -252,19 +252,22 @@ def _notificar_tecnico_asignacion(db: Session, cita: Cita, tecnico) -> None:
     )
 
 
-def cancelar_cita_con_reembolso(
+def preparar_cancelacion_con_reembolso(
     db: Session,
     cita: Cita,
     motivo: str,
     administrador_id: int | None = None,
+    estado_anterior: str | None = None,
 ) -> dict | None:
-    """Cancela una cita pagada y genera el reembolso correspondiente.
+    """Prepara estado, historial y reembolso de una cancelación administrativa.
 
-    Devuelve el resumen del reembolso o None si no había pago aprobado."""
-    estado_anterior = cita.estado
+    No confirma la transacción ni envía avisos: el llamador es el único dueño
+    del commit. Así el estado, el historial y el reembolso se guardan juntos y
+    un fallo intermedio no deja una cancelación parcial. Devuelve el resumen del
+    reembolso o None si no había pago aprobado."""
+    estado_previo = estado_anterior or cita.estado
     nombre_anterior = cita.nombre_tecnico
     cita.estado = "Cancelada"
-    db.commit()
 
     registrar_historial(
         db,
@@ -274,34 +277,11 @@ def cancelar_cita_con_reembolso(
         tecnico_anterior_nombre=nombre_anterior,
         administrador_id=administrador_id,
         motivo=motivo,
-        detalle=f"Estado anterior: {estado_anterior}",
+        detalle=f"Estado anterior: {estado_previo}",
+        commit=False,
     )
 
-    # Notificar al cliente con el motivo.
-    from app.services.notificaciones import notificar_cita_estado_cliente
-
-    cliente = cita.cliente
-    if cliente is not None:
-        motivo_cliente = (
-            f"{motivo} El monto pagado será reembolsado a tu medio de pago."
-            if (cita.estado_pago == "aprobado")
-            else motivo
-        )
-        notificar_cita_estado_cliente(
-            db,
-            cliente.id_cliente,
-            cliente.email,
-            f"{cliente.first_name} {cliente.last_name}".strip() or "Cliente",
-            {
-                "servicio": cita.tipo_servicio,
-                "fecha": cita.fecha.strftime("%d/%m/%Y"),
-                "tecnico": nombre_anterior or "-",
-            },
-            "Cancelada",
-            motivo=motivo_cliente,
-        )
-
-    # Reembolso si la cita estaba pagada — queda PENDIENTE para confirmación del admin.
+    # Reembolso si la cita estaba pagada; queda PENDIENTE para confirmación del admin.
     reembolso_resumen = None
     if (cita.estado_pago == "aprobado") and cita.costo_cita:
         from app.models.especializacion import Reembolso as ReembolsoModel
@@ -320,6 +300,7 @@ def cancelar_cita_con_reembolso(
             "monto": reembolso.monto,
             "estado": reembolso.estado,
         }
+
     return reembolso_resumen
 
 

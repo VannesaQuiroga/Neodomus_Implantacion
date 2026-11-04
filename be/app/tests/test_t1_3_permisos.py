@@ -9,7 +9,6 @@ import urllib.request
 
 import app.tests.testdb  # noqa: F401
 
-from app.config import settings
 from app.models.devolucion import Devolucion
 from app.models.evidencia import EvidenciaEntrega
 from app.models.notificacion import Notificacion
@@ -28,13 +27,8 @@ def _get_status(url: str) -> int:
 
 class EvidenciaEntregaClienteTestCase(BaseT1TestCase):
     def _minio_disponible(self):
-        try:
-            from minio import Minio
-            c = Minio(settings.MINIO_ENDPOINT, access_key=settings.MINIO_ACCESS_KEY,
-                      secret_key=settings.MINIO_SECRET_KEY, secure=settings.MINIO_SECURE)
-            return c.bucket_exists(settings.MINIO_BUCKET)
-        except Exception:
-            return False
+        from app.tests.testdb import minio_de_pruebas_disponible
+        return minio_de_pruebas_disponible()
 
     def _preparar(self):
         c1 = self._crear_cliente("a")

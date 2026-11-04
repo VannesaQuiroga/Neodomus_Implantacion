@@ -27,6 +27,8 @@ import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import EspecializacionesSelect from '@components/admin/EspecializacionesSelect';
 import AuthImage from '@components/common/AuthImage';
+import { Paginacion } from '@components/common/Paginacion';
+import { usePaginacion } from '../../hooks/usePaginacion';
 import { notificarCambiosTecnicos } from '@utils/tecnicosSync';
 import type { Especializacion, TecnicoAdmin } from '../../types';
 
@@ -343,6 +345,8 @@ const AdminTecnicos = () => {
     );
   });
 
+  const { page, setPage, totalPages, pageItems, numeroFila } = usePaginacion(filtrados, 12);
+
   const iniciales = (t: TecnicoAdmin) =>
     `${(t.first_name || '?')[0]}${(t.last_name || '')[0]}`.toUpperCase();
 
@@ -378,7 +382,7 @@ const AdminTecnicos = () => {
             type="text"
             placeholder={t('adm.tecnicos.buscarPlaceholder')}
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
           />
         </form>
       </div>
@@ -424,11 +428,13 @@ const AdminTecnicos = () => {
           </div>
         </div>
       ) : (
+        <>
         <div className="ap-grid">
-          {filtrados.map((tecnico) => (
+          {pageItems.map((tecnico, idx) => (
             <div className="ap-grid-item" key={tecnico.id_tecnico}>
               <div className="ap-grid-item-top">
                 <span className="ap-initials">{iniciales(tecnico)}</span>
+                <span className="muted" style={{ fontSize: 11 }}>#{numeroFila(idx)}</span>
                 <span className={`ap-badge ${tecnico.is_active ? 'ok' : 'err'}`}>
                   {tecnico.is_active ? t('adm.tecnicos.disponible') : t('adm.tecnicos.inactivo')}
                 </span>
@@ -520,6 +526,8 @@ const AdminTecnicos = () => {
             </div>
           ))}
         </div>
+        <Paginacion page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
       )}
 
       {modal && (

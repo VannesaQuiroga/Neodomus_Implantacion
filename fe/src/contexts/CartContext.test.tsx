@@ -103,4 +103,55 @@ describe('CartContext (real)', () => {
     expect(result.current.items[0].cantidad).toBe(3);
     expect(result.current.items[0].metros).toBeUndefined();
   });
+
+  it('actualiza precio y stock de una línea validada contra el backend', () => {
+    const { result } = renderHook(() => useCart(), { wrapper });
+    act(() => {
+      result.current.addItem(productoUnidad, 1);
+    });
+    const key = itemKey(result.current.items[0]);
+    act(() => {
+      result.current.actualizarItem(key, {
+        precio_venta_producto: 4500,
+        stock_maximo: 4,
+      });
+    });
+    expect(result.current.items[0].precio_venta_producto).toBe(4500);
+    expect(result.current.items[0].stock_maximo).toBe(4);
+  });
+
+  it('refresca el precio al volver a agregar la misma combinación', () => {
+    const { result } = renderHook(() => useCart(), { wrapper });
+    act(() => {
+      result.current.addItem(productoUnidad, 1);
+    });
+    act(() => {
+      result.current.addItem(
+        { ...productoUnidad, precio_venta_producto: 4200, stock_maximo: 2 },
+        1,
+      );
+    });
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0].cantidad).toBe(2);
+    expect(result.current.items[0].precio_venta_producto).toBe(4200);
+    expect(result.current.items[0].stock_maximo).toBe(2);
+  });
+
+  it('no reemplaza la línea ni cambia la referencia del callback cuando no cambia nada', () => {
+    const { result } = renderHook(() => useCart(), { wrapper });
+    act(() => {
+      result.current.addItem(productoUnidad, 1);
+    });
+    const key = itemKey(result.current.items[0]);
+    const referenciaInicial = result.current.items;
+    const callbackInicial = result.current.actualizarItem;
+    act(() => {
+      result.current.actualizarItem(key, {
+        precio_venta_producto: productoUnidad.precio_venta_producto,
+        stock_maximo: productoUnidad.stock_maximo,
+      });
+    });
+    expect(result.current.items).toBe(referenciaInicial);
+    expect(result.current.actualizarItem).toBe(callbackInicial);
+  });
 });

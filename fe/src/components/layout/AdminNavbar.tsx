@@ -16,10 +16,19 @@ interface AdminNavbarProps {
   notificaciones: NotifAdmin[];
   cargandoNotificaciones?: boolean;
   marcarLeida?: (id: string) => void;
+  errorNotificaciones?: string | null;
+  recargarNotificaciones?: () => void | Promise<void>;
 }
 
 // registra escuchas de eventos para sincronizar la vista.
-const AdminNavbar = ({ onMenuToggle, notificaciones, cargandoNotificaciones = false, marcarLeida }: AdminNavbarProps) => {
+const AdminNavbar = ({
+  onMenuToggle,
+  notificaciones,
+  cargandoNotificaciones = false,
+  marcarLeida,
+  errorNotificaciones = null,
+  recargarNotificaciones,
+}: AdminNavbarProps) => {
   const { t } = useIdioma();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +102,8 @@ const AdminNavbar = ({ onMenuToggle, notificaciones, cargandoNotificaciones = fa
             verTodasTo="/admin/notificaciones"
             marcarLeida={marcarLeida}
             titulo={t('adm.navbar.notificaciones')}
+            error={errorNotificaciones}
+            onRetry={recargarNotificaciones}
           />
 
           <span className="anr-sep" />

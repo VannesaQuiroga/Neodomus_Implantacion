@@ -10,6 +10,7 @@ localmente: genera números de transacción ficticios y estados
 from __future__ import annotations
 
 import random
+import re
 import string
 from datetime import datetime, timedelta
 
@@ -109,7 +110,7 @@ def _resultado_simulacion(datos: dict, permitidos: tuple = ("aprobado", "rechaza
 def _luhn_valida(numero: str) -> bool:
     """Validación de tarjeta con el algoritmo de Luhn."""
     numero = numero.replace(" ", "")
-    if not numero.isdigit() or len(numero) < 13:
+    if not numero.isdigit() or not (13 <= len(numero) <= 19):
         return False
     total = 0
     doble = False
@@ -127,16 +128,14 @@ def _luhn_valida(numero: str) -> bool:
 def _fecha_expiracion_valida(expiracion: str) -> bool:
     """Valida formato MM/AA y que la tarjeta no esté vencida."""
     expiracion = (expiracion or "").strip()
-    if "/" not in expiracion:
+    if not re.fullmatch(r"\d{2}/\d{2}", expiracion):
         return False
     try:
-        mes, anio = expiracion.split("/", 1)
-        mes = int(mes)
-        anio = int(anio)
-        if not (1 <= mes <= 12) or len(str(anio)) not in (2, 4):
+        mes_txt, anio_txt = expiracion.split("/", 1)
+        mes = int(mes_txt)
+        anio = 2000 + int(anio_txt)
+        if not (1 <= mes <= 12):
             return False
-        if len(str(anio)) == 2:
-            anio = 2000 + anio
         ahora = datetime.now()
         if anio < ahora.year:
             return False

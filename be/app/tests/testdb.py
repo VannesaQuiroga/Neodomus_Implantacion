@@ -15,8 +15,105 @@ from urllib.parse import urlparse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-import app.database as _app_db
-from app.config import settings
+import app.database as _app_db  # noqa: E402
+from app.config import settings  # noqa: E402
+
+# ── Configuración centralizada del MinIO de pruebas ─────────────────────
+# ``app`` (app/__init__.py) importa ``config`` de forma eager, así que aquí
+# se SOBREESCRIBE ``settings`` tras su instanciación y se invalida el cliente
+# cacheado de minio_service para que se cree con la instancia de pruebas.
+# NO hay credenciales por defecto: se exige configuración EXPLÍCITA mediante
+# las variables TEST_MINIO_* del entorno (sin tocar .env ni secretos reales).
+_TEST_MINIO_VARS = (
+    "TEST_MINIO_ENDPOINT",
+    "TEST_MINIO_ACCESS_KEY",
+    "TEST_MINIO_SECRET_KEY",
+    "TEST_MINIO_BUCKET",
+    "TEST_MINIO_PRIVATE_BUCKET",
+    "TEST_MINIO_PUBLIC_ENDPOINT",
+)
+
+
+def _configurar_minio_pruebas() -> None:
+    # Sin configuración explícita no se pisan MINIO_* (las pruebas de MinIO
+    # deben omitirse de forma honesta, no caer en buckets de desarrollo).
+    if not all(os.environ.get(v) for v in _TEST_MINIO_VARS):
+        return
+    for test_var in _TEST_MINIO_VARS:
+        var = test_var[len("TEST_"):]
+        os.environ[var] = os.environ[test_var]
+        setattr(settings, var, os.environ[test_var])
+
+
+_configurar_minio_pruebas()
+
+# Códigos S3 que indican CREDENCIALES INVÁLIDAS (configuración errónea), a
+# distinguir de "servicio inaccesible" (conexión rechazada/timeout).
+_CODIGOS_CREDENCIALES_INVALIDAS = {
+    "SignatureDoesNotMatch",
+    "AccessDenied",
+    "InvalidAccessKeyId",
+}
+
+
+def minio_pruebas_configurado() -> bool:
+    return all(os.environ.get(v) for v in _TEST_MINIO_VARS)
+
+
+def _bucket_de_pruebas(nombre: str) -> bool:
+    return "test" in (nombre or "").lower()
+
+
+def asegurar_minio_pruebas() -> None:
+    """Verifica configuración explícita y buckets EXCLUSIVOS de pruebas.
+
+    Se llama antes de escribir/borrar en el MinIO de pruebas: evita que una
+    prueba toque un bucket real (de desarrollo/producción) por accidente.
+    """
+    if not minio_pruebas_configurado():
+        raise RuntimeError(
+            "TEST_MINIO_* no está configurado; define las variables del MinIO de pruebas."
+        )
+    if not (_bucket_de_pruebas(settings.MINIO_BUCKET) and _bucket_de_pruebas(settings.MINIO_PRIVATE_BUCKET)):
+        raise RuntimeError(
+            "Los buckets MinIO no son exclusivos de pruebas: revisa "
+            "TEST_MINIO_BUCKET y TEST_MINIO_PRIVATE_BUCKET."
+        )
+
+
+def minio_de_pruebas_disponible() -> bool:
+    """True si el MinIO de pruebas responde y su bucket público existe.
+
+    Una credencial inválida se trata como error de configuración (no como
+    omisión silenciosa): se propaga para no declarar aprobada una prueba que
+    en realidad no se ejecutó contra el almacenamiento real.
+    """
+    if not minio_pruebas_configurado():
+        return False
+    asegurar_minio_pruebas()
+
+    from minio import Minio
+    from minio.error import S3Error
+
+    from app.config import settings as _settings
+
+    try:
+        cliente = Minio(
+            _settings.MINIO_ENDPOINT,
+            access_key=_settings.MINIO_ACCESS_KEY,
+            secret_key=_settings.MINIO_SECRET_KEY,
+            secure=_settings.MINIO_SECURE,
+        )
+        return cliente.bucket_exists(_settings.MINIO_BUCKET)
+    except S3Error as e:
+        if getattr(e, "code", None) in _CODIGOS_CREDENCIALES_INVALIDAS:
+            raise RuntimeError(
+                "Configuración MinIO de pruebas inválida (credenciales): "
+                f"code={getattr(e, 'code', None)}. Revisa TEST_MINIO_*."
+            ) from e
+        return False
+    except Exception:
+        return False
 
 TEST_DATABASE_URL = (
     os.environ.get("TEST_DATABASE_URL")
@@ -64,6 +161,10 @@ async def _adjunto_sin_transporte(*_args, **_kwargs):
     return True
 
 
+# Se conserva la implementación real para las pruebas que simulan únicamente
+# el transporte SMTP y necesitan construir el mensaje MIME con su adjunto.
+if not hasattr(_email, "_adjunto_original"):
+    _email._adjunto_original = _email.send_email_with_attachment
 _email._send_email_sync = _correo_sin_transporte
 _email.send_email_with_attachment = _adjunto_sin_transporte
 

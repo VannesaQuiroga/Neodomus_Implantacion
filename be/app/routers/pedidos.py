@@ -1035,3 +1035,41 @@ async def confirmar_pago(
         "ordenes_instalacion": result.get("ordenes_instalacion", []),
         "entrega": result.get("entrega"),
     }
+
+
+@router.post("/{pedido_id}/reintentar-pago")
+async def reintentar_pago(
+    pedido_id: int,
+    data: DatosPago,
+    cliente: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Reintenta el pago rechazado reutilizando el mismo pedido y pago."""
+    result = await pedidos_service.reintentar_pago_pedido(
+        db,
+        cliente,
+        pedido_id,
+        data.metodo,
+        data.model_dump(exclude={"metodo"}),
+    )
+    pedido = result["pedido"]
+    pago = result["pago"]
+    factura = result["factura"]
+    return {
+        "pedido": _serializar_pedido(pedido, con_detalles=True, db=db),
+        "pago": _serializar_pago(pago),
+        "factura": (
+            {
+                "id_factura": factura.id_factura,
+                "numero_factura": factura.numero_factura,
+                "monto_total": factura.monto_total,
+                "enviada_por_correo": factura.enviada_por_correo,
+            }
+            if factura
+            else None
+        ),
+        "carrito_mantener": pago.estado != "aprobado",
+        "pdf_url": f"/api/v1/pedidos/{pedido.id_pedido}/factura" if factura else None,
+        "ordenes_instalacion": result.get("ordenes_instalacion", []),
+        "entrega": result.get("entrega"),
+    }

@@ -1,5 +1,5 @@
 // src/pages/auth/Register.tsx
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@contexts/AuthContext';
@@ -38,6 +38,7 @@ const Register = () => {
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const enviandoRef = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
   const [confirmCorreo, setConfirmCorreo] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -136,7 +137,8 @@ const Register = () => {
     e.preventDefault();
     setError('');
     if (!validateForm()) return;
-    if (loading) return;
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setLoading(true);
     try {
       const correoNorm = formData.correo.trim().toLowerCase();
@@ -162,6 +164,7 @@ const Register = () => {
         setError(err.response?.data?.detail || 'Error al registrarse. Verifica los datos e inténtalo de nuevo.');
       }
     } finally {
+      enviandoRef.current = false;
       setLoading(false);
     }
   };
@@ -263,10 +266,6 @@ const Register = () => {
                 placeholder="Confirma tu correo"
                 value={confirmCorreo}
                 onChange={(e) => setConfirmCorreo(e.target.value)}
-                onPaste={(e) => e.preventDefault()}
-                onCopy={(e) => e.preventDefault()}
-                onCut={(e) => e.preventDefault()}
-                onContextMenu={(e) => e.preventDefault()}
                 required
                 disabled={loading}
               />
@@ -315,10 +314,6 @@ const Register = () => {
                   placeholder="Confirma tu contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  onPaste={(e) => e.preventDefault()}
-                  onCopy={(e) => e.preventDefault()}
-                  onCut={(e) => e.preventDefault()}
-                  onContextMenu={(e) => e.preventDefault()}
                   required
                   disabled={loading}
                 />

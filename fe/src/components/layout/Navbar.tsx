@@ -27,7 +27,8 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const rolNotificaciones = rol === 'cliente' || rol === 'administrador' || rol === 'tecnico' ? rol : null;
-  const { notificaciones, cargando, marcarLeida } = useNotificacionesRol(rolNotificaciones);
+  const { notificaciones, cargando, error, recargar, marcarLeida } =
+    useNotificacionesRol(rolNotificaciones);
 
   const getPerfilPath = () => {
     if (rol === "cliente") return "/perfil";
@@ -158,6 +159,8 @@ const Navbar = () => {
                 buttonClassName="notif-button"
                 iconClassName="notif-icon"
                 ariaLabel={t('nav.verNotificaciones')}
+                error={error}
+                onRetry={recargar}
               />
             )}
 

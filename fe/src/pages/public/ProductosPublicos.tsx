@@ -19,6 +19,8 @@ interface Producto {
   promocion_hasta?: string | null;
   es_nuevo?: boolean;
   stock_producto?: number;
+  stock_disponible?: number;
+  disponible?: boolean;
   stock_estado?: 'disponible' | 'bajo' | 'agotado';
   tecnicos_requeridos?: number;
   variantes?: {

@@ -12,7 +12,7 @@ import '@styles/admin-panel.css';
 // registra escuchas de eventos para sincronizar la vista.
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { notificaciones, cargando, noLeidas, recargar, marcarLeida } = useAdminNotificaciones();
+  const { notificaciones, cargando, noLeidas, error, recargar, marcarLeida } = useAdminNotificaciones();
   const { passwordResetRequired } = useAuth();
 
   useEffect(() => {
@@ -38,6 +38,8 @@ const AdminLayout = () => {
         notificaciones={notificaciones}
         cargandoNotificaciones={cargando}
         marcarLeida={marcarLeida}
+        errorNotificaciones={error}
+        recargarNotificaciones={recargar}
       />
 
       <div className="admin-body">

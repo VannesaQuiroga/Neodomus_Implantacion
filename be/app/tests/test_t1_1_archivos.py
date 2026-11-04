@@ -119,6 +119,74 @@ class NotificacionesPropiedadTestCase(BaseT1TestCase):
         ids = [x["id_notificacion"] for x in r.json()]
         self.assertNotIn(n.id_notificacion, ids)
 
+    def test_marcar_leida_persiste_y_descuenta_una_sola_vez(self):
+        cliente = self._crear_cliente("lectura")
+        n = self._notif_para(cliente)
+        token = self._token(self._login(cliente.email))
+        headers = self._bearer(token)
+
+        antes = self._get("/api/v1/notificaciones/no-leidas", headers=headers)
+        self.assertEqual(antes.status_code, 200, antes.text)
+        self.assertEqual(antes.json()["no_leidas"], 1)
+
+        primera = self._request(
+            "PATCH",
+            f"/api/v1/notificaciones/{n.id_notificacion}/leida",
+            headers=headers,
+        )
+        self.assertEqual(primera.status_code, 200, primera.text)
+        segunda = self._request(
+            "PATCH",
+            f"/api/v1/notificaciones/{n.id_notificacion}/leida",
+            headers=headers,
+        )
+        self.assertEqual(segunda.status_code, 200, segunda.text)
+
+        self._resincronizar()
+        self.assertTrue(
+            self.db.query(Notificacion)
+            .filter(Notificacion.id_notificacion == n.id_notificacion)
+            .first()
+            .leida
+        )
+        despues = self._get("/api/v1/notificaciones/no-leidas", headers=headers)
+        self.assertEqual(despues.status_code, 200, despues.text)
+        self.assertEqual(despues.json()["no_leidas"], 0)
+
+    def test_leer_todas_solo_afecta_al_propietario(self):
+        c1 = self._crear_cliente("todas")
+        c2 = self._crear_cliente("ajenas")
+        propia_1 = self._notif_para(c1, "uno")
+        propia_2 = self._notif_para(c1, "dos")
+        ajena = self._notif_para(c2, "ajena")
+        token = self._token(self._login(c1.email))
+        headers = self._bearer(token)
+
+        r = self._request("PATCH", "/api/v1/notificaciones/leer-todas", headers=headers)
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.json()["actualizadas"], 2)
+
+        self._resincronizar()
+        for nid in (propia_1.id_notificacion, propia_2.id_notificacion):
+            self.assertTrue(
+                self.db.query(Notificacion)
+                .filter(Notificacion.id_notificacion == nid)
+                .first()
+                .leida
+            )
+        self.assertFalse(
+            self.db.query(Notificacion)
+            .filter(Notificacion.id_notificacion == ajena.id_notificacion)
+            .first()
+            .leida
+        )
+
+        mias = self._get("/api/v1/notificaciones/mias", headers=headers)
+        self.assertEqual(mias.status_code, 200, mias.text)
+        ids = [x["id_notificacion"] for x in mias.json()]
+        self.assertIn(propia_1.id_notificacion, ids)
+        self.assertNotIn(ajena.id_notificacion, ids)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

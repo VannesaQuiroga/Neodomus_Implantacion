@@ -66,14 +66,31 @@ interface Producto {
 
 type TabId = 'perfil' | 'contrasena' | 'pedidos' | 'servicios' | 'resenas' | 'tecnicos' | 'facturas' | 'idioma' | 'notificaciones' | 'favoritos' | 'reembolsos';
 
+const TABS_VALIDAS: TabId[] = [
+  'perfil',
+  'contrasena',
+  'pedidos',
+  'servicios',
+  'resenas',
+  'tecnicos',
+  'facturas',
+  'idioma',
+  'notificaciones',
+  'favoritos',
+  'reembolsos',
+];
+
+const esTabValida = (valor: string | null): valor is TabId =>
+  valor != null && TABS_VALIDAS.includes(valor as TabId);
+
 // Comunica con el backend mediante GET '/productos/?limit=100', POST '/clients/me/cuenta-solicitud', POST '/clients/me/foto' y otras peticiones de esta vista; accede a localStorage para conservar o recuperar datos locales; prepara FormData para enviar campos y archivos; registra escuchas de eventos para sincronizar la vista.
 const Perfil = () => {
   const { user, refreshUserProfile } = useAuth();
   const { t } = useIdioma();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabId) || 'perfil';
-  const [activo, setActivo] = useState<TabId>(initialTab);
+  const initialTab = searchParams.get('tab');
+  const [activo, setActivo] = useState<TabId>(esTabValida(initialTab) ? initialTab : 'perfil');
   const [toast, setToast] = useState<ToastState>(null);
   const [tick, setTick] = useState(0);
   const [confirmarInhabilitar, setConfirmarInhabilitar] = useState(false);
@@ -81,6 +98,11 @@ const Perfil = () => {
   const [solicitudEstado, setSolicitudEstado] = useState<string | null>(null);
   const [motivoSolicitud, setMotivoSolicitud] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    setActivo(esTabValida(tab) ? tab : 'perfil');
+  }, [searchParams]);
 
   // Estado para favoritos
   const { favoritos, quitarFavorito } = useFavoritos();
