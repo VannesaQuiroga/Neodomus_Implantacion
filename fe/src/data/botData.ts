@@ -37,7 +37,7 @@ export const BOT_FAQS: BotFAQ[] = [
   {
     keywords: ['entrega', 'envio', 'envío', 'tiempo', 'llegar', 'demora', 'cuanto tarda'],
     respuesta:
-      'Envíos a ciudades principales: 2-3 días hábiles. Otras zonas: 4-6 días hábiles. Recibirás notificaciones con el seguimiento de tu pedido.',
+      'Las entregas son solo en Bogotá. Recibirás notificaciones con el seguimiento de tu pedido.',
   },
   {
     keywords: ['garantia', 'garantía', 'garante', 'reparacion gratis'],

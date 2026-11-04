@@ -40,6 +40,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const enviandoRef = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmCorreo, setConfirmCorreo] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -83,6 +84,11 @@ const Register = () => {
       return () => clearTimeout(timer);
     }
   }, [error]);
+
+  // Permite explícitamente copiar, pegar y cortar en los campos del formulario
+  const allowClipboard = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    // No se llama e.preventDefault(), por lo que el navegador ejecuta la acción por defecto
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name } = e.target;
@@ -266,6 +272,9 @@ const Register = () => {
                 placeholder="Confirma tu correo"
                 value={confirmCorreo}
                 onChange={(e) => setConfirmCorreo(e.target.value)}
+                onCopy={allowClipboard}
+                onPaste={allowClipboard}
+                onCut={allowClipboard}
                 required
                 disabled={loading}
               />
@@ -282,6 +291,9 @@ const Register = () => {
                   value={formData.contraseña}
                   autoComplete="new-password"
                   onChange={handleChange}
+                  onCopy={allowClipboard}
+                  onPaste={allowClipboard}
+                  onCut={allowClipboard}
                   required
                   disabled={loading}
                 />
@@ -310,13 +322,35 @@ const Register = () => {
               <label>Confirmación de contraseña</label>
               <div className="password-input-wrapper">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirma tu contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  onCopy={allowClipboard}
+                  onPaste={allowClipboard}
+                  onCut={allowClipboard}
                   required
                   disabled={loading}
                 />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <line x1="21" y1="3" x2="3" y2="21"></line>
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>

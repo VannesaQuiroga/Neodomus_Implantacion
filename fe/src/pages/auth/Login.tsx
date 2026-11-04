@@ -164,7 +164,8 @@ const Login = () => {
             )}
           </div>
           
-          {/* Input de Correo */}
+          {/* Etiqueta y Input de Correo */}
+          <label className="login-label">Correo electrónico:</label>
           <div className="login-input-wrapper">
             <input
               type="email"
@@ -177,7 +178,8 @@ const Login = () => {
             />
           </div>
 
-          {/* Input de Contraseña */}
+          {/* Etiqueta y Input de Contraseña */}
+          <label className="login-label">Contraseña:</label>
 <div className="login-input-wrapper">
   <input
     type={showPassword ? 'text' : 'password'}
