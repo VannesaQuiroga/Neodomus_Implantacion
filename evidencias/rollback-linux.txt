@@ -1,0 +1,8 @@
+2026-11-04T00:14:37-05:00
+ Container neodomus-prod-web-1 Recreate
+ Container neodomus-prod-web-1 Recreated
+ Container neodomus-prod-web-1 Starting
+ Container neodomus-prod-web-1 Started
+Imagen activa: neodomus-web:1.0.0
+Web HTTP 200
+Producto API HTTP 200

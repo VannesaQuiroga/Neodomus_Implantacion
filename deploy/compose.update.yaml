@@ -1,0 +1,3 @@
+services:
+  web:
+    image: neodomus-web:1.0.1
