@@ -43,7 +43,16 @@ const AyudaPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
-  const { chats, input: chatInput, setInput: setChatInput, escribiendo: chatEscribiendo, enviar } = useBotChat();
+  const {
+    chats,
+    input: chatInput,
+    setInput: setChatInput,
+    escribiendo: chatEscribiendo,
+    enviar,
+    confirmar,
+    esperandoConfirmacion,
+    mostrarSugerencias,
+  } = useBotChat();
   const chatInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -261,8 +270,29 @@ const AyudaPage = () => {
                   )}
                 </div>
 
+                <div className="ayuda-chat-confirm">
+                  {!chatEscribiendo && esperandoConfirmacion && (
+                    <>
+                      <button
+                        type="button"
+                        className="ayuda-chat-confirm-btn si"
+                        onClick={() => confirmar('si')}
+                      >
+                        Sí
+                      </button>
+                      <button
+                        type="button"
+                        className="ayuda-chat-confirm-btn no"
+                        onClick={() => confirmar('no')}
+                      >
+                        No
+                      </button>
+                    </>
+                  )}
+                </div>
+
                 <div className="ayuda-chat-sugs">
-                  {!chatEscribiendo && chats.length <= 1 && (
+                  {!chatEscribiendo && mostrarSugerencias && (
                     <>
                       <span className="ayuda-chat-sugs-label">Preguntas frecuentes:</span>
                       <div className="ayuda-chat-sugs-list">

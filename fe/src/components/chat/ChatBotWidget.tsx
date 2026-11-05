@@ -8,7 +8,16 @@ import { useBotChat } from '../../hooks/useBotChat';
 // registra escuchas de eventos para sincronizar la vista.
 const ChatBotWidget = () => {
   const [abierto, setAbierto] = useState(false);
-  const { chats, input, setInput, escribiendo, enviar } = useBotChat();
+  const {
+    chats,
+    input,
+    setInput,
+    escribiendo,
+    enviar,
+    confirmar,
+    esperandoConfirmacion,
+    mostrarSugerencias,
+  } = useBotChat();
   const msgsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -74,8 +83,28 @@ const ChatBotWidget = () => {
             )}
           </div>
 
-          {!escribiendo && chats.length <= 1 && (
+          {!escribiendo && esperandoConfirmacion && (
+            <div className="cbw-confirm" role="group" aria-label="¿Te puedo ayudar en algo más?">
+              <button
+                type="button"
+                className="cbw-confirm-btn si"
+                onClick={() => confirmar('si')}
+              >
+                Sí
+              </button>
+              <button
+                type="button"
+                className="cbw-confirm-btn no"
+                onClick={() => confirmar('no')}
+              >
+                No
+              </button>
+            </div>
+          )}
+
+          {!escribiendo && mostrarSugerencias && (
             <div className="cbw-sugs">
+              <span className="cbw-sugs-label">Preguntas frecuentes:</span>
               {BOT_SUGERENCIAS.map((s) => (
                 <button key={s} type="button" className="cbw-sug" onClick={() => enviar(s)}>
                   {s}

@@ -1113,11 +1113,47 @@
   flex: 0 0 auto;
   width: 260px;
   height: auto;
-  min-height: 420px;
+  min-height: 0;
 }
 
 .detalle-recomendados-grid .img-contenedor {
   height: 200px;
+}
+
+/* Productos con metraje: los controles deben caber dentro de la tarjeta */
+.detalle-recomendados-grid .selectores-bloque {
+  width: 100%;
+  min-height: 0;
+}
+
+.detalle-recomendados-grid .metros-control-grid {
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 6px;
+}
+
+.detalle-recomendados-grid .metros-select {
+  min-width: 0;
+  max-width: 84px;
+}
+
+.detalle-recomendados-grid .metros-control-grid .cantidad-row {
+  width: 100%;
+  gap: 6px;
+}
+
+.detalle-recomendados-grid .cantidad-label {
+  font-size: 11px;
+}
+
+.detalle-recomendados-grid .cantidad-control {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100px;
+}
+
+.detalle-recomendados-grid .subtotal-detalle {
+  overflow-wrap: anywhere;
 }
 
 /* Responsive carrusel */

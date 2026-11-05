@@ -216,6 +216,15 @@
   gap: 6px;
 }
 
+.cbw-sugs-label {
+  flex-basis: 100%;
+  color: #9c9c9c;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 .cbw-sug {
   padding: 7px 11px;
   border-radius: 999px;
@@ -229,6 +238,45 @@
 
 .cbw-sug:hover {
   background: rgba(212, 165, 75, 0.18);
+}
+
+/* ── Confirmación (Sí / No) ─────────────────────────────────── */
+.cbw-confirm {
+  display: flex;
+  gap: 8px;
+  padding: 0 14px 10px;
+}
+
+.cbw-confirm-btn {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, filter 0.16s ease;
+}
+
+.cbw-confirm-btn.si {
+  border: 1px solid rgba(212, 165, 75, 0.55);
+  background: linear-gradient(135deg, #d4a54b, #b8860b);
+  color: #000;
+}
+
+.cbw-confirm-btn.si:hover {
+  filter: brightness(1.07);
+}
+
+.cbw-confirm-btn.no {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cfcfcf;
+}
+
+.cbw-confirm-btn.no:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 /* ── Entrada ────────────────────────────────────────────────── */

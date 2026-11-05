@@ -59,7 +59,9 @@ from app.utils.security import hash_password
 PASSWORD_PREFIX = "12345678"
 
 
-def password_de(first_name: str, last_name: str) -> str:
+def password_temporal_de(first_name: str, last_name: str) -> str:
+    """Construye la contraseña temporal: prefijo + inicial del nombre (MAYÚS) +
+    inicial del primer apellido (minúscula) + punto."""
     nombre = (first_name or "").strip()
     apellido = (last_name or "").strip()
     inicial_nombre = (nombre[:1] or "").upper()
@@ -86,7 +88,7 @@ def run(mostrar_claves: bool = False, forzar: bool = False) -> int:
                 if not forzar and registro.password_hash:
                     omitidos += 1
                     continue
-                pwd = password_de(registro.first_name, registro.last_name)
+                pwd = password_temporal_de(registro.first_name, registro.last_name)
                 registro.password_hash = hash_password(pwd)
                 actualizados += 1
                 print(f"[actualizado] {tabla:10s} {registro.email} -> {pwd if mostrar_claves else ''}")

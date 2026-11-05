@@ -74,6 +74,36 @@ export const BOT_FAQS: BotFAQ[] = [
 export const BOT_FALLBACK =
   'No tengo una respuesta lista para eso. Te recomiendo escribirnos por el formulario de la sección Ayuda (o teléfono +57 601 123 4567) y un asesor te atenderá lo antes posible.';
 
+export const BOT_CONFIRMACION = '¿Te puedo ayudar en algo más?';
+export const BOT_AFIRMACION = '¡Claro! ¿En qué más te puedo ayudar?';
+export const BOT_DESPEDIDA =
+  'Gracias por comunicarte. Para comenzar un chat solo di !Hola¡.';
+
+const SALUDOS = [
+  'hola',
+  'holi',
+  'buenas',
+  'buenos dias',
+  'buen dia',
+  'buenas tardes',
+  'buenas noches',
+  'hey',
+  'saludos',
+  'Hola',
+  'Hola!'
+];
+
+export const esSaludo = (texto: string): boolean => {
+  const limpio = texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+  return SALUDOS.includes(limpio);
+};
+
 export const BOT_SUGERENCIAS = [
   '¿Cómo hago un pedido?',
   '¿Cuáles son los métodos de pago?',

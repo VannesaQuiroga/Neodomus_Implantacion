@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { responderBot } from '../../data/botData';
+import { BOT_CONFIRMACION, BOT_DESPEDIDA, responderBot } from '../../data/botData';
 import { BOT_ERROR } from '../../hooks/useBotChat';
 import ChatBotWidget from './ChatBotWidget';
 
@@ -112,6 +112,38 @@ describe('ChatBotWidget', () => {
     expect(inputReabierto.value).toBe('');
     expect(sendReabierto.disabled).toBe(false);
     expect(document.activeElement).toBe(inputReabierto);
+  });
+
+  it('pregunta si puede ayudar, muestra sugerencias y reinicia al saludar', () => {
+    const { input, send } = abrirChat();
+
+    fireEvent.change(input, { target: { value: 'uno' } });
+    fireEvent.click(send);
+    responderAhora();
+
+    expect(screen.getByText(BOT_CONFIRMACION)).toBeTruthy();
+    expect(screen.getByText('Sí')).toBeTruthy();
+    expect(screen.getByText('No')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Sí'));
+    responderAhora();
+    expect(screen.getByText('Preguntas frecuentes:')).toBeTruthy();
+
+    fireEvent.change(input, { target: { value: 'dos' } });
+    fireEvent.click(send);
+    responderAhora();
+    fireEvent.click(screen.getByText('No'));
+    responderAhora();
+
+    expect(screen.getByText(BOT_DESPEDIDA)).toBeTruthy();
+    expect(screen.queryByText('Preguntas frecuentes:')).toBeNull();
+
+    fireEvent.change(input, { target: { value: 'hola' } });
+    fireEvent.click(send);
+    responderAhora();
+
+    expect(screen.getByText('Preguntas frecuentes:')).toBeTruthy();
+    expect(responder).not.toHaveBeenCalledWith('hola');
   });
 
   it('cancela la respuesta pendiente al desmontar', () => {
