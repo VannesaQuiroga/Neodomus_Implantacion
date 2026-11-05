@@ -7,12 +7,21 @@
 const SESSION_ID_KEY = 'neodomus_tab_session_id';
 const SUFFIX = '__tab__';
 
+// Genera un token aleatorio criptográficamente seguro (base36).
+// Se usa crypto.getRandomValues() en lugar de Math.random() porque este
+// último no es apto para identificar/aislar sesiones (Sonar S2245).
+const randomToken = (): string => {
+  const buffer = new Uint32Array(1);
+  crypto.getRandomValues(buffer);
+  return buffer[0].toString(36);
+};
+
 // accede a sessionStorage para conservar o recuperar datos locales.
 const getSessionId = (): string => {
   try {
     let id = sessionStorage.getItem(SESSION_ID_KEY);
     if (!id) {
-      id = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      id = `${Date.now()}_${randomToken()}`;
       sessionStorage.setItem(SESSION_ID_KEY, id);
     }
     return id;
@@ -90,7 +99,7 @@ export const rotateTabSessionId = (): void => {
   try {
     sessionStorage.setItem(
       SESSION_ID_KEY,
-      `${Date.now()}_${Math.random().toString(36).slice(2, 10)}_${Math.random().toString(36).slice(2, 10)}`,
+      `${Date.now()}_${randomToken()}_${randomToken()}`,
     );
   } catch {
     /* noop */
