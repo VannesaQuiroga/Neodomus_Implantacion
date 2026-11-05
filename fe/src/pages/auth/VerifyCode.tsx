@@ -15,7 +15,6 @@ const VerifyCode = () => {
   const [countdown, setCountdown] = useState(600);
 
   const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     if (countdown > 0) {
@@ -49,7 +48,6 @@ const VerifyCode = () => {
 
     if (loading) return;
     setError('');
-    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -87,16 +85,11 @@ const VerifyCode = () => {
 
     setResendLoading(true);
     setError('');
-    setSuccessMsg('');
 
     try {
       await api.post('/auth/forgot-password', {
         email,
       }, { timeout: 15000 });
-
-      setSuccessMsg(
-        'Si el correo está registrado, recibirás un nuevo código en breve.'
-      );
 
       setCountdown(600);
     } catch (err: any) {
@@ -198,12 +191,6 @@ const VerifyCode = () => {
         {error && (
           <div className="error-message">
             {error}
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="success-message">
-            {successMsg}
           </div>
         )}
 

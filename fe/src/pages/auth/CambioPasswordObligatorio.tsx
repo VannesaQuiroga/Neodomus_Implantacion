@@ -1,7 +1,7 @@
 // Solicita cambiar la contraseña cuando la cuenta requiere actualizarla antes de continuar.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaKey, FaCircleExclamation, FaCircleCheck } from 'react-icons/fa6';
+import { FaKey, FaCircleExclamation } from 'react-icons/fa6';
 import { useAuth } from '@contexts/AuthContext';
 import api from '@services/api';
 import '@styles/login.css';
@@ -16,24 +16,21 @@ const CambioPasswordObligatorio = () => {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (message || error) {
+    if (error) {
       const timer = setTimeout(() => {
-        setMessage('');
         setError('');
       }, 6000);
       return () => clearTimeout(timer);
     }
-  }, [message, error]);
+  }, [error]);
 
   // Comunica con el backend mediante POST '/auth/change-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     setError('');
 
     if (newPassword !== confirmPassword) {
@@ -56,17 +53,14 @@ const CambioPasswordObligatorio = () => {
         new_password: newPassword,
       });
       setPasswordResetRequired(false);
-      setMessage('Contraseña actualizada correctamente. Ya puedes usar tu cuenta.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      window.setTimeout(() => {
-        if (rol === 'administrador' || rol === 'admin') {
-          navigate('/dashboard/admin', { replace: true });
-        } else {
-          navigate('/dashboard/tecnico', { replace: true });
-        }
-      }, 1200);
+      if (rol === 'administrador' || rol === 'admin') {
+        navigate('/dashboard/admin', { replace: true });
+      } else {
+        navigate('/dashboard/tecnico', { replace: true });
+      }
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || 'Error al cambiar la contraseña';
       setError(errorMsg);
@@ -87,7 +81,6 @@ const CambioPasswordObligatorio = () => {
             El administrador estableció una contraseña temporal para tu cuenta.
             Por seguridad, debes crear una nueva contraseña personal antes de continuar.
           </p>
-          {message && <div className="success"><FaCircleCheck /> {message}</div>}
           {error && <div className="error"><FaCircleExclamation /> {error}</div>}
 
           <div className="login-input-wrapper">
