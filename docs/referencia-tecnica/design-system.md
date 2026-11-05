@@ -166,7 +166,7 @@ tsx
 Para auditar que el sistema de diseño se aplica correctamente:
 
 bash
-cd frontend/src
+cd fe/src
 
 # Buscar colores dorados hardcodeados (evitar estos patrones)
 grep -rn "#D4AF37\|#C59B2E\|bg-yellow-\|text-yellow-" --include="*.tsx" . | grep -v "primary"
@@ -190,4 +190,3 @@ Si se desea soportar múltiples temas (ej. cliente puede elegir color), se puede
 El diseño de Neodomus sigue las mismas convenciones que el sistema de autenticación de referencia (NN Auth System), pero adaptado a su propia identidad de marca. La principal diferencia es que Neodomus no cambia de color por stack (es un proyecto único), sino que fija el dorado como primario y el negro como fondo principal.
 
 Conclusión: Este design system garantiza que la interfaz de Neodomus sea coherente, mantenible y alineada con la marca. Los tokens primary-* abstraen el color real, permitiendo cambios futuros sin modificar decenas de componentes. Además, la separación entre colores de interacción (primario) y colores semánticos (éxito, error, etc.) evita ambigüedades y mejora la experiencia de usuario.
-

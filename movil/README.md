@@ -1,50 +1,30 @@
-# Welcome to your Expo app 👋
+# Aplicación móvil NeoDomus
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Cliente móvil construido con Expo Router. Esta guía sustituye las instrucciones genéricas del starter de Expo.
 
-## Get started
+## Configuración actual
 
-1. Install dependencies
+El manifiesto `package.json` declara Expo 57.0.22, React Native 0.86.3, React 19.2.3 y Expo Router 57.0.21. El punto de entrada es `expo-router/entry`; las rutas están en `app/`.
 
-   ```bash
-   npm install
-   ```
+## Preparación y ejecución
 
-2. Start the app
+Instala las dependencias desde `movil/` usando pnpm y el lockfile `pnpm-lock.yaml`:
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+pnpm install
+pnpm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+También están declarados `pnpm android`, `pnpm ios`, `pnpm web`, `pnpm lint` y `pnpm typecheck`. La disponibilidad de simuladores y plataforma depende del equipo local.
 
-## Learn more
+## URL de la API
 
-To learn more about developing your project with Expo, look at the following resources:
+Copia `.env.example` a `.env` y configura `EXPO_PUBLIC_API_URL` como host del backend sin `/api/v1`. Para Android Emulator se documenta `http://10.0.2.2:8000`; un teléfono físico necesita la IP LAN del equipo y permiso de red. `constants/api.ts` añade `/api/v1`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Las variables `EXPO_PUBLIC_*` quedan incluidas en el bundle: nunca pongas secretos en ellas. Reinicia Expo después de cambiar configuración.
 
-## Join the community
+## Navegación
 
-Join our community of developers creating universal apps.
+`app/_layout.tsx` monta proveedores de autenticación, carrito, favoritos, idioma y consentimiento de cookies. `(tabs)` aloja experiencia pública/cliente; `(tecnico)` es el área técnica, seleccionada según el rol. No se encontró una sección administrativa móvil.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Para uso de la aplicación, consulta el [manual de usuario del repositorio](../MANUAL_DE_USUARIO.md). Para instalación completa, consulta [docs/setup/sin-docker.md](../docs/setup/sin-docker.md) o la [guía Docker](../docs/setup/con-docker.md).
