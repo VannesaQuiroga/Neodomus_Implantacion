@@ -59,6 +59,17 @@ h2 { margin-bottom: 5px; font-size: 24px; color: #ffffff; }
 .welcome-text { font-size: 14px; color: #a0a0a0; margin-bottom: 25px; }
 .brand-gold { color: #ffd700; font-weight: 700; }
 
+/* 5. Etiquetas de los inputs (coherente con el formulario de Registro) */
+.login-label {
+  color: #cccccc;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  text-align: left;
+  width: 100%;
+  display: block;
+}
+
 /* 5. Inputs */
 .login-input-wrapper {
     width: 100%;

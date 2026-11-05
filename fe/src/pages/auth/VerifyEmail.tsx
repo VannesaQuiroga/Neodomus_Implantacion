@@ -11,7 +11,6 @@ const VerifyEmail = () => {
   // Estado para las 6 cajitas individuales del código
   const [codeArray, setCodeArray] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [canResend, setCanResend] = useState(true);
   const [countdown, setCountdown] = useState(0);
@@ -87,7 +86,6 @@ const VerifyEmail = () => {
     }
     setLoading(true);
     setError('');
-    setMessage('');
     try {
       await api.post('/auth/verify-email', null, { params: { code: finalCode } });
       openAuth('ingresar');
@@ -104,11 +102,9 @@ const VerifyEmail = () => {
     if (!canResend) return;
     setCanResend(false);
     setError('');
-    setMessage('');
     setLoading(true);
     try {
       await api.post('/auth/resend-verification', { email });
-      setMessage('Se ha enviado un nuevo código a tu correo.');
       setCountdown(30);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al reenviar el código');
@@ -163,7 +159,6 @@ const VerifyEmail = () => {
             <strong className="user-email">{email || 'tu correo'}</strong>
           </p>
           
-          {message && <div className="success-msg">{message}</div>}
           {error && <div className="error-msg">{error}</div>}
           
           {/* Grilla de 6 inputs individuales */}

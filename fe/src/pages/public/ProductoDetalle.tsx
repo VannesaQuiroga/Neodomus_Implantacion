@@ -3,6 +3,7 @@ import { MetrosSelect } from '@components/common/MetrosSelect';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaCheck, FaTruckFast, FaShieldHalved, FaRotateLeft, FaUsers, FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
+import ProductoCard from '@components/productos/ProductoCard';
 import api from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useFavoritos } from '@utils/favoritos';
@@ -598,7 +599,7 @@ const ProductoDetalle = () => {
                     </span>
                   )}
                   <span className="detalle-precio-monto">
-                    ${precioUnitario.toLocaleString()}
+                    ${subtotalLinea(precioUnitario, cantidad).toLocaleString()}
                   </span>
                   <span className="detalle-precio-sufijo">COP</span>
                   {tieneDescuento && (
@@ -977,36 +978,30 @@ const ProductoDetalle = () => {
           </div>
         </div>
 
-        {/* Recomendados — solo en pantallas grandes */}
+        {/* Recomendados — mismo diseño premium que la página de productos */}
         {recomendados.length > 0 && (
           <div className="detalle-recomendados">
             <h3 className="detalle-recomendados-titulo">También te puede interesar</h3>
-            <div className="detalle-recomendados-wrap">
-              <button className="carousel-flecha" onClick={() => scrollCarousel('izq')} aria-label="Anterior">
+            <div className="detalle-recomendados-carousel-wrap">
+              <button
+                className="carousel-flecha carousel-flecha-izq"
+                onClick={() => scrollCarousel('izq')}
+                aria-label="Desplazar a la izquierda"
+              >
                 <FaChevronLeft />
               </button>
               <div className="detalle-recomendados-carousel" ref={carouselRef}>
-                {recomendados.map((p) => {
-                  const img = p.imagen_url || `/productos/${p.id_producto}.jpg`;
-                  const precio = p.precio_final ?? p.precio_venta_producto;
-                  return (
-                    <Link key={p.id_producto} to={`/producto/${p.id_producto}`} className="recomendado-card">
-                      <div className="recomendado-img-wrap">
-                        <img src={img} alt={p.nombre_producto} className="recomendado-img" loading="lazy" />
-                        {p.descuento_activo != null && p.descuento_activo > 0 && (
-                          <span className="recomendado-badge">-{p.descuento_activo}%</span>
-                        )}
-                      </div>
-                      <div className="recomendado-info">
-                        <span className="recomendado-nombre">{p.nombre_producto}</span>
-                        <span className="recomendado-precio">${precio?.toLocaleString('es-CO')}</span>
-                        {p.stock_estado === 'agotado' && <span className="recomendado-agotado">Agotado</span>}
-                      </div>
-                    </Link>
-                  );
-                })}
+                <div className="productos-grid detalle-recomendados-grid">
+                  {recomendados.map((p) => (
+                    <ProductoCard key={p.id_producto} producto={p} />
+                  ))}
+                </div>
               </div>
-              <button className="carousel-flecha" onClick={() => scrollCarousel('der')} aria-label="Siguiente">
+              <button
+                className="carousel-flecha carousel-flecha-der"
+                onClick={() => scrollCarousel('der')}
+                aria-label="Desplazar a la derecha"
+              >
                 <FaChevronRight />
               </button>
             </div>

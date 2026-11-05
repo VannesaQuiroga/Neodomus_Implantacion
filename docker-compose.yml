@@ -57,6 +57,8 @@ services:
       FRONTEND_VERIFY_EMAIL_PATH: /verify-email
       FRONTEND_RESET_PASSWORD_PATH: /reset-password
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Controla si el seed de usuarios de prueba se ejecuta al arrancar (solo desarrollo)
+      EJECUTAR_SEED_AL_ARRANCAR: ${EJECUTAR_SEED_AL_ARRANCAR:-true}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-neodomus}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
@@ -69,6 +71,9 @@ services:
       - /app/.venv
     command: >
       sh -c "uv run alembic upgrade head &&
+      if [ \"${EJECUTAR_SEED_AL_ARRANCAR:-true}\" = \"true\" ]; then
+        uv run python /app/scripts/seed_test_users.py || echo \"[aviso] seed_test_users.py falló, continuando con el inicio del servidor\";
+      fi &&
       exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     networks:
       - neodomus_net

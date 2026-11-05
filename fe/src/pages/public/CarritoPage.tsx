@@ -2,7 +2,7 @@ import { MetrosSelect } from '@components/common/MetrosSelect';
 // Pantalla CarritoPage de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaTrashCan, FaCartShopping, FaCircleCheck, FaExclamation, FaPen, FaTriangleExclamation } from 'react-icons/fa6';
+import { FaArrowLeft, FaChevronLeft, FaChevronRight, FaTrashCan, FaCartShopping, FaCircleCheck, FaExclamation, FaPen, FaTriangleExclamation } from 'react-icons/fa6';
 import { useCart, type CartItem } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
@@ -37,6 +37,7 @@ const CarritoPage = () => {
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
   const [displayValues, setDisplayValues] = useState<Record<string, string>>({});
   const [sugeridos, setSugeridos] = useState<any[]>([]);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const totalTecnicos = Math.max(1, ...items.map((item) => item.tecnicos_requeridos || 1));
 
@@ -50,6 +51,14 @@ const CarritoPage = () => {
   const showToast = (msg: string, tipo: 'success' | 'error' = 'success') => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const scrollSugeridos = (direccion: 'izq' | 'der') => {
+    if (!carouselRef.current) return;
+    carouselRef.current.scrollBy({
+      left: direccion === 'izq' ? -300 : 300,
+      behavior: 'smooth',
+    });
   };
 
   const validarStockBackend = useCallback(async () => {
@@ -202,7 +211,6 @@ const CarritoPage = () => {
                       <img
                         src={item.imagen}
                         alt={item.nombre_producto}
-                        onError={(e) => (e.currentTarget.src = '/productos/default.png')}
                       />
                     </Link>
 
@@ -394,15 +402,30 @@ const CarritoPage = () => {
         )}
 
         {items.length > 0 && sugeridos.length > 0 && (
-          <section className="carrito-sugeridos">
-            <header className="carrito-sugeridos-header">
-              <h2>Productos sugeridos</h2>
-              <p>También te puede interesar</p>
-            </header>
-            <div className="productos-grid">
-              {sugeridos.map(prod => (
-                <ProductoCard key={prod.id_producto} producto={prod} />
-              ))}
+          <section className="detalle-recomendados">
+            <h3 className="detalle-recomendados-titulo">También te puede interesar</h3>
+            <div className="detalle-recomendados-carousel-wrap">
+              <button
+                className="carousel-flecha carousel-flecha-izq"
+                aria-label="Desplazar a la izquierda"
+                onClick={() => scrollSugeridos('izq')}
+              >
+                <FaChevronLeft />
+              </button>
+              <div className="detalle-recomendados-carousel" ref={carouselRef}>
+                <div className="productos-grid detalle-recomendados-grid">
+                  {sugeridos.map(prod => (
+                    <ProductoCard key={prod.id_producto} producto={prod} />
+                  ))}
+                </div>
+              </div>
+              <button
+                className="carousel-flecha carousel-flecha-der"
+                aria-label="Desplazar a la derecha"
+                onClick={() => scrollSugeridos('der')}
+              >
+                <FaChevronRight />
+              </button>
             </div>
           </section>
         )}
