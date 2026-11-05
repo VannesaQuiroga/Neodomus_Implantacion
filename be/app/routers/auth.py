@@ -1,5 +1,6 @@
 # Rutas de auth. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -87,6 +88,21 @@ async def resend_verification_endpoint(request: Request, req: ResendVerification
 def login_endpoint(request: Request, response: Response, login_data: UserLogin, db: Session = Depends(get_db)):
     result = login(db, login_data)
     # Cookies HttpOnly para la web; los tokens también van en el cuerpo para el móvil.
+    set_auth_cookies(response, result.access_token, result.refresh_token)
+    return result
+
+@router.post("/token", response_model=TokenResponse)
+@limiter.limit("5/minute")
+def oauth2_token_endpoint(
+    request: Request,
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    """Intercambia email/contraseña del formulario OAuth2 de Swagger por tokens."""
+    # OAuth2 llama al campo `username`; en este proyecto el nombre de usuario es el email.
+    login_data = UserLogin(email=form_data.username, password=form_data.password)
+    result = login(db, login_data)
     set_auth_cookies(response, result.access_token, result.refresh_token)
     return result
 

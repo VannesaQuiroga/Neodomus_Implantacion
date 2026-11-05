@@ -83,7 +83,7 @@ def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Token inválido o expirado")
     return payload
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 def _cookie_secure() -> bool:
