@@ -1,3 +1,4 @@
+// Componente reutilizable collapsible para componer la interfaz de Neodomus.
 import { PropsWithChildren, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 

@@ -692,6 +692,48 @@
   color: var(--ay-texto);
 }
 
+.ayuda-chat-confirm {
+  display: flex;
+  gap: 10px;
+}
+
+.ayuda-chat-confirm:empty {
+  display: none;
+}
+
+.ayuda-chat-confirm-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.ayuda-chat-confirm-btn.si {
+  border: 1px solid var(--ay-borde-oro);
+  background: rgba(212, 165, 75, 0.18);
+  color: var(--ay-oro-claro);
+}
+
+.ayuda-chat-confirm-btn.si:hover {
+  background: rgba(212, 165, 75, 0.3);
+  color: #fff;
+}
+
+.ayuda-chat-confirm-btn.no {
+  border: 1px solid var(--ay-borde);
+  background: transparent;
+  color: var(--ay-muted);
+}
+
+.ayuda-chat-confirm-btn.no:hover {
+  border-color: var(--ay-muted);
+  color: var(--ay-texto);
+}
+
 .ayuda-chat-input-row {
   display: flex;
   gap: 10px;

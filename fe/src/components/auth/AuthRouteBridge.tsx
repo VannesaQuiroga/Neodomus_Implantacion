@@ -1,3 +1,4 @@
+// Componente reutilizable AuthRouteBridge para componer la interfaz de Neodomus.
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthModal, AuthStep } from '@contexts/AuthModalContext';

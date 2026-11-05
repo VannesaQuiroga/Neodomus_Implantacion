@@ -1,3 +1,4 @@
+# Contratos de datos para auth. Pydantic valida los campos de entrada y de respuesta de la API.
 import re
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -13,6 +14,7 @@ def _validate_password_strength(v: str) -> str:
         raise ValueError("Debe contener un número")
     return v
 
+# Agrupa los campos de ClientCreate: first_name, last_name, email, password, id_tipo_documento_c y los demás declarados abajo.
 class ClientCreate(BaseModel):
     first_name: str = Field(..., max_length=100)
     last_name: str = Field(..., max_length=100)
@@ -34,11 +36,13 @@ class ClientCreate(BaseModel):
             raise ValueError("Mínimo 2 caracteres")
         return v
 
+# Agrupa los campos de UserLogin: email, password, user_type.
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
     user_type: Optional[Literal["employee", "client"]] = None
 
+# Agrupa los campos de ChangePasswordRequest: current_password, new_password.
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
@@ -48,6 +52,7 @@ class ChangePasswordRequest(BaseModel):
         return _validate_password_strength(v)
 
 
+# Agrupa los campos de UpdatePasswordRequest: new_password.
 class UpdatePasswordRequest(BaseModel):
     new_password: str
 
@@ -55,9 +60,11 @@ class UpdatePasswordRequest(BaseModel):
     def validate_new(cls, v: str) -> str:
         return _validate_password_strength(v)
 
+# Agrupa los campos de ForgotPasswordRequest: email.
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
+# Agrupa los campos de ResetPasswordRequest: token, new_password.
 class ResetPasswordRequest(BaseModel):
     token: str = Field(min_length=6, max_length=6)
     new_password: str
@@ -66,19 +73,24 @@ class ResetPasswordRequest(BaseModel):
     def validate_new(cls, v: str) -> str:
         return _validate_password_strength(v)
 
+# Agrupa los campos de RefreshTokenRequest: refresh_token.
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+# Agrupa los campos de VerifyEmailRequest: code.
 class VerifyEmailRequest(BaseModel):
     code: str = Field(min_length=6, max_length=6)
 
+# Agrupa los campos de VerifyCodeRequest: email, code.
 class VerifyCodeRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=6)
 
+# Agrupa los campos de RequestEmailChangeRequest: nuevo_email.
 class RequestEmailChangeRequest(BaseModel):
     nuevo_email: EmailStr
 
+# Agrupa los campos de VerifyEmailChangeRequest: code, nuevo_email.
 class VerifyEmailChangeRequest(BaseModel):
     code: str = Field(min_length=6, max_length=6)
     nuevo_email: EmailStr
@@ -94,8 +106,10 @@ class TokenResponse(BaseModel):
     perfil_incompleto: bool = False
     model_config = ConfigDict(from_attributes=True)
 
+# Agrupa los campos de MessageResponse: message.
 class MessageResponse(BaseModel):
     message: str
 
+# Agrupa los campos de GoogleLoginRequest: credential.
 class GoogleLoginRequest(BaseModel):
     credential: str

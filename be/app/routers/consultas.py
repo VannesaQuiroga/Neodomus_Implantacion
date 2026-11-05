@@ -1,3 +1,4 @@
+# Rutas de consultas. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
@@ -27,6 +28,7 @@ CATEGORIAS_CONSULTA = {
 }
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -54,6 +56,7 @@ def _to_dict(c: Contacto) -> dict:
     }
 
 
+# Agrupa los campos de ConsultaCreate: nombre, email, asunto, mensaje, categoria.
 class ConsultaCreate(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=120)
     email: EmailStr
@@ -62,6 +65,7 @@ class ConsultaCreate(BaseModel):
     categoria: Optional[str] = None
 
 
+# Agrupa los campos de ConsultaUpdate: estado, respuesta, categoria.
 class ConsultaUpdate(BaseModel):
     estado: Optional[str] = None
     respuesta: Optional[str] = None

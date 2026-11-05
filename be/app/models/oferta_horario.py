@@ -15,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
 
+# Mapea la tabla «ofertas_horario»; sus referencias enlazan con clientes.
 class OfertaHorario(Base):
     __tablename__ = "ofertas_horario"
 

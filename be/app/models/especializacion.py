@@ -1,3 +1,4 @@
+# Persistencia de especializacion. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from sqlalchemy import (
     Column,
     DateTime,
@@ -17,6 +18,7 @@ from app.database import Base
 # ────────────────────────────────────────────────────────────────
 
 
+# Mapea la tabla «especializaciones».
 class Especializacion(Base):
     __tablename__ = "especializaciones"
 
@@ -69,6 +71,7 @@ producto_especializacion = Table(
 # ────────────────────────────────────────────────────────────────
 
 
+# Mapea la tabla «historial_citas»; sus referencias enlazan con citas.
 class HistorialCita(Base):
     __tablename__ = "historial_citas"
 
@@ -93,6 +96,7 @@ class HistorialCita(Base):
 # ────────────────────────────────────────────────────────────────
 
 
+# Mapea la tabla «reembolsos»; sus referencias enlazan con citas, pedidos.
 class Reembolso(Base):
     __tablename__ = "reembolsos"
 

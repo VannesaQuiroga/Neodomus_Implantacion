@@ -1,6 +1,7 @@
 ﻿/* ==========================================================================
-   PRODUCTOS PÚBLICOS - Catálogo Neodomus
-   Diseño moderno tipo e-commerce con tarjetas elegantes y hover.
+   PRODUCTOS PÚBLICOS - Diseño Premium Oscuro con Borde Dorado
+   Todas las tarjetas de productos con estilo completo (imagen, nombre,
+   categoría, técnicos, precio, stock, cantidad y agregar al carrito).
    ========================================================================== */
 
 .productos-page {
@@ -133,7 +134,7 @@
 }
 
 /* ============================================================
-   GRID DE PRODUCTOS
+   GRID DE PRODUCTOS (4 / 2 / 1 columnas)
    ============================================================ */
 
 .productos-grid {
@@ -145,7 +146,7 @@
 }
 
 /* ============================================================
-   CARD DE PRODUCTO
+   TARJETA DE PRODUCTO (diseño premium oscuro + dorado)
    ============================================================ */
 
 .card-producto {
@@ -153,8 +154,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(180deg, rgba(24, 24, 24, 0.9), rgba(12, 12, 12, 0.95));
-  border: 1px solid rgba(211, 172, 77, 0.25);
+  background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%);
+  border: 1px solid rgba(211, 172, 77, 0.35);
   border-radius: 20px;
   overflow: hidden;
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
@@ -162,15 +163,16 @@
 
 .card-producto:hover {
   transform: translateY(-8px);
-  border-color: rgba(211, 172, 77, 0.55);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(211, 172, 77, 0.15);
+  border-color: rgba(211, 172, 77, 0.65);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(211, 172, 77, 0.25);
 }
 
-/* Contenedor de imagen */
+/* --- Contenedor de imagen (altura uniforme, centrada) --- */
+
 .img-contenedor {
   position: relative;
-  height: 240px;
-  background: radial-gradient(circle at 50% 35%, rgba(52, 52, 52, 0.9) 0%, rgba(10, 10, 10, 0.9) 75%);
+  height: 260px;
+  background: radial-gradient(circle at 50% 35%, rgba(30, 30, 30, 0.95) 0%, rgba(10, 10, 10, 0.95) 75%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -186,44 +188,7 @@
   pointer-events: none;
 }
 
-.corner-badges {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  pointer-events: none;
-}
-
-.promo-corner {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffd700, #e8b100);
-  color: #1a1a1a;
-  box-shadow: 0 4px 14px rgba(232, 177, 0, 0.45);
-}
-
-.nuevo-corner {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: #1f1a12;
-  color: #ffd98a;
-  border: 1px solid #d4a54b;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
-.producto-img-wrap {
+.img-producto-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -240,34 +205,11 @@
   transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.img-producto-wrap a {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.nombre-producto-link {
-  text-decoration: none;
-}
-
-.nombre-producto-link .nombre-producto {
-  transition: color 0.25s;
-}
-
-.nombre-producto-link .nombre-producto:hover {
-  color: #ffd700;
-}
-
 .card-producto:hover .img-producto {
   transform: scale(1.08);
 }
 
-/* ============================================================
-   BOTÓN FAVORITOS (corazón)
-   ============================================================ */
+/* --- Favoritos esquina superior derecha --- */
 
 .btn-favorito {
   position: absolute;
@@ -313,16 +255,66 @@
   stroke: currentColor;
 }
 
-/* ============================================================
-   INFO DEL PRODUCTO
-   ============================================================ */
+/* --- Corner badges (Nuevo / Promoción) --- */
+
+.corner-badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.promo-corner {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffd700, #e8b100);
+  color: #1a1a1a;
+  box-shadow: 0 4px 14px rgba(232, 177, 0, 0.45);
+}
+
+.nuevo-corner {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #1f1a12;
+  color: #ffd98a;
+  border: 1px solid #d4a54b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Info del producto --- */
 
 .info-producto {
-  padding: 16px 16px 16px;
+  padding: 18px 18px 20px;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  gap: 10px;
+}
+
+.nombre-producto-link {
+  text-decoration: none;
+}
+
+.nombre-producto-link .nombre-producto {
+  transition: color 0.25s;
+}
+
+.nombre-producto-link .nombre-producto:hover {
+  color: #ffd700;
 }
 
 .nombre-producto {
@@ -331,59 +323,72 @@
   font-weight: 600;
   line-height: 1.35;
   margin: 0;
-  margin-bottom: 8px;
-  min-height: 2.4em; /* Alto uniforme para nombres de 1-2 líneas */
+  margin-bottom: 6px;
+  min-height: 2.4em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+/* --- Categoría (badge dorada) --- */
+
 .categoria-producto {
   align-self: flex-start;
-  color: #d3ac4d;
-  font-size: 12px;
-  font-weight: 600;
+  color: #ffd700;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(211, 172, 77, 0.12);
+  border: 1px solid rgba(211, 172, 77, 0.35);
+  border-radius: 999px;
+  padding: 3px 11px;
+  margin-bottom: 2px;
+}
+
+/* --- Etiqueta requisitos técnicos --- */
+
+.tecnico-requisito {
+  align-self: flex-start;
+  color: #ffd700;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   background: rgba(211, 172, 77, 0.1);
-  border: 1px solid rgba(211, 172, 77, 0.35);
+  border: 1px solid rgba(211, 172, 77, 0.25);
   border-radius: 999px;
-  padding: 4px 12px;
-  margin-bottom: 8px;
+  padding: 2px 10px;
+  margin-bottom: 4px;
 }
 
-/* ——— Footer uniforme: precios + selectores + botón siempre abajo ——— */
-.producto-footer {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  justify-content: flex-end;
-  align-content: flex-start;
+/* --- Separador horizontal --- */
+
+.separador {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(211, 172, 77, 0.35), transparent);
+  margin: 2px 0 6px 0;
+  border: none;
 }
+
+/* --- Precios --- */
 
 .precio-bloque {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .precio-unitario {
   color: #9c9c9c;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.4px;
+  text-transform: uppercase;
   line-height: 1.4;
-}
-
-.precio-unitario--placeholder,
-.precio-seleccion-detalle--placeholder {
-  visibility: hidden;
-  min-height: 12px;
-  line-height: 1.2;
 }
 
 .precio-producto {
@@ -395,8 +400,8 @@
 
 .precio-monto {
   color: #ffd700;
-  font-size: 25px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   letter-spacing: 0.3px;
   line-height: 1;
 }
@@ -426,33 +431,133 @@
   margin-left: auto;
 }
 
-.precio-seleccion-detalle {
-  color: #bdbdbd;
+/* --- Subtotal calculado --- */
+
+.subtotal-detalle {
+  color: #c9c9c9;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.3px;
   margin-top: 2px;
 }
 
-.precio-metro-hint {
-  display: block;
-  color: #9c9c9c;
-  font-size: 11.5px;
+/* --- Disponibilidad (punto verde) --- */
+
+.stock-disponible {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  margin-top: -6px;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  color: #bdbdbd;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
 }
 
-/* ============================================================
-   ACCIONES: cantidad + agregar al carrito (estructura uniforme)
-   ============================================================ */
+.stock-disponible__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.18);
+}
 
-.acciones-producto {
+.stock-disponible--bajo {
+  color: #ffd98a;
+  border-color: rgba(212, 165, 75, 0.28);
+  background: rgba(212, 165, 75, 0.08);
+}
+
+.stock-disponible--bajo .stock-disponible__dot {
+  background: #f0c35a;
+  box-shadow: 0 0 0 2px rgba(240, 195, 90, 0.2);
+}
+
+.stock-disponible--agotado {
+  color: #ff8f93;
+  border-color: rgba(229, 72, 77, 0.3);
+  background: rgba(229, 72, 77, 0.08);
+}
+
+.stock-disponible--agotado .stock-disponible__dot {
+  background: #ff6b6b;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.18);
+}
+
+/* --- Variantes (chips) --- */
+
+.combos-mini {
   display: flex;
-  gap: 12px;
-  align-items: stretch;
-  margin-top: 14px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 2px;
+  min-height: 20px;
 }
+
+.combo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 165, 75, 0.35);
+  background: rgba(212, 165, 75, 0.07);
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.combo-chip b {
+  font-weight: 700;
+}
+
+.combo-chip .combo-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.combo-chip.agotado {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.combo-chip:disabled {
+  cursor: not-allowed;
+}
+
+.combo-chip.activo {
+  border-color: #ffd98a;
+  background: rgba(212, 165, 75, 0.22);
+  box-shadow: 0 0 0 1px rgba(255, 217, 138, 0.35) inset;
+}
+
+.combo-chip:not(:disabled) {
+  cursor: pointer;
+}
+
+.combo-chip.mas {
+  background: transparent;
+  color: #d4a54b;
+  border-style: dashed;
+}
+
+.combos-mini--placeholder {
+  min-height: 12px;
+  visibility: hidden;
+}
+
+/* --- Selectores de cantidad --- */
 
 .selectores-bloque {
   display: flex;
@@ -461,21 +566,7 @@
   justify-content: flex-start;
   align-items: center;
   gap: 8px;
-}
-
-.selectores-bloque .cantidad-control {
-  width: auto;
-  max-width: 120px;
-  flex: 0 0 auto;
-  margin: 0;
-}
-
-.selectores-bloque .metros-control-grid {
-  width: 100%;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
+  margin-top: 4px;
 }
 
 .cantidad-row {
@@ -499,18 +590,18 @@
   align-items: center;
   justify-content: space-between;
   border: 1px solid rgba(211, 172, 77, 0.35);
-  border-radius: 999px;
+  border-radius: 10px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.45);
-  height: 38px;
-  max-width: 120px;
+  height: 36px;
+  max-width: 116px;
   width: auto;
   flex: 0 0 auto;
 }
 
 .cantidad-control button {
   width: 34px;
-  height: 38px;
+  height: 36px;
   border: none;
   background: transparent;
   color: #ffffff;
@@ -529,10 +620,15 @@
   color: #ffd700;
 }
 
+.cantidad-control button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .cantidad-control span,
 .cantidad-control .cantidad-input {
-  width: 36px;
-  height: 38px;
+  width: 38px;
+  height: 36px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -555,24 +651,31 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
 .cantidad-control .cantidad-input::-webkit-inner-spin-button,
 .cantidad-control .cantidad-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.cantidad-control button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+/* --- Selector de metros --- */
+
+.metros-control-grid {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  width: auto;
+  flex: 0 0 auto;
 }
 
 .metros-select {
-  min-width: 82px;
-  max-width: 96px;
-  height: 38px;
-  padding: 0 28px 0 12px;
+  min-width: 86px;
+  max-width: 100px;
+  height: 36px;
+  padding: 0 30px 0 12px;
   border: 1px solid rgba(211, 172, 77, 0.35);
-  border-radius: 999px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23d3ac4d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px;
   color: #ffd700;
   font-weight: 700;
@@ -598,94 +701,7 @@
   color: #ffffff;
 }
 
-/* ——— Selector por metros + unidades (vista uniforme) ——— */
-.metros-control-grid {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-start;
-  width: auto;
-  flex: 0 0 auto;
-}
-.unidades-control {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  border: 1px solid rgba(211, 172, 77, 0.35);
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.45);
-  height: 38px;
-  max-width: 120px;
-  width: auto;
-  flex: 0 0 auto;
-}
-.unidades-control button {
-  width: 32px;
-  height: 38px;
-  border: none;
-  background: transparent;
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.2s, color 0.2s;
-}
-.unidades-control button:hover {
-  background: rgba(211, 172, 77, 0.25);
-  color: #ffd700;
-}
-.unidades-control button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-.unidades-control .cantidad-input {
-  width: 32px;
-  height: 38px;
-  border: none;
-  border-left: 1px solid #2e2e2e;
-  border-right: 1px solid #2e2e2e;
-  background: transparent;
-  color: #ffffff;
-  text-align: center;
-  font-weight: 700;
-  font-size: 13px;
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-.unidades-control .cantidad-input::-webkit-inner-spin-button,
-.unidades-control .cantidad-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.cantidad-control--metros {
-  border: none;
-  background: transparent;
-  gap: 0;
-  padding: 0;
-  overflow: visible;
-}
-.cantidad-control--metros .metros-select {
-  height: 38px;
-}
-.precio-metro-hint {
-  min-height: 2.2em;
-  display: block;
-}
-.precio-metro-hint--placeholder {
-  visibility: hidden;
-}
-
-.selectores-bloque .cantidad-control {
-  width: auto;
-  max-width: none;
-  height: 32px;
-  margin: 0;
-}
+/* --- Botón agregar al carrito (amarillo, texto negro) --- */
 
 .btn-agregar {
   flex: 1;
@@ -704,6 +720,7 @@
   cursor: pointer;
   transition: transform 0.25s, box-shadow 0.25s, filter 0.25s;
   box-shadow: 0 6px 18px rgba(211, 172, 77, 0.25);
+  margin-top: 2px;
 }
 
 .btn-agregar--footer {
@@ -715,11 +732,6 @@
   margin-top: 0;
 }
 
-.combos-mini--placeholder {
-  min-height: 12px;
-  visibility: hidden;
-}
-
 .btn-agregar:hover {
   transform: translateY(-2px);
   filter: brightness(1.07);
@@ -728,6 +740,14 @@
 
 .btn-agregar:active {
   transform: translateY(0);
+}
+
+.btn-agregar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+  filter: grayscale(0.2);
 }
 
 .icono-carrito {
@@ -859,312 +879,35 @@
   .img-contenedor {
     height: 210px;
   }
-}
-/* ── Mini-chips de combinaciones (color + medida) en la tarjeta ── */
-.combos-mini {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0 2px;
-  min-height: 20px;
-}
-.combo-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(212, 165, 75, 0.35);
-  background: rgba(212, 165, 75, 0.07);
-  color: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-.combo-chip b { font-weight: 700; }
-.combo-chip .combo-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  flex-shrink: 0;
-}
-.combo-chip.agotado {
-  opacity: 0.5;
-  text-decoration: line-through;
-}
-.combo-chip.mas {
-  background: transparent;
-  color: #d4a54b;
-  border-style: dashed;
-}
 
-/* ==========================================================================
-   AJUSTES VISUALES WEB — Solo versión WEB (visitante / usuario)
-   Productos: espacio precio→controles más compacto, alineación uniforme,
-   y selectores de cantidad/metros con forma cuadrada (esquinas 10px).
-   — No afecta a móvil (max-width:700px) —
-   ========================================================================== */
-@media (min-width: 701px) {
-  /* 1 + 2 — Footer compacto y uniforme: reduce espacio vertical vacío */
-  .producto-footer {
-    gap: 6px;
+  .card-producto {
+    border-radius: 16px;
   }
 
-  .precio-bloque {
-    padding-top: 6px;
-    gap: 3px;
+  .info-producto {
+    padding: 14px 16px 16px;
   }
 
-  .precio-seleccion-detalle {
-    margin-top: 1px;
-    line-height: 1.25;
+  .nombre-producto {
+    font-size: 15px;
+    min-height: 2.2em;
   }
 
-  .precio-metro-hint {
-    min-height: 1.6em;
+  .precio-monto {
+    font-size: 22px;
   }
 
-  .combos-mini {
-    margin: 2px 0 0;
-    min-height: 18px;
-  }
-
-  .combos-mini--placeholder {
-    min-height: 18px;
-  }
-
-  /* Mantener misma reserva vertical para variante con/sin combos
-     para que la fila de selectores quede alineada entre tarjetas */
-  .combos-mini:empty {
-    min-height: 18px;
-  }
-
-  .selectores-bloque {
-    min-height: 36px;
-    margin-top: 1px;
-    align-items: center;
-  }
-
-  .selectores-bloque .cantidad-control {
-    height: 36px;
-    max-width: none;
-  }
-
-  /* 3 — Selector de cantidad: forma cuadrada / rectangular con esquinas suavemente redondeadas */
-  .cantidad-control {
-    border-radius: 10px;
-    height: 36px;
-    max-width: 116px;
-    overflow: hidden;
-  }
-
-  .cantidad-control button {
-    width: 34px;
-    height: 36px;
-    border-radius: 0;
-  }
-
-  .cantidad-control span,
-  .cantidad-control .cantidad-input {
-    width: 38px;
-    height: 36px;
+  .btn-agregar {
+    height: 40px;
+    min-height: 40px;
     font-size: 13px;
   }
-
-  /* 3 — Variante unidades (productos por metros cuando reutilizan cantidad-control) */
-  .unidades-control {
-    border-radius: 10px;
-    height: 36px;
-    max-width: 116px;
-    overflow: hidden;
-  }
-
-  .unidades-control button {
-    width: 34px;
-    height: 36px;
-    border-radius: 0;
-  }
-
-  .unidades-control .cantidad-input {
-    width: 38px;
-    height: 36px;
-    font-size: 13px;
-  }
-
-  /* 4 — Selector de metros: misma línea visual cuadrada, sin forma circular/pill */
-  .metros-select {
-    height: 36px;
-    min-width: 86px;
-    max-width: 100px;
-    border-radius: 10px;
-    padding: 0 30px 0 12px;
-    font-size: 13px;
-  }
-
-  .cantidad-control--metros .metros-select {
-    height: 36px;
-  }
-
-  .metros-control-grid {
-    gap: 8px;
-    align-items: center;
-    min-height: 36px;
-  }
-
-  /* Espaciado del label "Cantidad:" más compacto en web */
-  .cantidad-row {
-    gap: 8px;
-  }
-
-  .cantidad-label {
-    font-size: 12.5px;
-  }
 }
 
-/* Stock disponible real — oculto en móvil por defecto */
-.stock-disponible {
-  display: none;
-}
+/* ============================================================
+   WEB: tarjetas uniformes y compactas (solo min-width 701px)
+   ============================================================ */
 
-/* ==========================================================================
-   WEB: Productos SIN metraje — elimina reserva vacía y acerca cantidad al precio
-   No afecta a productos CON metraje (mantienen estructura actual).
-   ========================================================================== */
-@media (min-width: 701px) {
-  /* Stock visible solo en WEB */
-  .stock-disponible {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    align-self: flex-start;
-    font-size: 11.5px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    line-height: 1;
-    color: #bdbdbd;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
-    padding: 4px 10px;
-    white-space: nowrap;
-  }
-
-  .stock-disponible__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #4ade80;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.18);
-  }
-
-  .stock-disponible--bajo {
-    color: #ffd98a;
-    border-color: rgba(212, 165, 75, 0.28);
-    background: rgba(212, 165, 75, 0.08);
-  }
-
-  .stock-disponible--bajo .stock-disponible__dot {
-    background: #f0c35a;
-    box-shadow: 0 0 0 2px rgba(240, 195, 90, 0.2);
-  }
-
-  .stock-disponible--agotado {
-    color: #ff8f93;
-    border-color: rgba(229, 72, 77, 0.3);
-    background: rgba(229, 72, 77, 0.08);
-  }
-
-  .stock-disponible--agotado .stock-disponible__dot {
-    background: #ff6b6b;
-    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.18);
-  }
-
-  /* Footer sin metraje: más compacto, sin hueco reservado */
-  .producto-footer--sin-metros {
-    gap: 4px;
-  }
-
-  .producto-footer--sin-metros .precio-bloque {
-    gap: 2px;
-    padding-top: 6px;
-  }
-
-  /* Elimina placeholders que reservaban altura para info de metros */
-  .producto-footer--sin-metros .precio-unitario--placeholder,
-  .producto-footer--sin-metros .precio-seleccion-detalle--placeholder {
-    display: none !important;
-    min-height: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 0 !important;
-    visibility: hidden !important;
-  }
-
-  /* Cuando el producto sin metraje tampoco tiene variantes, colapsa el placeholder de combos */
-  .producto-footer--sin-metros.producto-footer--sin-variantes .combos-mini--placeholder {
-    display: none !important;
-    min-height: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    visibility: hidden !important;
-  }
-
-  /* Variante con variantes pero sin metraje: reduce al mínimo el espacio de combos */
-  .producto-footer--sin-metros .combos-mini {
-    margin: 1px 0 0;
-    min-height: 0;
-  }
-
-  .producto-footer--sin-metros.producto-footer--sin-variantes .combos-mini {
-    display: none;
-  }
-
-  /* Selectores más pegados al precio cuando no hay metraje */
-  .producto-footer--sin-metros .selectores-bloque {
-    margin-top: 0;
-    min-height: 32px;
-  }
-
-  .producto-footer--sin-metros .selectores-bloque .cantidad-control {
-    height: 36px;
-  }
-
-  /* Stock + selectores deben quedar con gap mínimo */
-  .producto-footer--sin-metros .stock-disponible + .combos-mini,
-  .producto-footer--sin-metros .stock-disponible + .selectores-bloque {
-    margin-top: 0;
-  }
-
-  .producto-footer--sin-metros .precio-bloque + .stock-disponible {
-    margin-top: 1px;
-  }
-
-  .producto-footer--sin-metros .precio-bloque + .selectores-bloque {
-    margin-top: 2px;
-  }
-
-  /* Botón deshabilitado por sin stock */
-  .btn-agregar:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none;
-    filter: grayscale(0.2);
-  }
-}
-
-/* ==========================================================================
-   WEB — Tarjetas uniformes + distribución interna equilibrada
-   Todas las cards misma altura (grid 1fr) pero sin huecos gigantes:
-   - grid iguala altura por fila, no global
-   - info-producto flex:1 + footer margin-top:auto distribuye espacio sobrante
-   - gaps compactos 4-6px, sin alturas fijas exageradas
-   Solo WEB (min-width:701px), móvil intacto.
-   ========================================================================== */
 @media (min-width: 701px) {
   .productos-grid {
     gap: 20px;
@@ -1183,11 +926,10 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 12px 14px 14px;
-    gap: 5px;
+    padding: 14px 16px 16px;
+    gap: 6px;
   }
 
-  /* Nombre: 2 líneas máx, min-height 2 líneas para que 1 línea no deje hueco gigante */
   .nombre-producto {
     margin: 0 !important;
     min-height: 2.6em !important;
@@ -1206,11 +948,6 @@
     line-height: 1.2;
   }
 
-  .info-producto .categoria-producto + .categoria-producto {
-    margin-top: 0;
-  }
-
-  /* Footer siempre al fondo, pero con gaps pequeños y equilibrados */
   .producto-footer {
     margin-top: auto !important;
     gap: 5px;
@@ -1232,13 +969,12 @@
     font-size: 22px;
   }
 
-  .precio-seleccion-detalle {
+  .subtotal-detalle {
     margin-top: 0;
     font-size: 11px;
     line-height: 1.3;
   }
 
-  /* Combos: altura mínima 0, placeholder colapsado solo si sin variantes */
   .combos-mini {
     margin: 2px 0 0 !important;
     gap: 4px;
@@ -1265,7 +1001,6 @@
     align-items: center;
   }
 
-  /* Jerarquía compacta y uniforme */
   .precio-bloque + .stock-disponible {
     margin-top: 1px;
   }
@@ -1286,24 +1021,178 @@
   .selectores-bloque + .btn-agregar--footer {
     margin-top: 2px;
   }
+}
 
-  /* Sin metraje: mantiene uniformidad externa pero interna más compacta */
-  .producto-footer--sin-metros {
-    gap: 4px !important;
+/* ============================================================
+   CARRUSEL DE RECOMENDADOS EN DETALLE DEL PRODUCTO
+   ============================================================ */
+
+.detalle-recomendados-carousel-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+.carousel-flecha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(211, 172, 77, 0.45);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffd700;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.carousel-flecha:hover {
+  background: #ffd700;
+  color: #111111;
+  border-color: #ffd700;
+  transform: translateY(-50%) scale(1.05);
+}
+
+.carousel-flecha:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.carousel-flecha-izq {
+  left: -50px;
+}
+
+.carousel-flecha-der {
+  right: -50px;
+}
+
+.detalle-recomendados-carousel {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(211, 172, 77, 0.3) #0a0a0a;
+  padding: 8px 0;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Ocultar scrollbar en Chrome/Safari */
+.detalle-recomendados-carousel::-webkit-scrollbar {
+  height: 6px;
+}
+.detalle-recomendados-carousel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+.detalle-recomendados-carousel::-webkit-scrollbar-thumb {
+  background: rgba(211, 172, 77, 0.35);
+  border-radius: 3px;
+}
+.detalle-recomendados-carousel::-webkit-scrollbar-thumb:hover {
+  background: rgba(211, 172, 77, 0.6);
+}
+
+.detalle-recomendados-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: nowrap;
+  padding: 4px 0;
+  min-width: max-content;
+}
+
+.detalle-recomendados-grid .card-producto {
+  flex: 0 0 auto;
+  width: 260px;
+  height: auto;
+  min-height: 0;
+}
+
+.detalle-recomendados-grid .img-contenedor {
+  height: 200px;
+}
+
+/* Productos con metraje: los controles deben caber dentro de la tarjeta */
+.detalle-recomendados-grid .selectores-bloque {
+  width: 100%;
+  min-height: 0;
+}
+
+.detalle-recomendados-grid .metros-control-grid {
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 6px;
+}
+
+.detalle-recomendados-grid .metros-select {
+  min-width: 0;
+  max-width: 84px;
+}
+
+.detalle-recomendados-grid .metros-control-grid .cantidad-row {
+  width: 100%;
+  gap: 6px;
+}
+
+.detalle-recomendados-grid .cantidad-label {
+  font-size: 11px;
+}
+
+.detalle-recomendados-grid .cantidad-control {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100px;
+}
+
+.detalle-recomendados-grid .subtotal-detalle {
+  overflow-wrap: anywhere;
+}
+
+/* Responsive carrusel */
+@media (max-width: 1000px) {
+  .carousel-flecha-izq {
+    left: -10px;
   }
-
-  .producto-footer--sin-metros .precio-bloque {
-    gap: 2px;
-    padding-top: 6px;
+  .carousel-flecha-der {
+    right: -10px;
   }
-
-  .producto-footer--sin-metros .selectores-bloque {
-    min-height: 36px !important;
-    margin-top: 0 !important;
+  .detalle-recomendados-grid .card-producto {
+    width: 240px;
+    min-height: 400px;
   }
-
-  /* Con/sin variantes: evita hueco grande */
-  .producto-footer--sin-variantes .combos-mini {
-    display: none !important;
+  .detalle-recomendados-grid .img-contenedor {
+    height: 180px;
   }
 }
+
+@media (max-width: 700px) {
+  .carousel-flecha-izq {
+    left: 0;
+  }
+  .carousel-flecha-der {
+    right: 0;
+  }
+  .carousel-flecha {
+    width: 36px;
+    height: 36px;
+  }
+  .detalle-recomendados-carousel-wrap {
+    margin-top: 20px;
+  }
+  .detalle-recomendados-grid .card-producto {
+    width: 200px;
+    min-height: 360px;
+  }
+  .detalle-recomendados-grid .img-contenedor {
+    height: 160px;
+  }
+}
+

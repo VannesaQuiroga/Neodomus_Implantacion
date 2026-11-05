@@ -1,3 +1,4 @@
+// Sección de entrada de la portada pública.
 import { useNavigate } from 'react-router-dom';
 import fondo from '@assets/images/FONDO.png';
 import '@styles/home.css';

@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de catalogo. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_CATALOGO: Record<string, { es: string; en: string }> = {
   'adm.catalogo.titulo': { es: 'Catálogo', en: 'Catalog' },
   'adm.catalogo.subtituloTodos': { es: 'Todos los productos del catálogo de la tienda.', en: 'All products in the store catalog.' },

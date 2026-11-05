@@ -1,73 +1,111 @@
-import { useState, useEffect, useCallback } from 'react';
+import { MetrosSelect } from '@components/common/MetrosSelect';
+// Pantalla CarritoPage de Neodomus. Reúne el estado y las acciones de su vista.
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaTrashCan, FaCartShopping, FaCircleCheck, FaExclamation, FaPen, FaTriangleExclamation } from 'react-icons/fa6';
+import { FaArrowLeft, FaChevronLeft, FaChevronRight, FaTrashCan, FaCartShopping, FaCircleCheck, FaExclamation, FaPen, FaTriangleExclamation } from 'react-icons/fa6';
 import { useCart, type CartItem } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
+import {
+  productoDisponible,
+  stockDisponibleProducto,
+  stockDisponibleVariante,
+} from '@utils/productoDisponibilidad';
+import { precioUnitarioProducto, subtotalLinea } from '@utils/productoPrecio';
 import api from '@services/api';
 import ProductoCard from '@components/productos/ProductoCard';
 import '@styles/carrito.css';
 import '@styles/productos-publicos.css';
 
+const itemKey = (item: { id_producto: number; color?: string; medida?: string; tamaño?: string; metros?: number; venta_por_metros?: boolean }) =>
+  [item.id_producto, item.color?.toLowerCase(), (item.medida || item.tamaño || '').toLowerCase(), item.venta_por_metros && item.metros ? `${item.metros}m` : null].filter(Boolean).join('-');
+
+const claveStock = (item: { id_producto: number; id_variante?: number; color?: string; medida?: string; tamaño?: string }) =>
+  [
+    item.id_producto,
+    item.id_variante ?? '',
+    item.color?.toLowerCase() ?? '',
+    (item.medida || item.tamaño || '').toLowerCase(),
+  ].join(':');
+
+// Comunica con el backend mediante GET `/productos/${item.id_producto}`, GET '/productos/?limit=100'; accede a sessionStorage para conservar o recuperar datos locales.
 const CarritoPage = () => {
   const navigate = useNavigate();
   const { t } = useIdioma();
-  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente } = useCart();
-  const { isAuthenticated, rol } = useAuth();
+  const { items, totalItems, totalPrice, updateQuantity, updateMetros, removeItem, clearCart, actualizarItem, tieneStockInsuficiente } = useCart();  const { isAuthenticated, rol } = useAuth();
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
   const [displayValues, setDisplayValues] = useState<Record<string, string>>({});
   const [sugeridos, setSugeridos] = useState<any[]>([]);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const totalTecnicos = Math.max(1, ...items.map((item) => item.tecnicos_requeridos || 1));
+
+  const firmaValidacion = items.map(claveStock).join('|');
+
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const showToast = (msg: string, tipo: 'success' | 'error' = 'success') => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const METROS_OPCIONES = [10, 20, 30, 40, 50];
-  const itemKey = (item: { id_producto: number; color?: string; medida?: string; tamaño?: string; metros?: number; venta_por_metros?: boolean }) =>
-    [item.id_producto, item.color?.toLowerCase(), (item.medida || item.tamaño || '').toLowerCase(), item.venta_por_metros && item.metros ? `${item.metros}m` : null].filter(Boolean).join('-');
+  const scrollSugeridos = (direccion: 'izq' | 'der') => {
+    if (!carouselRef.current) return;
+    carouselRef.current.scrollBy({
+      left: direccion === 'izq' ? -300 : 300,
+      behavior: 'smooth',
+    });
+  };
 
   const validarStockBackend = useCallback(async () => {
-    for (const item of items) {
+    for (const item of itemsRef.current) {
       try {
         const res = await api.get(`/productos/${item.id_producto}`);
-        const stock = item.venta_por_metros
-          ? (res.data.stock_producto ?? 0)
-          : (item.id_variante
-              ? (res.data.variantes?.find((v: any) => v.id === item.id_variante)?.stock ?? 0)
-              : (res.data.stock_producto ?? 0));
-        actualizarStock(itemKey(item), stock);
+        const producto = res.data;
+        const medidaItem = (item.medida || item.tamaño || '').trim().toLowerCase();
+        const variante = item.id_variante
+          ? producto.variantes?.find((v: any) => v.id === item.id_variante)
+          : item.color
+            ? producto.variantes?.find((v: any) => {
+                const medida = (v.etiqueta_medida || v.tamaño || '').trim().toLowerCase();
+                return v.nombre === item.color && (!medidaItem || medida === medidaItem);
+              })
+            : null;
+        const stock = variante
+          ? stockDisponibleVariante(producto, variante)
+          : (producto.variantes?.length ? 0 : stockDisponibleProducto(producto));
+        actualizarItem(itemKey(item), {
+          stock_maximo: stock,
+          precio_venta_producto: precioUnitarioProducto(producto, variante),
+        });
       } catch {
-        /* noop */
+        actualizarItem(itemKey(item), { stock_maximo: 0 });
       }
     }
-  }, [items, actualizarStock]);
+  }, [actualizarItem]);
 
   useEffect(() => {
-    if (items.length > 0) {
+    if (itemsRef.current.length > 0) {
       validarStockBackend();
     }
-  }, [items.length]);
+  }, [firmaValidacion, validarStockBackend]);
 
   // Productos sugeridos (WEB): disponibles, no en carrito, reales del sistema
+  const idsCarrito = items.map(i => i.id_producto).join(',');
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/?limit=100'.
+    const ids = new Set(idsCarrito ? idsCarrito.split(',').map(Number) : []);
     const cargarSugeridos = async () => {
       try {
         const res = await api.get('/productos/?limit=100');
         const lista: any[] = res.data?.data || res.data || [];
-        const idsEnCarrito = new Set(items.map(i => i.id_producto));
-        const conStock = (p: any) => {
-          const stock = p.variantes?.length
-            ? p.variantes.reduce((a: number, v: any) => a + (v.stock || 0), 0)
-            : (p.stock_producto ?? 0);
-          return stock > 0;
-        };
-        let candidatos = lista.filter(p => conStock(p) && !idsEnCarrito.has(p.id_producto));
+        let candidatos = lista.filter(p => productoDisponible(p) && !ids.has(p.id_producto));
         if (candidatos.length === 0) {
-          candidatos = lista.filter(p => conStock(p));
+          candidatos = lista.filter(p => productoDisponible(p));
         }
         const mezclados = [...candidatos].sort(() => 0.5 - Math.random()).slice(0, 4);
         setSugeridos(mezclados);
@@ -76,7 +114,7 @@ const CarritoPage = () => {
       }
     };
     cargarSugeridos();
-  }, [items]);
+  }, [idsCarrito]);
 
   // Sugeridos reutilizan la tarjeta completa de Productos (ProductoCard) con toda su lógica
 
@@ -84,6 +122,8 @@ const CarritoPage = () => {
     const params = new URLSearchParams();
     params.set('editar', key);
     if (item.color) params.set('color', item.color);
+    const medida = item.medida || item.tamaño;
+    if (medida) params.set('medida', medida);
     if (item.metros != null) params.set('metros', String(item.metros));
     if (item.venta_por_metros) params.set('cantidad', String(item.cantidad));
     else params.set('cantidad', String(item.cantidad));
@@ -91,6 +131,7 @@ const CarritoPage = () => {
     navigate(`/producto/${item.id_producto}?${params.toString()}`);
   };
 
+  // accede a sessionStorage para conservar o recuperar datos locales.
   const handleFinalizar = () => {
     if (items.length === 0) {
       showToast(t('carrito.toastVacio'), 'error');
@@ -120,7 +161,7 @@ const CarritoPage = () => {
     if (error) showToast(error, 'error');
   };
 
-  const handleMetrosChange = (item: CartItem, nuevoMetros: number) => {
+  const handleMetrosChange = (item: CartItem, nuevoMetros: number | string) => {
     const key = itemKey(item);
     const error = updateMetros(key, nuevoMetros);
     if (error) showToast(error, 'error');
@@ -170,7 +211,6 @@ const CarritoPage = () => {
                       <img
                         src={item.imagen}
                         alt={item.nombre_producto}
-                        onError={(e) => (e.currentTarget.src = '/productos/default.png')}
                       />
                     </Link>
 
@@ -203,16 +243,10 @@ const CarritoPage = () => {
                     <div className="carrito-cantidad">
                       {item.venta_por_metros ? (
                         <div className="carrito-metros-unidades">
-                          <select
-                            className="carrito-metros-select"
-                            value={item.metros}
-                            onChange={(e) => handleMetrosChange(item, Number(e.target.value))}
-                            aria-label="Metros por unidad"
-                          >
-                            {METROS_OPCIONES.map(m => (
-                              <option key={m} value={m}>{m} m</option>
-                            ))}
-                          </select>
+                          <MetrosSelect className="carrito-metros-select" value={item.metros || 0}
+                            max={item.stock_maximo == null ? null : item.stock_maximo / Math.max(1, item.cantidad)}
+                            onChange={(value) => handleMetrosChange(item, String(value))}
+                            aria-label="Metros por unidad" />
                           <div className="carrito-unidades-control">
                             <button
                               type="button"
@@ -295,7 +329,11 @@ const CarritoPage = () => {
                       )}
 
                       <span className="carrito-item-subtotal">
-                        ${(item.precio_venta_producto * (item.venta_por_metros ? (item.metros || 0) * (item.cantidad || 1) : item.cantidad)).toLocaleString()} COP
+                        ${subtotalLinea(
+                          item.precio_venta_producto,
+                          item.cantidad,
+                          item.venta_por_metros ? item.metros || 0 : null,
+                        ).toLocaleString()} COP
                       </span>
 
                       <button
@@ -364,15 +402,30 @@ const CarritoPage = () => {
         )}
 
         {items.length > 0 && sugeridos.length > 0 && (
-          <section className="carrito-sugeridos">
-            <header className="carrito-sugeridos-header">
-              <h2>Productos sugeridos</h2>
-              <p>También te puede interesar</p>
-            </header>
-            <div className="productos-grid">
-              {sugeridos.map(prod => (
-                <ProductoCard key={prod.id_producto} producto={prod} />
-              ))}
+          <section className="detalle-recomendados">
+            <h3 className="detalle-recomendados-titulo">También te puede interesar</h3>
+            <div className="detalle-recomendados-carousel-wrap">
+              <button
+                className="carousel-flecha carousel-flecha-izq"
+                aria-label="Desplazar a la izquierda"
+                onClick={() => scrollSugeridos('izq')}
+              >
+                <FaChevronLeft />
+              </button>
+              <div className="detalle-recomendados-carousel" ref={carouselRef}>
+                <div className="productos-grid detalle-recomendados-grid">
+                  {sugeridos.map(prod => (
+                    <ProductoCard key={prod.id_producto} producto={prod} />
+                  ))}
+                </div>
+              </div>
+              <button
+                className="carousel-flecha carousel-flecha-der"
+                aria-label="Desplazar a la derecha"
+                onClick={() => scrollSugeridos('der')}
+              >
+                <FaChevronRight />
+              </button>
             </div>
           </section>
         )}

@@ -1,3 +1,4 @@
+// Pantalla TecnicosPage de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
@@ -33,6 +34,7 @@ interface TecnicoPublico {
   total_calificaciones?: number | null;
 }
 
+// Comunica con el backend mediante GET '/tecnicos/publicos'.
 const TecnicosPage = () => {
   const { isAuthenticated } = useAuth();
   const { openAuth } = useAuthModal();
@@ -45,6 +47,7 @@ const TecnicosPage = () => {
 
   useEffect(() => {
     let activo = true;
+    // Comunica con el backend mediante GET '/tecnicos/publicos'.
     const fetchTecnicos = async (silencioso = false) => {
       if (!silencioso) setLoading(true);
       try {

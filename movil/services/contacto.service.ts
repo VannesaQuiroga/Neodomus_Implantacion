@@ -27,6 +27,7 @@ export interface DatosConsulta {
   categoria: string;
 }
 
+// Comunica con el backend mediante API "/contacto".
 export const enviarConsulta = (datos: DatosConsulta) =>
   apiFetch<{ msg: string; id: number }>("/contacto", {
     method: "POST",

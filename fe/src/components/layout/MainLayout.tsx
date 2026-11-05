@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: MainLayout. Se reutiliza en las pantallas de su área.
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';

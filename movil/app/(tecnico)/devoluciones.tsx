@@ -1,3 +1,4 @@
+// Ruta móvil de devoluciones. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, Modal } from "react-native";
@@ -38,6 +39,7 @@ function matchEstadoDevolucion(item: any, filtro: string): boolean {
   return true;
 }
 
+// Comunica con el backend mediante API "/devoluciones/mis-recogidas", API "/devoluciones/mis-recogidas?historial=true", API `/devoluciones/${id}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
 export default function TecnicoDevolucionesScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const { t } = useIdioma();
@@ -62,6 +64,7 @@ export default function TecnicoDevolucionesScreen() {
   const [selected, setSelected] = useState<any | null>(null);
   const [detalleVisible, setDetalleVisible] = useState(false);
 
+  // Comunica con el backend mediante API "/devoluciones/mis-recogidas", API "/devoluciones/mis-recogidas?historial=true".
   const fetchWithHistorial = async () => {
     setLoading(true);
     try {
@@ -145,6 +148,7 @@ export default function TecnicoDevolucionesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendientes, historial, vista, busqueda, estadoFiltro, fechaFiltro, horaFiltro]);
 
+  // Comunica con el backend mediante API `/devoluciones/${id}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
   const subirEvidencia = async (id: number) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) { setToast("Permiso denegado"); return; }

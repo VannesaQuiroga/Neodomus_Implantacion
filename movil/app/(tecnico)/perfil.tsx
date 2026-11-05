@@ -1,3 +1,4 @@
+// Ruta móvil de perfil. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -28,6 +29,7 @@ interface PerfilTecnico {
   especializaciones?: { id_especializacion: number; nombre: string }[];
 }
 
+// Comunica con el backend mediante API "/users/me", API "/especializaciones", API `/tecnicos/mis-especializaciones/${id}` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 export default function TecnicoPerfilScreen() {
   const { usuario, avatar, setAvatar, actualizarUsuario } = useAuth();
   const { t } = useIdioma();
@@ -62,6 +64,7 @@ export default function TecnicoPerfilScreen() {
   };
 
   useEffect(() => {
+    // Comunica con el backend mediante API "/users/me".
     const cargar = async () => {
       setCargando(true);
       try {
@@ -94,6 +97,7 @@ export default function TecnicoPerfilScreen() {
   }, [usuario?.nombre, usuario?.correo]);
 
   useEffect(() => {
+    // Comunica con el backend mediante API "/especializaciones".
     const cargarCatalogo = async () => {
       try {
         const res = await apiFetch<any[]>("/especializaciones");
@@ -150,6 +154,7 @@ export default function TecnicoPerfilScreen() {
     setSelectedEspecializaciones((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  // Comunica con el backend mediante API "/users/me", API `/tecnicos/mis-especializaciones/${id}`.
   const handleGuardar = async () => {
     const telClean = telefono.replace(/\D/g, "");
     if (telClean && telClean.length !== 10) {
@@ -194,6 +199,7 @@ export default function TecnicoPerfilScreen() {
     }
   };
 
+  // Comunica con el backend mediante API "/users/me/foto"; prepara FormData para enviar campos y archivos.
   const pickImage = async () => {
     if (!modoEdicion) {
       mostrarToast("Presiona Editar perfil para cambiar la foto");

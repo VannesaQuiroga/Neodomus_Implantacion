@@ -1,3 +1,4 @@
+// Pantalla TecnicoMensajes de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { FaEnvelope, FaMessage, FaUserTie } from 'react-icons/fa6';
 import { useIdioma } from '@i18n/IdiomaContext';
@@ -27,6 +28,7 @@ interface Cliente {
   email?: string | null;
 }
 
+// accede a localStorage para conservar o recuperar datos locales.
 const cargarConversaciones = (): Conversacion[] => {
   try {
     const raw = localStorage.getItem(MENSAJES_KEY);
@@ -37,6 +39,7 @@ const cargarConversaciones = (): Conversacion[] => {
   return [];
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 const guardarConversaciones = (conversaciones: Conversacion[]) => {
   try {
     localStorage.setItem(MENSAJES_KEY, JSON.stringify(conversaciones));
@@ -77,6 +80,7 @@ const sembrarConversaciones = (clientes: Cliente[], tecnicoNombre: string): Conv
   return nuevas;
 };
 
+// Comunica con el backend mediante GET '/tecnicos/mis-clientes'.
 const TecnicoMensajes = () => {
   const { t } = useIdioma();
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
@@ -84,6 +88,7 @@ const TecnicoMensajes = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/tecnicos/mis-clientes'.
     const cargar = async () => {
       try {
         const res = await api.get('/tecnicos/mis-clientes');

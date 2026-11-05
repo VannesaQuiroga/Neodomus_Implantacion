@@ -1,3 +1,4 @@
+// Presenta las citas y servicios del cliente dentro de su perfil.
 import { useEffect, useState } from 'react';
 import {
   FaCalendarCheck,
@@ -68,6 +69,7 @@ const estadoClase = (estado: string) => {
 
 type CitaOrdenada = CitaCliente & { esPasada: boolean; calificada?: boolean };
 
+// Comunica con el backend mediante GET '/citas/mis-citas', POST '/calificaciones'; programa una actualización periódica.
 const ServiciosTab = () => {
   const [citas, setCitas] = useState<CitaOrdenada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,7 @@ const ServiciosTab = () => {
 
   useEffect(() => {
     let activo = true;
+    // Comunica con el backend mediante GET '/citas/mis-citas'.
     const cargar = async () => {
       try {
         const res = await api.get<CitaCliente[]>('/citas/mis-citas');
@@ -120,6 +123,7 @@ const ServiciosTab = () => {
     { paso: 'Servicio realizado', completado: c.estado === 'Finalizada' },
   ];
 
+  // Comunica con el backend mediante POST '/calificaciones'.
   const enviarCalificacion = async () => {
     if (!calificandoCita) return;
     if (ratingEstrellas < 1 || ratingEstrellas > 5) {

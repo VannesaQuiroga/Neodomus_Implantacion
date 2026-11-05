@@ -1,3 +1,4 @@
+// Tipos compartidos que describen los datos utilizados por la interfaz.
 export interface LoginResponse {
   access_token: string;
   token_type: string;
@@ -144,6 +145,8 @@ export interface ProductoAdmin {
   tamaño?: string | null;
   estado_producto: string;
   stock_producto: number;
+  stock_disponible?: number;
+  disponible?: boolean;
   stock_estado: 'disponible' | 'bajo' | 'agotado';
   stock_minimo: number;
   marca?: string | null;
@@ -185,6 +188,7 @@ export interface TecnicoAdmin {
   password_reset_required?: boolean;
   servicios?: string[];
   especializaciones?: { id_especializacion: number; nombre: string }[];
+  foto_url?: string | null;
   citas_pendientes?: number;
   entregas_pendientes?: number;
   calificacion?: number | null;

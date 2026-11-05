@@ -32,6 +32,7 @@ interface FavoritosContextValue {
 
 const FavoritosContext = createContext<FavoritosContextValue | null>(null);
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 async function cargarClave(clave: string): Promise<Set<number>> {
   try {
     const crudo = await AsyncStorage.getItem(clave);
@@ -43,6 +44,7 @@ async function cargarClave(clave: string): Promise<Set<number>> {
   }
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export function FavoritosProvider({
   correoUsuario,
   children,

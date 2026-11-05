@@ -26,6 +26,7 @@ from app.utils.security import get_current_employee
 router = APIRouter(prefix="/especializaciones", tags=["Especializaciones"])
 
 
+# Agrupa los campos de EspecializacionOut: id_especializacion, nombre, descripcion, activa, tecnicos_count y los demás declarados abajo.
 class EspecializacionOut(BaseModel):
     id_especializacion: int
     nombre: str
@@ -35,18 +36,21 @@ class EspecializacionOut(BaseModel):
     productos_count: int = 0
 
 
+# Agrupa los campos de EspecializacionCreate: nombre, descripcion, activa.
 class EspecializacionCreate(BaseModel):
     nombre: str
     descripcion: str | None = None
     activa: bool = True
 
 
+# Agrupa los campos de EspecializacionUpdate: nombre, descripcion, activa.
 class EspecializacionUpdate(BaseModel):
     nombre: str | None = None
     descripcion: str | None = None
     activa: bool | None = None
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -97,6 +101,7 @@ def listar_especializaciones(
     return [_serializar(db, e) for e in query.all()]
 
 
+# Consulta Especializacion; confirma los cambios con la sesión de base de datos.
 @router.post("", response_model=EspecializacionOut)
 def crear_especializacion(
     data: EspecializacionCreate,
@@ -120,6 +125,7 @@ def crear_especializacion(
     return _serializar(db, esp)
 
 
+# Consulta Especializacion; confirma los cambios con la sesión de base de datos.
 @router.put("/{id_especializacion}", response_model=EspecializacionOut)
 def actualizar_especializacion(
     id_especializacion: int,

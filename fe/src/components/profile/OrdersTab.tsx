@@ -1,3 +1,4 @@
+// Presenta los pedidos y sus acciones de consulta desde el perfil del cliente.
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   FaBoxOpen,
@@ -200,6 +201,7 @@ const pedidoCompletado = (pedido: Pedido): boolean =>
   pedido.estado_entrega === 'Entregado' ||
   pedido.cita?.estado === 'Finalizada';
 
+// Comunica con el backend mediante GET '/pedidos/mis-pedidos', POST `/pedidos/${pedidoId}/confirmar-pago`, GET `/pedidos/${pedidoId}/seguimiento` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +232,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const fotosCalif = useRef<Record<number, File>>({});
   const pollRef = useRef<number | null>(null);
 
+  // Comunica con el backend mediante GET '/pedidos/mis-pedidos'.
   const cargarPedidos = async () => {
     setLoading(true);
     try {
@@ -248,6 +251,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     cargarPedidos();
   }, []);
 
+  // Comunica con el backend mediante POST `/pedidos/${pedidoId}/confirmar-pago`.
   const confirmarPago = async (pedidoId: number) => {
     setConfirmando(pedidoId);
     try {
@@ -262,6 +266,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     }
   };
 
+  // Comunica con el backend mediante GET `/pedidos/${pedidoId}/seguimiento`.
   const cargarSeguimiento = async (pedidoId: number) => {
     try {
       const res = await api.get<Seguimiento>(`/pedidos/${pedidoId}/seguimiento`);
@@ -302,6 +307,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     };
   }, [seguimientoDe, seguimiento?.estado_entrega]);
 
+  // Comunica con el backend mediante GET `/calificaciones/producto/pedido/${pedido.id_pedido}`, GET '/devoluciones/mis-solicitudes'.
   const cargarResenas = async (pedido: Pedido) => {
     if (!pedidoCompletado(pedido)) return;
     try {
@@ -396,6 +402,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     setPasoWizard(3);
   };
 
+  // Comunica con el backend mediante POST '/devoluciones/solicitudes'.
   const enviarSolicitud = async () => {
     if (!wizardPedido) return;
     setEnviandoDev(true);
@@ -421,6 +428,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     }
   };
 
+  // Comunica con el backend mediante POST '/calificaciones/producto', POST `/calificaciones/producto/${pedido.id_pedido}/${item.id_producto_d}/foto`; prepara FormData para enviar campos y archivos.
   const guardarCalificacion = async (pedido: Pedido, item: Detalle) => {
     if (!item.id_producto_d) return;
     const nota = ratingSel[item.id_producto_d];

@@ -1,3 +1,4 @@
+// Presenta los datos de métodos de pago administrados desde el perfil.
 import { useState } from 'react';
 import { FaPlus, FaTrashCan, FaPencil, FaCreditCard, FaRegCreditCard, FaCheck } from 'react-icons/fa6';
 import { getPagos, saveItem, PF_PAGOS_KEY, MetodoPago, TipoPago } from '@utils/profileStorage';

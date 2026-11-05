@@ -1,9 +1,11 @@
+// Reúne los pasos del restablecimiento de contraseña dentro de un modal.
 import { useState } from 'react';
 import { FaEye, FaEyeSlash, FaLock, FaShieldHalved } from 'react-icons/fa6';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
 import api from '@services/api';
 
+// Comunica con el backend mediante POST '/auth/change-password'.
 const PasswordResetModal = () => {
   const { user, setPasswordResetRequired, logout } = useAuth();
   const { idioma, t } = useIdioma();
@@ -38,6 +40,7 @@ const PasswordResetModal = () => {
 
   const canSubmit = pwdActual && pwdNueva && pwdConfirmar && strength === 5 && passwordsMatch && !loading;
 
+  // Comunica con el backend mediante POST '/auth/change-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

@@ -21,6 +21,7 @@ import { solicitarHabilitacion } from "@/services/auth.services";
 
 const CLAVE_RECORDAR = "neodomus_remembered_email";
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export default function LoginScreen() {
   const { redirigirA } = useLocalSearchParams<{ redirigirA?: string }>();
   const { iniciarSesion } = useAuth();
@@ -48,6 +49,7 @@ export default function LoginScreen() {
       .catch(() => {});
   }, []);
 
+  // accede a AsyncStorage para conservar o recuperar datos locales.
   const ingresar = async () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {

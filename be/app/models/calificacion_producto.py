@@ -1,3 +1,4 @@
+# Persistencia de calificacion producto. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, SmallInteger, String, Text, func

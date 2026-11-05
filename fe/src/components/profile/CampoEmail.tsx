@@ -1,3 +1,4 @@
+// Campo de correo con controles de edición y verificación del perfil.
 import { useEffect, useState } from 'react';
 import {
   FaEnvelopeCircleCheck,
@@ -92,6 +93,7 @@ const CampoEmail = ({
   const correoDiferente =
     borrador.trim().toLowerCase() !== (emailOriginal || '').trim().toLowerCase();
 
+  // Comunica con el backend mediante POST '/auth/request-email-change'.
   const solicitarCodigo = async () => {
     if (solicitando || cooldown > 0) return;
     const nuevo = borrador.trim();
@@ -118,6 +120,7 @@ const CampoEmail = ({
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/verify-email-change'.
   const verificarCodigo = async () => {
     if (codigo.length !== 6) {
       notificar(t('perfil.emailCodigo6'), 'error');

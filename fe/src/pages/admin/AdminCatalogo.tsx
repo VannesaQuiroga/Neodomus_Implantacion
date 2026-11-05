@@ -1,3 +1,4 @@
+// Presenta el catálogo desde la navegación del administrador.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,6 +15,7 @@ interface PaginaProductos {
   data: ProductoAdmin[];
 }
 
+// Comunica con el backend mediante GET '/productos/categorias', GET '/productos/?limit=100', PUT `/productos/${producto.id_producto}/visibilidad`; registra escuchas de eventos para sincronizar la vista.
 const AdminCatalogo = () => {
   const { t } = useIdioma();
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
@@ -27,6 +29,7 @@ const AdminCatalogo = () => {
   const POR_PAGINA = 10;
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/categorias', GET '/productos/?limit=100'.
     const cargar = () => {
       Promise.all([
         api.get<CategoriaAdmin[]>('/productos/categorias'),
@@ -50,6 +53,7 @@ const AdminCatalogo = () => {
     window.setTimeout(() => setToast(null), 3000);
   };
 
+  // Comunica con el backend mediante PUT `/productos/${producto.id_producto}/visibilidad`.
   const toggleVisibilidad = async (producto: ProductoAdmin) => {
     const previo = producto.visible_cliente !== false;
     setProductos((prev) => prev.map((p) => (p.id_producto === producto.id_producto ? { ...p, visible_cliente: !previo } : p)));

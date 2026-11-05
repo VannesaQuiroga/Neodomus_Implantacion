@@ -21,6 +21,7 @@ from typing import List, Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, File, Query, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
@@ -40,13 +41,65 @@ from app.services.notificaciones import (
     notificar_admin_devolucion_solicitada,
     notificar_devolucion_cliente,
 )
-from app.utils.security import get_current_client, get_current_employee
+from app.utils.security import get_current_client, get_current_employee, get_current_user
 
 EXTENSIONES_EVIDENCIA = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 router = APIRouter(prefix="/devoluciones", tags=["Devoluciones"])
 
 
+def _url_evidencia_devolucion(id_devolucion: int, tipo: str) -> str:
+    return f"/api/v1/devoluciones/{id_devolucion}/evidencia-{tipo}/archivo"
+
+
+def _servir_evidencia_devolucion(db: Session, id_devolucion: int, tipo: str, current_user) -> Response:
+    """Sirve la evidencia de recogida/cambio previa comprobación de rol/asignación."""
+    from app.models.tecnico import Tecnico
+
+    devolucion = db.query(Devolucion).filter(Devolucion.id_devolucion == id_devolucion).first()
+    if not devolucion:
+        raise HTTPException(status_code=404, detail="Devolución no encontrada")
+    ref = devolucion.evidencia_recogida if tipo == "recogida" else devolucion.evidencia_cambio
+    if not ref:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+
+    if isinstance(current_user, Cliente):
+        if devolucion.id_cliente_d != current_user.id_cliente:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
+    else:
+        role = db.execute(
+            select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
+        ).scalar_one_or_none()
+        if role not in ("admin", "administrador"):
+            ficha = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
+            if not ficha or devolucion.id_tecnico_recogida != ficha.id_tecnico:
+                raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
+    try:
+        contenido, media = minio_service.leer_archivo(ref)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return Response(content=contenido, media_type=media)
+
+
+@router.get("/{id_devolucion}/evidencia-recogida/archivo")
+def descargar_evidencia_recogida(
+    id_devolucion: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return _servir_evidencia_devolucion(db, id_devolucion, "recogida", current_user)
+
+
+@router.get("/{id_devolucion}/evidencia-cambio/archivo")
+def descargar_evidencia_cambio(
+    id_devolucion: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return _servir_evidencia_devolucion(db, id_devolucion, "cambio", current_user)
+
+
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -59,6 +112,7 @@ def _admin(
     return current_user
 
 
+# Agrupa los campos de DevolucionCreate: id_pedido, id_producto, motivo, preferencia.
 class DevolucionCreate(BaseModel):
     id_pedido: int
     id_producto: int = Field(gt=0)
@@ -257,11 +311,13 @@ def solicitar_devolucion(
 # Nuevo flujo: solicitudes con múltiples productos y cantidades
 # ──────────────────────────────────────────────────────────────────
 
+# Agrupa los campos de ItemDevolucionIn: id_producto, cantidad.
 class ItemDevolucionIn(BaseModel):
     id_producto: int = Field(gt=0)
     cantidad: int = Field(default=1, ge=1)
 
 
+# Agrupa los campos de SolicitudDevolucionCreate: id_pedido, items, motivo_tipo, motivo_otro, comentario.
 class SolicitudDevolucionCreate(BaseModel):
     id_pedido: int
     items: List[ItemDevolucionIn]
@@ -338,6 +394,7 @@ def listar_solicitudes_admin(
     return [dv_service.serializar_solicitud(db, s) for s in filas]
 
 
+# Agrupa los campos de EstadoSolicitudUpdate: estado, resolucion, motivo_rechazo, observaciones.
 class EstadoSolicitudUpdate(BaseModel):
     estado: Optional[str] = None  # None → solo actualiza observaciones
     resolucion: Optional[str] = None
@@ -562,13 +619,13 @@ def mis_recogidas(
             "motivo": d.motivo,
             "fecha_solicitud": d.created_at.isoformat() if d.created_at else None,
             "evidencia_recogida_url": (
-                minio_service.url_publica(d.evidencia_recogida)
+                _url_evidencia_devolucion(d.id_devolucion, "recogida")
                 if d.evidencia_recogida
                 else None
             ),
             "fecha_recogida": d.fecha_recogida.isoformat() if d.fecha_recogida else None,
             "evidencia_cambio_url": (
-                minio_service.url_publica(d.evidencia_cambio)
+                _url_evidencia_devolucion(d.id_devolucion, "cambio")
                 if d.evidencia_cambio
                 else None
             ),
@@ -579,6 +636,7 @@ def mis_recogidas(
     return resultado
 
 
+# Agrupa los campos de RecogidaUpdate: recogida.
 class RecogidaUpdate(BaseModel):
     recogida: bool = True
 
@@ -663,7 +721,7 @@ async def subir_evidencia_recogida(
         raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
 
     nombre = f"{uuid.uuid4().hex}{ext}"
-    clave = minio_service.subir_imagen("recogidas", nombre, contenido)
+    clave = minio_service.subir_imagen_privada("recogidas", nombre, contenido)
 
     devolucion.evidencia_recogida = clave
     devolucion.fecha_recogida = datetime.now()
@@ -777,7 +835,7 @@ async def subir_evidencia_recogida(
     return {
         "id_devolucion": devolucion.id_devolucion,
         "recogida_estado": devolucion.recogida_estado,
-        "evidencia_recogida_url": minio_service.url_publica(clave),
+        "evidencia_recogida_url": _url_evidencia_devolucion(devolucion.id_devolucion, "recogida"),
         "fecha_recogida": devolucion.fecha_recogida.isoformat(),
         "stock_reintegrado": bool(producto_devuelto),
     }
@@ -842,7 +900,7 @@ async def subir_evidencia_cambio(
         raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
 
     nombre = f"{uuid.uuid4().hex}{ext}"
-    clave = minio_service.subir_imagen("recogidas", nombre, contenido)
+    clave = minio_service.subir_imagen_privada("recogidas", nombre, contenido)
 
     devolucion.evidencia_cambio = clave
     devolucion.fecha_entrega_cambio = datetime.now()
@@ -889,11 +947,12 @@ async def subir_evidencia_cambio(
 
     return {
         "id_devolucion": devolucion.id_devolucion,
-        "evidencia_cambio_url": minio_service.url_publica(clave),
+        "evidencia_cambio_url": _url_evidencia_devolucion(devolucion.id_devolucion, "cambio"),
         "fecha_entrega_cambio": devolucion.fecha_entrega_cambio.isoformat(),
     }
 
 
+# Agrupa los campos de ReasignarTecnicoIn: id_tecnico.
 class ReasignarTecnicoIn(BaseModel):
     id_tecnico: int
 
@@ -1050,6 +1109,7 @@ def _crear_reembolso_desde_devolucion(db: Session, devolucion: Devolucion):
     return reembolso
 
 
+# Agrupa los campos de EstadoDevolucionUpdate: estado, resolucion.
 class EstadoDevolucionUpdate(BaseModel):
     estado: str
     resolucion: Optional[str] = None

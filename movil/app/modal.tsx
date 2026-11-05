@@ -1,3 +1,4 @@
+// Ruta móvil de modal. Expo Router la incorpora a la navegación según su ubicación en app/.
 import { Link } from 'expo-router';
 import { StyleSheet } from 'react-native';
 

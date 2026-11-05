@@ -17,6 +17,19 @@ from app.models.producto_variante import ProductoVariante
 STOCK_MINIMO_ALERTA = 5
 
 
+def _decimal_cantidad(valor) -> "Decimal":
+    """Convierte una cantidad a Decimal exacto; rechaza no-finitos/negativos."""
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        d = Decimal(str(valor))
+    except (TypeError, ValueError, InvalidOperation):
+        raise HTTPException(status_code=400, detail="Cantidad inválida")
+    if not d.is_finite():
+        raise HTTPException(status_code=400, detail="Cantidad inválida")
+    return d
+
+
 def _verificar_stock_bajo(db: Session, producto: Producto) -> None:
     """Si el stock del producto bajó a ≤ STOCK_MINIMO_ALERTA, notifica a los admins."""
     stock = producto.stock_producto or 0
@@ -52,18 +65,27 @@ def descontar_stock(
     producto: Producto,
     variante: ProductoVariante | None,
     cantidad: int,
+    notificar_stock_bajo: bool = True,
 ) -> dict:
     """Bloquea y descuenta stock del producto (y su variante si aplica).
 
     Retorna {'producto_agotado': bool, 'variante_agotada': bool}.
     Debe llamarse dentro de la transacción del pago; si falla la validación
     se lanza HTTPException y el rollback de la sesión deshace todo el pedido.
-    """
-    unidades = max(int(cantidad or 1), 1)
+
+    ``notificar_stock_bajo=False`` omite el aviso de stock bajo (que crea una
+    notificación y confirma su propia transacción); el llamador puede diferirlo
+    a después de su commit para no romper la atomicidad."""
+    from decimal import Decimal
+
+    unidades = _decimal_cantidad(cantidad)
+    if unidades <= 0:
+        raise HTTPException(status_code=400, detail="La cantidad debe ser mayor a cero")
 
     prod = (
         db.query(Producto)
         .with_for_update()
+        .populate_existing()
         .filter(Producto.id_producto == producto.id_producto)
         .first()
     )
@@ -75,11 +97,12 @@ def descontar_stock(
         var = (
             db.query(ProductoVariante)
             .with_for_update()
+            .populate_existing()
             .filter(ProductoVariante.id == variante.id)
             .first()
         )
 
-    disponible_prod = prod.stock_producto or 0
+    disponible_prod = Decimal(prod.stock_producto or 0)
     if unidades > disponible_prod:
         raise HTTPException(
             status_code=409,
@@ -91,7 +114,7 @@ def descontar_stock(
 
     disponible_var = None
     if var is not None:
-        disponible_var = var.stock or 0
+        disponible_var = Decimal(var.stock or 0)
         if unidades > disponible_var:
             raise HTTPException(
                 status_code=409,
@@ -107,8 +130,9 @@ def descontar_stock(
         var.stock = disponible_var - unidades
         variante_agotada = var.stock == 0
 
-    # Notificar stock bajo después del descuento.
-    _verificar_stock_bajo(db, prod)
+    # Notificar stock bajo después del descuento (salvo que se difiera).
+    if notificar_stock_bajo:
+        _verificar_stock_bajo(db, prod)
 
     return {
         "producto_agotado": prod.stock_producto == 0,

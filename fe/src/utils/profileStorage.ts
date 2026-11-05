@@ -1,3 +1,5 @@
+// Funciones compartidas de profileStorage usadas por la interfaz.
+// accede a localStorage para conservar o recuperar datos locales.
 export function loadItem<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -8,6 +10,7 @@ export function loadItem<T>(key: string, fallback: T): T {
   }
 }
 
+// accede a localStorage para conservar o recuperar datos locales.
 export function saveItem<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -20,13 +23,16 @@ export const PF_REDIRECT_AFTER_LOGIN_KEY = 'neodomus_redirect_after_login';
 
 export const PF_AVATAR_KEY = 'clientAvatar';
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const getAvatar = (): string | null => localStorage.getItem(PF_AVATAR_KEY);
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const setAvatar = (dataUrl: string): void => {
   localStorage.setItem(PF_AVATAR_KEY, dataUrl);
   window.dispatchEvent(new CustomEvent('client-profile-updated'));
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const removeAvatar = (): void => {
   localStorage.removeItem(PF_AVATAR_KEY);
   window.dispatchEvent(new CustomEvent('client-profile-updated'));
@@ -34,13 +40,16 @@ export const removeAvatar = (): void => {
 
 export const PF_TECH_AVATAR_KEY = 'technicalAvatar';
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const getTechnicalAvatar = (): string | null => localStorage.getItem(PF_TECH_AVATAR_KEY);
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const setTechnicalAvatar = (dataUrl: string): void => {
   localStorage.setItem(PF_TECH_AVATAR_KEY, dataUrl);
   window.dispatchEvent(new CustomEvent('technical-profile-updated'));
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const removeTechnicalAvatar = (): void => {
   localStorage.removeItem(PF_TECH_AVATAR_KEY);
   window.dispatchEvent(new CustomEvent('technical-profile-updated'));
@@ -48,13 +57,16 @@ export const removeTechnicalAvatar = (): void => {
 
 export const PF_ADMIN_AVATAR_KEY = 'adminAvatar';
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const getAdminAvatar = (): string | null => localStorage.getItem(PF_ADMIN_AVATAR_KEY);
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const setAdminAvatar = (dataUrl: string): void => {
   localStorage.setItem(PF_ADMIN_AVATAR_KEY, dataUrl);
   window.dispatchEvent(new CustomEvent('admin-profile-updated'));
 };
 
+// accede a localStorage para conservar o recuperar datos locales.
 export const removeAdminAvatar = (): void => {
   localStorage.removeItem(PF_ADMIN_AVATAR_KEY);
   window.dispatchEvent(new CustomEvent('admin-profile-updated'));
@@ -254,6 +266,7 @@ export function getPagos(): MetodoPago[] {
   return loadItem<MetodoPago[]>(PF_PAGOS_KEY, defaultPagos);
 }
 
+// accede a localStorage para conservar o recuperar datos locales.
 export function getIdioma(): string {
   return localStorage.getItem(PF_IDIOMA_KEY) || 'es';
 }

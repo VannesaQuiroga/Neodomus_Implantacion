@@ -1,5 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+// Comparte los artículos del carrito y las operaciones para modificar sus cantidades.
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { loadItem, saveItem } from '@utils/profileStorage';
+import { parseMetros } from '@utils/metros';
+import { subtotalLinea } from '@utils/productoPrecio';
 import { useAuth } from '@contexts/AuthContext';
 
 const CART_KEY = 'neodomus_carrito';
@@ -26,10 +29,11 @@ interface CartContextValue {
   totalPrice: number;
   addItem: (producto: Omit<CartItem, 'cantidad'>, cantidad?: number, metros?: number) => string | null;
   updateQuantity: (key: string, cantidad: number) => string | null;
-  updateMetros: (key: string, metros: number) => string | null;
+  updateMetros: (key: string, metros: number | string) => string | null;
   removeItem: (key: string) => void;
   clearCart: () => void;
   actualizarStock: (key: string, stock: number) => void;
+  actualizarItem: (key: string, cambios: Partial<Pick<CartItem, 'stock_maximo' | 'precio_venta_producto'>>) => void;
   tieneStockInsuficiente: boolean;
 }
 
@@ -67,7 +71,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const key = itemKey(producto as any);
       const existing = prev.find(i => itemKey(i) === key);
       if (existing) {
-        const stockMax = existing.stock_maximo ?? Infinity;
+        const stockMax = producto.stock_maximo ?? existing.stock_maximo ?? Infinity;
         if (producto.venta_por_metros) {
           const largo = metros || 0;
           const unidades = cantidad || 1;
@@ -85,7 +89,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           // Mismo largo (key incluye metros) -> incrementar unidades
           return prev.map(i =>
             itemKey(i) === key
-              ? { ...i, cantidad: (i.cantidad || 1) + unidades }
+              ? {
+                  ...i,
+                  cantidad: (i.cantidad || 1) + unidades,
+                  precio_venta_producto: producto.precio_venta_producto,
+                  stock_maximo: stockMax,
+                }
               : i
           );
         }
@@ -96,7 +105,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         return prev.map(i =>
           itemKey(i) === key
-            ? { ...i, cantidad: nuevaCantidad }
+            ? {
+                ...i,
+                cantidad: nuevaCantidad,
+                precio_venta_producto: producto.precio_venta_producto,
+                stock_maximo: stockMax,
+              }
             : i
         );
       }
@@ -153,12 +167,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return error;
   };
 
-  const updateMetros = (key: string, metros: number): string | null => {
+  const updateMetros = (key: string, metros: number | string): string | null => {
+    const resultado = parseMetros(metros);
+    if (resultado.valor == null) {
+      return resultado.error ?? 'Cantidad inválida';
+    }
+    const nuevosMetros = resultado.valor;
     let error: string | null = null;
     setItems(prev =>
       prev.map(i => {
         if (itemKey(i) !== key) return i;
-        const nuevosMetros = Math.max(1, Math.round(metros));
         const stockMax = i.stock_maximo ?? Infinity;
         const totalMetros = nuevosMetros * (i.cantidad || 1);
         if (totalMetros > stockMax) {
@@ -183,13 +201,34 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const actualizarItem = useCallback((
+    key: string,
+    cambios: Partial<Pick<CartItem, 'stock_maximo' | 'precio_venta_producto'>>,
+  ) => {
+    setItems(prev => {
+      const actual = prev.find(i => itemKey(i) === key);
+      if (!actual) return prev;
+      const cambiaStock =
+        cambios.stock_maximo !== undefined && cambios.stock_maximo !== actual.stock_maximo;
+      const cambiaPrecio =
+        cambios.precio_venta_producto !== undefined &&
+        cambios.precio_venta_producto !== actual.precio_venta_producto;
+      if (!cambiaStock && !cambiaPrecio) return prev;
+      return prev.map(i => (itemKey(i) === key ? { ...i, ...cambios } : i));
+    });
+  }, []);
+
   const totalItems = useMemo(() => items.reduce((acc, i) => acc + (i.venta_por_metros ? (i.cantidad || 1) : i.cantidad), 0), [items]);
   const totalPrice = useMemo(
     () =>
       items.reduce(
         (acc, i) =>
           acc +
-          i.precio_venta_producto * (i.venta_por_metros ? (i.metros || 0) * (i.cantidad || 1) : i.cantidad),
+          subtotalLinea(
+            i.precio_venta_producto,
+            i.cantidad,
+            i.venta_por_metros ? i.metros || 0 : null,
+          ),
         0
       ),
     [items]
@@ -205,7 +244,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <CartContext.Provider value={{ items, totalItems, totalPrice, addItem, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, tieneStockInsuficiente }}>
+    <CartContext.Provider value={{ items, totalItems, totalPrice, addItem, updateQuantity, updateMetros, removeItem, clearCart, actualizarStock, actualizarItem, tieneStockInsuficiente }}>
       {children}
     </CartContext.Provider>
   );

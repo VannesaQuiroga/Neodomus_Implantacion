@@ -44,6 +44,7 @@ import AdminNovedades from '@pages/admin/AdminNovedades';
 import TecnicoNovedades from '@pages/tecnico/TecnicoNovedades';
 import ClienteNovedades from '@pages/cliente/ClienteNovedades';
 import ProductosPublicos from '@pages/public/ProductosPublicos';
+import Recomendaciones from '@pages/public/Recomendaciones';
 import ProductoDetalle from '@pages/public/ProductoDetalle';
 import CarritoPage from '@pages/public/CarritoPage';
 import CheckoutPage from '@pages/public/CheckoutPage';
@@ -73,6 +74,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<ProductosPublicos />} />
           <Route path="/productos" element={<ProductosPublicos />} />
+          <Route path="/recomendaciones" element={<Recomendaciones />} />
           <Route path="/producto/:id" element={<ProductoDetalle />} />
           <Route path="/carrito" element={<CarritoPage />} />
           <Route path="/checkout" element={<ProtectedRoute allowedRoles={['cliente']}><CheckoutPage /></ProtectedRoute>} />

@@ -1,9 +1,11 @@
+// Textos del módulo administrativo de instalaciones. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_INSTALACIONES: Record<string, { es: string; en: string }> = {
   'adm.instalaciones.titulo': { es: 'Citas', en: 'Appointments' },
   'adm.instalaciones.subtituloConteo': { es: '{n} citas agendadas por los clientes', en: '{n} appointments scheduled by customers' },
   'adm.instalaciones.subtituloVacio': { es: 'Citas de instalación y servicio agendadas por los usuarios.', en: 'Installation and service appointments scheduled by users.' },
   'adm.instalaciones.todas': { es: 'Todas', en: 'All' },
   'adm.instalaciones.estadoPendiente': { es: 'Pendiente', en: 'Pending' },
+  'adm.instalaciones.sinAsignacion': { es: 'Pendiente de asignación', en: 'Pending assignment' },
   'adm.instalaciones.estadoConfirmada': { es: 'Confirmada', en: 'Confirmed' },
   'adm.instalaciones.estadoFinalizada': { es: 'Finalizada', en: 'Completed' },
   'adm.instalaciones.estadoCancelada': { es: 'Cancelada', en: 'Cancelled' },

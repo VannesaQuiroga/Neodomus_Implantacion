@@ -1,8 +1,21 @@
-import { useState } from 'react';
+import { MetrosSelect } from '@components/common/MetrosSelect';
+// Tarjeta de producto rediseñada — estilo premium oscuro con borde dorado.
+// Reutiliza exactamente el mismo CarritoContext, lógica de stock, variantes,
+// favoritos y precios que la sección anterior.
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@contexts/CartContext';
 import { useFavoritos } from '@utils/favoritos';
 import { useIdioma } from '@i18n/IdiomaContext';
+import {
+  stockDisponibleProducto,
+  stockDisponibleVariante,
+} from '@utils/productoDisponibilidad';
+import {
+  precioOriginalProducto,
+  precioUnitarioProducto,
+  subtotalLinea,
+} from '@utils/productoPrecio';
 import '@styles/productos-publicos.css';
 
 interface ProductoVariante {
@@ -13,6 +26,7 @@ interface ProductoVariante {
   ancho_cm?: number | null;
   alto_cm?: number | null;
   etiqueta_medida?: string | null;
+  precio?: number | null;
   stock: number;
 }
 
@@ -29,6 +43,8 @@ export interface ProductoCardData {
   promocion_hasta?: string | null;
   es_nuevo?: boolean;
   stock_producto?: number;
+  stock_disponible?: number;
+  disponible?: boolean;
   stock_estado?: 'disponible' | 'bajo' | 'agotado';
   tecnicos_requeridos?: number;
   variantes?: ProductoVariante[];
@@ -38,14 +54,18 @@ interface Props {
   producto: ProductoCardData;
 }
 
-const METROS_OPCIONES = [10, 20, 30, 40, 50];
-
 const ProductoCard = ({ producto }: Props) => {
   const { addItem } = useCart();
   const { t } = useIdioma();
   const { favoritos, toggleFavorito } = useFavoritos();
 
+  const variantes = producto.variantes ?? [];
+  const [varianteId, setVarianteId] = useState<number | null>(() => {
+    const disponibles = variantes.filter((v) => stockDisponibleVariante(producto, v) > 0);
+    return (disponibles[0] ?? variantes[0])?.id ?? null;
+  });
   const [cantidad, setCantidad] = useState(1);
+  const [displayValue, setDisplayValue] = useState('1');
   const [metros, setMetros] = useState(10);
   const [unidades, setUnidades] = useState(1);
   const [displayUnidades, setDisplayUnidades] = useState<string | undefined>(undefined);
@@ -53,27 +73,56 @@ const ProductoCard = ({ producto }: Props) => {
 
   const esFavorito = favoritos.has(producto.id_producto);
   const esPorMetros = Boolean(producto.venta_por_metros);
-  const tieneDescuento = producto.precio_final != null && producto.descuento_activo && producto.descuento_activo > 0;
-  const precioFinal = producto.precio_final ?? producto.precio_venta_producto;
+  const varianteActiva = variantes.find((v) => v.id === varianteId) ?? null;
+  const tieneVariantes = variantes.length > 0;
+  const precioUnitario = precioUnitarioProducto(producto, varianteActiva);
+  const precioOriginal = precioOriginalProducto(producto, varianteActiva);
+  const tieneDescuento = precioOriginal != null;
 
-  const stockDe = (p: ProductoCardData) => {
-    if (p.variantes && p.variantes.length > 0) {
-      return p.variantes.reduce((acc, v) => acc + (v.stock || 0), 0);
-    }
-    return p.stock_producto ?? Infinity;
-  };
-
-  const stockTotal = stockDe(producto);
-  const stockDisponible = Number.isFinite(stockTotal) ? stockTotal : null;
-  const esStockAgotado = stockDisponible !== null && stockDisponible <= 0;
-  const esStockBajo = stockDisponible !== null && stockDisponible > 0 && stockDisponible <= 5;
-  const stockTexto = stockDisponible !== null
-    ? esPorMetros
-      ? `${stockDisponible} m disponibles`
-      : `${stockDisponible} ${stockDisponible === 1 ? 'unidad' : 'unidades'} disponibles`
-    : null;
+  const stockTotal = stockDisponibleProducto(producto);
+  const stockDisponible = tieneVariantes
+    ? (varianteActiva ? stockDisponibleVariante(producto, varianteActiva) : 0)
+    : stockTotal;
+  const esStockAgotado = stockDisponible <= 0;
+  const esStockBajo = stockDisponible > 0 && stockDisponible <= 5;
+  const stockTexto = esPorMetros
+    ? `${stockDisponible} m disponibles`
+    : `${stockDisponible} ${stockDisponible === 1 ? 'unidad' : 'unidades'} disponibles`;
 
   const totalMetrosCard = metros * unidades;
+  const totalLinea = esPorMetros
+    ? subtotalLinea(precioUnitario, unidades, metros)
+    : subtotalLinea(precioUnitario, cantidad);
+
+  useEffect(() => {
+    if (!tieneVariantes) {
+      if (varianteId !== null) setVarianteId(null);
+      return;
+    }
+    const actual = varianteActiva;
+    if (!actual || stockDisponibleVariante(producto, actual) <= 0) {
+      const siguiente =
+        variantes.find((v) => stockDisponibleVariante(producto, v) > 0) ?? variantes[0];
+      if (siguiente && siguiente.id !== varianteId) setVarianteId(siguiente.id);
+    }
+  }, [producto, varianteId, tieneVariantes, varianteActiva, variantes]);
+
+  useEffect(() => {
+    if (stockDisponible <= 0) return;
+    setCantidad((prev) => Math.min(Math.max(1, prev), Math.max(1, Math.floor(stockDisponible))));
+    if (!esPorMetros) return;
+    setUnidades((prev) => {
+      const maxU = Math.max(
+        1,
+        Math.floor(stockDisponible / Math.max(metros, 0.5)) || 1,
+      );
+      return Math.min(Math.max(1, prev), maxU);
+    });
+    setMetros((prev) => {
+      const maxM = Math.floor((stockDisponible / Math.max(1, unidades)) * 2) / 2;
+      return maxM > 0 ? Math.min(prev, maxM) : prev;
+    });
+  }, [varianteId, stockDisponible, esPorMetros]);
 
   const getImagen = (p: ProductoCardData) => {
     if (p.imagen_url) return p.imagen_url;
@@ -85,49 +134,61 @@ const ProductoCard = ({ producto }: Props) => {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const datosVariante = varianteActiva
+    ? {
+        color: varianteActiva.nombre,
+        tamaño: varianteActiva.etiqueta_medida || varianteActiva.tamaño || undefined,
+        medida: varianteActiva.etiqueta_medida || varianteActiva.tamaño || undefined,
+        id_variante: varianteActiva.id,
+      }
+    : {};
+
   const handleAddToCart = () => {
-    const precio = precioFinal;
+    if (tieneVariantes && !varianteActiva) {
+      showToast('Selecciona una variante disponible');
+      return;
+    }
+    if (stockDisponible <= 0) {
+      showToast('Producto sin stock disponible');
+      return;
+    }
     if (esPorMetros) {
-      const stock = stockDe(producto);
       const total = metros * unidades;
-      if (total > stock) {
-        showToast(`Stock insuficiente: solo ${stock} m disponibles`);
+      if (metros <= 0 || total > stockDisponible) {
+        showToast(`Stock insuficiente: solo ${stockDisponible} m disponibles`);
         return;
       }
       const err = addItem(
         {
           id_producto: producto.id_producto,
           nombre_producto: producto.nombre_producto,
-          precio_venta_producto: precio,
+          precio_venta_producto: precioUnitario,
           imagen: getImagen(producto),
           venta_por_metros: true,
-          stock_maximo: stock,
+          stock_maximo: stockDisponible,
           metros,
           tecnicos_requeridos: producto.tecnicos_requeridos,
+          ...datosVariante,
         },
         unidades,
         metros
       );
       if (err) showToast(err);
-      else showToast(`${unidades} × ${metros} m (${total} m) — ${producto.nombre_producto}`);
+      else showToast(`${unidades} x ${metros} m (${total} m) - ${producto.nombre_producto}`);
     } else {
-      const stock = stockDe(producto);
-      if (Number.isFinite(stock) && cantidad > stock) {
-        showToast(`Stock insuficiente: solo ${stock} ${stock === 1 ? 'unidad' : 'unidades'} disponibles`);
-        return;
-      }
-      if (Number.isFinite(stock) && stock <= 0) {
-        showToast('Producto sin stock disponible');
+      if (cantidad > stockDisponible) {
+        showToast(`Stock insuficiente: solo ${stockDisponible} ${stockDisponible === 1 ? 'unidad' : 'unidades'} disponibles`);
         return;
       }
       const err = addItem(
         {
           id_producto: producto.id_producto,
           nombre_producto: producto.nombre_producto,
-          precio_venta_producto: precio,
+          precio_venta_producto: precioUnitario,
           imagen: getImagen(producto),
-          stock_maximo: Number.isFinite(stock) ? stock : undefined,
+          stock_maximo: stockDisponible,
           tecnicos_requeridos: producto.tecnicos_requeridos,
+          ...datosVariante,
         },
         cantidad
       );
@@ -136,40 +197,51 @@ const ProductoCard = ({ producto }: Props) => {
     }
   };
 
-  const disminuirCantidad = () => setCantidad(prev => Math.max(1, prev - 1));
+  const disminuirCantidad = () => setCantidad(prev => {
+    const nueva = Math.max(1, prev - 1);
+    setDisplayValue(String(nueva));
+    return nueva;
+  });
   const aumentarCantidad = () => {
-    const stock = stockDe(producto);
     setCantidad(prev => {
-      if (prev >= stock) return prev;
-      return prev + 1;
+      if (prev >= stockDisponible) return prev;
+      const nueva = prev + 1;
+      setDisplayValue(String(nueva));
+      return nueva;
     });
+  };
+
+  const handleCantidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^0-9]/g, '');
+    setDisplayValue(val);
+  };
+
+  const handleCantidadBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const raw = e.target.value.trim();
+    const num = parseInt(raw, 10);
+    if (raw === '' || isNaN(num) || num < 1) {
+      setCantidad(1);
+      setDisplayValue('1');
+    } else {
+      const newCantidad = num > stockDisponible ? stockDisponible : num;
+      setCantidad(newCantidad);
+      setDisplayValue(String(newCantidad));
+    }
   };
 
   const disminuirUnidades = () => setUnidades(prev => Math.max(1, prev - 1));
   const aumentarUnidades = () => {
-    const stock = stockDe(producto);
-    const maxU = Number.isFinite(stock) ? Math.max(1, Math.floor(stock / metros) || 1) : Infinity;
+    const maxU = Math.max(1, Math.floor(stockDisponible / Math.max(metros, 0.5)) || 1);
     setUnidades(prev => (prev >= maxU ? prev : prev + 1));
-  };
-
-  const handleMetrosChange = (m: number) => {
-    setMetros(m);
-    const stock = stockDe(producto);
-    if (Number.isFinite(stock) && m * unidades > stock) {
-      const maxU = Math.max(1, Math.floor(stock / m) || 1);
-      if (unidades > maxU) setUnidades(maxU);
-    }
   };
 
   return (
     <>
       {toast && <div className="cart-toast">{toast}</div>}
       <div className="card-producto">
+        {/* Imagen superior centrada */}
         <div className="img-contenedor">
-          <div className="corner-badges">
-            {producto.es_nuevo && <span className="nuevo-corner">Nuevo</span>}
-            {tieneDescuento && <span className="promo-corner">Promoción</span>}
-          </div>
+          {/* Favoritos esquina superior derecha */}
           <button
             type="button"
             className={`btn-favorito ${esFavorito ? 'activo' : ''}`}
@@ -192,186 +264,195 @@ const ProductoCard = ({ producto }: Props) => {
               />
             </Link>
           </div>
+          {/* Corner badges (Nuevo / Promoción) */}
+          <div className="corner-badges">
+            {producto.es_nuevo && <span className="nuevo-corner">Nuevo</span>}
+            {tieneDescuento && <span className="promo-corner">Promoción</span>}
+          </div>
         </div>
+
+        {/* Información del producto */}
         <div className="info-producto">
+          {/* Nombre */}
           <Link to={`/producto/${producto.id_producto}`} className="nombre-producto-link">
             <h3 className="nombre-producto">{producto.nombre_producto}</h3>
           </Link>
+
+          {/* Categoría badge dorada */}
           {producto.nombre_categoria && (
             <span className="categoria-producto">{producto.nombre_categoria}</span>
           )}
-          <span className="categoria-producto">
-            {producto.tecnicos_requeridos && producto.tecnicos_requeridos > 0
-              ? `Requiere ${producto.tecnicos_requeridos > 1 ? producto.tecnicos_requeridos + ' técnicos' : '1 técnico'}`
-              : 'Sin instalación'}
-          </span>
-          <div className={`producto-footer ${esPorMetros ? 'producto-footer--con-metros' : 'producto-footer--sin-metros'} ${producto.variantes?.length ? 'producto-footer--con-variantes' : 'producto-footer--sin-variantes'}`}>
-            <div className="precio-bloque">
-              {esPorMetros ? (
-                <>
-                  <span className="precio-unitario">{precioFinal.toLocaleString()} COP / metro</span>
-                  <div className="precio-producto">
-                    {tieneDescuento && (
-                      <span className="precio-original">
-                        ${(producto.precio_venta_producto * totalMetrosCard).toLocaleString()}
-                      </span>
-                    )}
-                    <span className="precio-monto">
-                      ${(precioFinal * totalMetrosCard).toLocaleString()}
-                    </span>
-                    <span className="precio-sufijo">COP</span>
-                    {tieneDescuento && (
-                      <span className="badge-descuento">-{producto.descuento_activo}%</span>
-                    )}
-                  </div>
-                  <span className="precio-seleccion-detalle">{metros} m × {unidades} {unidades === 1 ? 'unidad' : 'unidades'} = {totalMetrosCard} m total</span>
-                </>
-              ) : (
-                <>
-                  <span className="precio-unitario precio-unitario--placeholder" aria-hidden="true">—</span>
-                  <div className="precio-producto">
-                    {tieneDescuento && (
-                      <span className="precio-original">
-                        ${producto.precio_venta_producto.toLocaleString()}
-                      </span>
-                    )}
-                    <span className="precio-monto">
-                      ${precioFinal.toLocaleString()}
-                    </span>
-                    <span className="precio-sufijo">COP</span>
-                    {tieneDescuento && (
-                      <span className="badge-descuento">-{producto.descuento_activo}%</span>
-                    )}
-                  </div>
-                  <span className="precio-seleccion-detalle precio-seleccion-detalle--placeholder" aria-hidden="true">—</span>
-                </>
+
+          {/* Etiqueta de requisitos técnicos */}
+          {producto.tecnicos_requeridos && producto.tecnicos_requeridos > 0 && (
+            <span className="tecnico-requisito">
+              REQUIERE {producto.tecnicos_requeridos > 1 ? producto.tecnicos_requeridos + ' TÉCNICOS' : '1 TÉCNICO'}
+            </span>
+          )}
+
+          {/* Separador horizontal */}
+          <div className="separador" />
+
+          {/* Precios */}
+          <div className="precio-bloque">
+            <span className="precio-unitario">
+              {esPorMetros ? 'Precio unitario por metro' : 'Precio unitario'}
+            </span>
+            <div className="precio-producto">
+              {tieneDescuento && (
+                <span className="precio-original">
+                  ${precioOriginal!.toLocaleString()}
+                </span>
+              )}
+              <span className="precio-monto">
+                ${precioUnitario.toLocaleString()}
+              </span>
+              <span className="precio-sufijo">COP</span>
+              {tieneDescuento && (
+                <span className="badge-descuento">-{producto.descuento_activo}%</span>
               )}
             </div>
-            {stockTexto && (
-              <span className={`stock-disponible ${esStockAgotado ? 'stock-disponible--agotado' : ''} ${esStockBajo ? 'stock-disponible--bajo' : ''}`}>
-                <span className="stock-disponible__dot" aria-hidden="true"></span>
-                {esStockAgotado ? 'Sin stock' : `Disponibles: ${stockTexto}`}
-              </span>
-            )}
-            {(producto.variantes?.length ?? 0) > 0 ? (
-              <div className="combos-mini">
-                {producto.variantes!.slice(0, 4).map((v) => {
-                  const medida = v.etiqueta_medida || v.tamaño || '';
-                  const agotada = (v.stock || 0) <= 0;
-                  return (
-                    <span
-                      key={v.id}
-                      className={`combo-chip ${agotada ? 'agotado' : ''}`}
-                      title={`${v.nombre}${medida ? ` · ${medida}` : ''} — ${agotada ? 'Sin stock' : `${v.stock} u. disponibles`}`}
-                    >
-                      <i className="combo-dot" style={{ background: v.hex || '#d4a54b' }} />
-                      <b>{v.nombre}</b>
-                      {medida && <span> · {medida}</span>}
-                      {agotada && <span> ✕</span>}
-                    </span>
-                  );
-                })}
-                {(producto.variantes!.length > 4) && (
-                  <span className="combo-chip mas">+{producto.variantes!.length - 4}</span>
-                )}
-              </div>
-            ) : (
-              <div className="combos-mini combos-mini--placeholder" aria-hidden="true">
-                <span className="combo-chip" style={{ visibility: 'hidden' }}>.</span>
-              </div>
-            )}
-            <div className="selectores-bloque">
-              {esPorMetros ? (
-                <div className="metros-control-grid">
-                  <select
-                    className="metros-select"
-                    value={metros}
-                    onChange={(e) => handleMetrosChange(Number(e.target.value))}
-                    aria-label="Metros"
+          </div>
+
+          {/* Subtotal calculado */}
+          <span className="subtotal-detalle">
+            Subtotal: {esPorMetros ? `${metros} m × ${unidades}` : `${cantidad} u.`} = ${totalLinea.toLocaleString()} COP
+          </span>
+
+          {/* Disponibilidad con punto verde */}
+          <span className={`stock-disponible ${esStockAgotado ? 'stock-disponible--agotado' : ''} ${esStockBajo ? 'stock-disponible--bajo' : ''}`}>
+            <span className="stock-disponible__dot" aria-hidden="true"></span>
+            {esStockAgotado ? 'Sin stock' : `Disponibles: ${stockTexto}`}
+          </span>
+
+          {/* Variantes (chips de color/tamaño) */}
+          {variantes.length > 0 ? (
+            <div className="combos-mini">
+              {variantes.slice(0, 4).map((v) => {
+                const medida = v.etiqueta_medida || v.tamaño || '';
+                const stockVariante = stockDisponibleVariante(producto, v);
+                const agotada = stockVariante <= 0;
+                const activa = varianteActiva?.id === v.id;
+                return (
+                  <button
+                    type="button"
+                    key={v.id}
+                    className={`combo-chip ${agotada ? 'agotado' : ''} ${activa ? 'activo' : ''}`}
+                    disabled={agotada}
+                    onClick={() => setVarianteId(v.id)}
+                    aria-pressed={activa}
+                    title={`${v.nombre}${medida ? ` - ${medida}` : ''} - ${agotada ? 'Sin stock' : `${stockVariante} u. disponibles`}`}
                   >
-                    {METROS_OPCIONES.map(m => (
-                      <option key={m} value={m}>{m} m</option>
-                    ))}
-                  </select>
-                  <div className="cantidad-row">
-                    <span className="cantidad-label">Cantidad:</span>
-                    <div className="cantidad-control">
-                      <button type="button" onClick={disminuirUnidades} aria-label="Reducir unidades">−</button>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className="cantidad-input"
-                        value={displayUnidades !== undefined ? displayUnidades : String(unidades)}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setDisplayUnidades(val);
-                        }}
-                        onBlur={(e) => {
-                          const raw = e.target.value.trim();
-                          const num = parseInt(raw, 10);
-                          const stock = stockDe(producto);
-                          const maxU = Number.isFinite(stock) ? Math.max(1, Math.floor(stock / metros) || 1) : Infinity;
-                          if (raw === '' || isNaN(num) || num < 1) {
-                            setUnidades(1);
-                          } else {
-                            setUnidades(num > maxU ? maxU : num);
-                          }
-                          setDisplayUnidades(undefined);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            (e.target as HTMLInputElement).blur();
-                          }
-                        }}
-                        aria-label="Unidades"
-                      />
-                      <button
-                        type="button"
-                        onClick={aumentarUnidades}
-                        disabled={Number.isFinite(stockTotal) && unidades >= Math.max(1, Math.floor(stockTotal / metros) || 1)}
-                        aria-label="Aumentar unidades"
-                      >+</button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
+                    <i className="combo-dot" style={{ background: v.hex || '#d4a54b' }} />
+                    <b>{v.nombre}</b>
+                    {medida && <span> - {medida}</span>}
+                    {agotada && <span> (agotado)</span>}
+                  </button>
+                );
+              })}
+              {(variantes.length > 4) && (
+                <span className="combo-chip mas">+{variantes.length - 4}</span>
+              )}
+            </div>
+          ) : (
+            <div className="combos-mini combos-mini--placeholder" aria-hidden="true">
+              <span className="combo-chip" style={{ visibility: 'hidden' }}>.</span>
+            </div>
+          )}
+
+          {/* Selector de cantidad */}
+          <div className="selectores-bloque">
+            {esPorMetros ? (
+              <div className="metros-control-grid">
+                <MetrosSelect className="metros-select" value={metros} max={stockDisponible / Math.max(1, unidades)}
+                  aria-label="Metros" onChange={(m) => {
+                    setMetros(m);
+                    const stock = stockDisponible;
+                    if (Number.isFinite(stock) && m * unidades > stock) {
+                      setUnidades(Math.max(1, Math.floor(stock / m)));
+                    }
+                  }} />
                 <div className="cantidad-row">
-                  <span className="cantidad-label">Cantidad:</span>
+                  <span className="cantidad-label">Unidades:</span>
                   <div className="cantidad-control">
-                    <button type="button" onClick={disminuirCantidad} disabled={cantidad <= 1} aria-label="Reducir cantidad">−</button>
+                    <button type="button" onClick={disminuirUnidades} aria-label="Reducir unidades">−</button>
                     <input
                       type="text"
                       inputMode="numeric"
                       className="cantidad-input"
-                      value={String(cantidad)}
-                      readOnly
-                      aria-label="Cantidad"
+                      value={displayUnidades !== undefined ? displayUnidades : String(unidades)}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setDisplayUnidades(val);
+                      }}
+                      onBlur={(e) => {
+                        const raw = e.target.value.trim();
+                        const num = parseInt(raw, 10);
+                        const stock = stockDisponible;
+                        const maxU = Number.isFinite(stock) ? Math.max(1, Math.floor(stock / metros) || 1) : Infinity;
+                        if (raw === '' || isNaN(num) || num < 1) {
+                          setUnidades(1);
+                        } else {
+                          setUnidades(num > maxU ? maxU : num);
+                        }
+                        setDisplayUnidades(undefined);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                      aria-label="Unidades"
                     />
                     <button
                       type="button"
-                      onClick={aumentarCantidad}
-                      disabled={Number.isFinite(stockTotal) && cantidad >= stockTotal}
-                      aria-label="Aumentar cantidad"
+                      onClick={aumentarUnidades}
+                      disabled={unidades >= Math.max(1, Math.floor(stockDisponible / Math.max(metros, 0.5)) || 1)}
+                      aria-label="Aumentar unidades"
                     >+</button>
                   </div>
                 </div>
-              )}
-            </div>
-            <button
-              className="btn-agregar btn-agregar--footer"
-              onClick={handleAddToCart}
-              disabled={esStockAgotado}
-              title={esStockAgotado ? 'Sin stock disponible' : undefined}
-            >
-              <span>{t('productos.agregarCarrito')}</span>
-              <svg className="icono-carrito" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="21" r="1" />
-                <circle cx="20" cy="21" r="1" />
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-              </svg>
-            </button>
+              </div>
+            ) : (
+              <div className="cantidad-row">
+                <span className="cantidad-label">Cantidad:</span>
+                <div className="cantidad-control">
+                  <button type="button" onClick={disminuirCantidad} disabled={cantidad <= 1} aria-label="Reducir cantidad">−</button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="cantidad-input"
+                    value={displayValue}
+                    onChange={handleCantidadChange}
+                    onBlur={handleCantidadBlur}
+                    aria-label="Cantidad"
+                  />
+                  <button
+                    type="button"
+                    onClick={aumentarCantidad}
+                    disabled={cantidad >= stockDisponible}
+                    aria-label="Aumentar cantidad"
+                  >+</button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Botón agregar al carrito */}
+          <button
+            className="btn-agregar btn-agregar--footer"
+            onClick={handleAddToCart}
+            disabled={esStockAgotado || (tieneVariantes && !varianteActiva) || (esPorMetros && (metros <= 0 || totalMetrosCard > stockDisponible))}
+            title={esStockAgotado ? 'Sin stock disponible' : undefined}
+          >
+            <span>{t('productos.agregarCarrito')}</span>
+            <svg className="icono-carrito" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+          </button>
         </div>
       </div>
     </>

@@ -1,3 +1,4 @@
+// Componente reutilizable EspecializacionesSelect para componer la interfaz de Neodomus.
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FaChevronDown, FaXmark, FaCheck } from 'react-icons/fa6';
@@ -10,6 +11,7 @@ interface Props {
   disabled?: boolean;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const EspecializacionesSelect = ({ catalogo, value, onChange, disabled }: Props) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

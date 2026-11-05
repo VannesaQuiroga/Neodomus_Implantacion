@@ -42,15 +42,6 @@ scripts/  inicialización y utilidades de datos
 
 ## Documentación
 
-- [Índice de documentación](docs/README.md)
-- [Manual de usuario](MANUAL_DE_USUARIO.md)
-- [Manual técnico](MANUAL_TECNICO.md)
-- [Arquitectura comprobada](docs/referencia-tecnica/architecture.md)
-- [Referencia de API](docs/referencia-tecnica/api-endpoints.md)
-- [Esquema y diccionario de datos](docs/referencia-tecnica/database-schema.md) y [diccionario](docs/referencia-tecnica/diccionario-de-datos.md)
-- [Instalación con Docker](docs/setup/con-docker.md) · [sin Docker](docs/setup/sin-docker.md)
-- [Requisitos funcionales](docs/requisitos/RFs/) · [historias de usuario](docs/requisitos/HUs/) · [requisitos no funcionales](docs/requisitos/RNs/)
-- [Auditoría documental](docs/auditoria-documental.md)
 
 ## Seguridad y límites conocidos
 

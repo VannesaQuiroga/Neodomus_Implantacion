@@ -14,6 +14,7 @@ Flujo:
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from fastapi import HTTPException
 from sqlalchemy import func, text
@@ -27,7 +28,39 @@ from app.models.pedido import DetallePedido, Pedido
 from app.models.producto import Producto
 from app.models.tecnico import Tecnico
 from app.services import pagos_service
+from app.services.disponibilidad_service import producto_disponible
 from app.services.inventario_service import descontar_stock
+from app.services.precio_service import precio_unitario as calcular_precio_unitario
+
+
+# Precisión de longitud para productos vendidos por metros: 2 decimales (1 cm).
+METROS_PRECISION = Decimal("0.01")
+# Precisión monetaria (separada de la de longitud).
+DINERO_PRECISION = Decimal("0.01")
+
+
+def _decimal_metros(valor) -> Decimal:
+    """Convierte una longitud en metros a Decimal exacto.
+
+    Rechaza valores no finitos, <= 0 y con más de 2 decimales (no se redondea
+    silenciosamente una entrada con mayor precisión)."""
+    try:
+        d = Decimal(str(valor))
+    except (TypeError, ValueError, InvalidOperation):
+        raise HTTPException(status_code=400, detail="Cantidad en metros inválida")
+    if not d.is_finite():
+        raise HTTPException(status_code=400, detail="Cantidad en metros inválida")
+    if d.as_tuple().exponent < -2:
+        raise HTTPException(
+            status_code=400,
+            detail="La longitud admite como máximo 2 decimales",
+        )
+    return d
+
+
+def _dinero(valor: Decimal) -> Decimal:
+    """Redondea un importe a la precisión monetaria (2 decimales)."""
+    return Decimal(str(valor)).quantize(DINERO_PRECISION, rounding=ROUND_HALF_UP)
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -57,6 +90,7 @@ from app.services.especialidades import (
     tecnico_ocupado,
     duracion_desde_items,
     duracion_base_tipo,
+    tecnico_cubre,
 )
 from app.services.factura_service import (
     enviar_factura_por_correo,
@@ -104,16 +138,26 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
         producto = db.query(Producto).filter(Producto.id_producto == id_producto).first()
         if not producto:
             raise HTTPException(status_code=404, detail=f"Producto {id_producto} no encontrado")
-        if producto.estado_producto != "activo":
+        if producto.estado_producto != "activo" or not producto.visible_cliente:
             raise HTTPException(status_code=400, detail=f"El producto {producto.nombre_producto} no está disponible")
+        if not producto_disponible(producto):
+            raise HTTPException(
+                status_code=400,
+                detail=f"El producto {producto.nombre_producto} no tiene existencias disponibles",
+            )
 
         # Variante elegida (color/tamaño/medida): precio y stock propios.
         variante = None
         if id_variante is not None:
-            from app.models.producto_variante import ProductoVariante
-
+            try:
+                id_variante_int = int(id_variante)
+            except (TypeError, ValueError):
+                raise HTTPException(
+                    status_code=400,
+                    detail="La variante seleccionada no es v\u00e1lida",
+                )
             variante = next(
-                (v for v in (producto.variantes or []) if v.id == int(id_variante)),
+                (v for v in (producto.variantes or []) if v.id == id_variante_int),
                 None,
             )
             if variante is None:
@@ -121,36 +165,55 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
                     status_code=400,
                     detail="La combinación de color/medida seleccionada ya no existe",
                 )
-            if (variante.stock or 0) <= 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"'{producto.nombre_producto}' en {variante.nombre}"
-                    + (f" ({variante.tamaño})" if variante.tamaño else "")
-                    + " está agotado",
-                )
+        elif producto.variantes and color:
+            medida = (item.get("tamaño") or item.get("medida") or "").strip()
+            variante = next(
+                (
+                    v
+                    for v in producto.variantes
+                    if (v.nombre or "").strip().lower() == color.lower()
+                    and (
+                        not medida
+                        or (v.tamaño or "").strip() == medida
+                        or (
+                            v.ancho_cm
+                            and v.alto_cm
+                            and f"{v.ancho_cm} cm por {v.alto_cm} cm" == medida
+                        )
+                        or (
+                            v.ancho_cm
+                            and not v.alto_cm
+                            and f"{v.ancho_cm} cm" == medida
+                        )
+                    )
+                ),
+                None,
+            )
 
-        precio_unitario = (
-            (variante.precio if variante and variante.precio is not None else None)
-            or producto.precio_venta_producto
-            or 0
-        )
+        if variante is not None and (variante.stock or 0) <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{producto.nombre_producto}' en {variante.nombre}"
+                + (f" ({variante.tamaño})" if variante.tamaño else "")
+                + " está agotado",
+            )
 
-        # Venta por metros: la cantidad ES la longitud en metros.
+        precio_dec = calcular_precio_unitario(producto, variante)
+        precio_unitario = float(precio_dec)
+
+        # Venta por metros: la cantidad ES la longitud exacta en metros.
         if producto.venta_por_metros:
-            try:
-                metros = float(metros) if metros is not None else float(cantidad)
-            except (TypeError, ValueError):
-                raise HTTPException(status_code=400, detail="Cantidad en metros inválida")
+            metros = _decimal_metros(metros if metros is not None else cantidad)
             if metros <= 0:
                 raise HTTPException(status_code=400, detail="Los metros deben ser mayores a cero")
             cantidad_linea = 1
-            subtotal = precio_unitario * metros
+            subtotal = _dinero(precio_dec * metros)
         else:
             if cantidad < 1:
                 raise HTTPException(status_code=400, detail="La cantidad debe ser al menos 1")
             metros = None
             cantidad_linea = cantidad
-            subtotal = precio_unitario * cantidad_linea
+            subtotal = _dinero(precio_dec * Decimal(cantidad_linea))
 
         preparados.append({
             "producto": producto,
@@ -162,27 +225,27 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
             "alto_cm": (variante.alto_cm if variante else None),
             "variante": variante,
             "precio_unitario": precio_unitario,
-            "subtotal": round(subtotal, 2),
+            "subtotal": float(subtotal),
         })
 
     # ── Validación AGREGADA de stock ANTES de procesar el pago ──────
     # Suma lo solicitado por producto/variante en todas las líneas del
-    # carrito y verifica contra el stock actual. Así un stock insuficiente
-    # falla ANTES de cobrar al cliente (descontar_stock re-valida con
+    # carrito y verifica contra el stock actual (exacto, sin redondeo). Así un
+    # stock insuficiente falla ANTES de cobrar (descontar_stock re-valida con
     # bloqueo pesimista al confirmar el pago).
     from collections import defaultdict
 
-    requerido_prod: dict[int, float] = defaultdict(float)
-    requerido_var: dict[int, float] = defaultdict(float)
+    requerido_prod: dict[int, Decimal] = defaultdict(lambda: Decimal("0"))
+    requerido_var: dict[int, Decimal] = defaultdict(lambda: Decimal("0"))
     productos_por_id: dict[int, Producto] = {}
     variantes_por_id: dict[int, "ProductoVariante"] = {}
     for linea in preparados:
         p = linea["producto"]
         v = linea.get("variante")
         unidades = (
-            float(linea["metros"])
-            if (p.venta_por_metros and linea["metros"])
-            else linea["cantidad"]
+            linea["metros"]
+            if (p.venta_por_metros and linea["metros"] is not None)
+            else Decimal(linea["cantidad"])
         )
         requerido_prod[p.id_producto] += unidades
         productos_por_id[p.id_producto] = p
@@ -192,18 +255,18 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
 
     for pid, req in requerido_prod.items():
         prod = productos_por_id[pid]
-        disponible = prod.stock_producto or 0
+        disponible = Decimal(prod.stock_producto or 0)
         if req > disponible:
             raise HTTPException(
                 status_code=409,
                 detail=(
                     f"Stock insuficiente de '{prod.nombre_producto}' "
-                    f"(disponible: {disponible}, solicitado: {req:g})"
+                    f"(disponible: {disponible}, solicitado: {req})"
                 ),
             )
     for vid, req in requerido_var.items():
         var = variantes_por_id[vid]
-        disponible = var.stock or 0
+        disponible = Decimal(var.stock or 0)
         if req > disponible:
             nombre = (
                 productos_por_id[var.id_producto].nombre_producto
@@ -214,7 +277,7 @@ def _validar_y_preparar_items(db: Session, items: list[dict]) -> list[dict]:
                 status_code=409,
                 detail=(
                     f"Stock insuficiente de '{nombre}' en la variante seleccionada "
-                    f"(disponible: {disponible}, solicitado: {req:g})"
+                    f"(disponible: {disponible}, solicitado: {req})"
                 ),
             )
 
@@ -231,7 +294,6 @@ def _preparar_servicios(
     del carrito; se usa para validar que la franja elegida alcance."""
     from app.services.especialidades import (
         horas_laborales,
-        slot_tomado,
         _dia_es_laboral,
     )
     from datetime import datetime as _dt
@@ -281,11 +343,6 @@ def _preparar_servicios(
             raise HTTPException(
                 status_code=400,
                 detail="La hora debe ser una franja entre 08:00 y 18:00 con tiempo suficiente para el servicio (por ejemplo 09:00).",
-            )
-        if slot_tomado(db, f, hora, duracion_horas=duracion):
-            raise HTTPException(
-                status_code=400,
-                detail=f"La franja del {f} a las {hora} ya fue reservada por otro cliente. Elige otra.",
             )
         if f == date.today():
             try:
@@ -608,14 +665,18 @@ def _crear_orden_instalacion(
     pedido: Pedido,
     cliente: Cliente,
     serv: dict,
+    commit: bool = True,
+    avisos: list | None = None,
 ) -> dict | None:
     """Crea una cita para una línea de servicio del pedido: usa el técnico
     elegido por el cliente (validado) o asigna automáticamente uno disponible,
     y notifica por correo al técnico. Devuelve el resumen de la cita.
     Si el servicio es instalación y los productos del pedido requieren 2
-    técnicos, también se asigna (o valida) un segundo técnico."""
-    from app.services.especialidades import slot_tomado
+    técnicos, también se asigna (o valida) un segundo técnico.
 
+    Con ``commit=False`` deja la cita pendiente para confirmarla en la misma
+    transacción que el resto del flujo. Con ``avisos`` distinto de None, las
+    notificaciones se difieren en esa lista (para enviarlas post-commit)."""
     try:
         fecha = date.fromisoformat(str(serv["fecha"])) if serv.get("fecha") else None
     except (TypeError, ValueError):
@@ -625,7 +686,7 @@ def _crear_orden_instalacion(
     else:
         # Regla de negocio: mínimo 3 horas de anticipación. HOY es posible si
         # la franja elegida queda fuera de esas 3 horas y hay agenda libre
-        # (la disponibilidad se valida más abajo con slot_tomado/técnicos).
+        # (la disponibilidad por técnico se valida más abajo).
         try:
             partes_hora = str(serv.get("hora") or "08:00").split(":")
             fecha_hora_servicio = datetime.combine(
@@ -662,12 +723,6 @@ def _crear_orden_instalacion(
     )
     costo_cita = float(tarifa.costo) if tarifa else None
 
-    if slot_tomado(db, fecha, hora, duracion_horas=duracion_cita):
-        raise HTTPException(
-            status_code=400,
-            detail=f"La franja del {fecha.isoformat()} a las {hora} ya fue reservada por otro cliente.",
-        )
-
     tecnicos_necesarios = 1
     import unicodedata
 
@@ -678,9 +733,8 @@ def _crear_orden_instalacion(
     if tipo_norm == "instalacion":
         tecnicos_necesarios = _max_tecnicos_pedido(db, pedido.id_pedido)
 
-    # Especializaciones requeridas por los productos del pedido (solo
-    # informativas: ya no se exige que el técnico las cubra, se supone que
-    # cualquier técnico sabe de todo).
+    # Especializaciones requeridas por los productos del pedido: el equipo
+    # asignado debe cubrirlas (un técnico libre sin la especialización no basta).
     ids_esp, nombres_esp = _especializaciones_requeridas_pedido(db, pedido.id_pedido)
 
     id_tecnico_sel = serv.get("id_tecnico")
@@ -697,6 +751,11 @@ def _crear_orden_instalacion(
                 status_code=400,
                 detail="El técnico seleccionado no existe o no está activo",
             )
+        if ids_esp and not tecnico_cubre(tecnico, ids_esp):
+            raise HTTPException(
+                status_code=400,
+                detail="El técnico seleccionado no tiene la especialización requerida",
+            )
         if tecnico_ocupado(db, tecnico.id_tecnico, fecha, hora, duracion_horas=duracion_cita):
             raise HTTPException(
                 status_code=400,
@@ -705,6 +764,7 @@ def _crear_orden_instalacion(
     else:
         tecnico = _asignar_tecnico(
             db, tipo_servicio, fecha, hora,
+            ids_especializacion=ids_esp,
             duracion_horas=duracion_cita,
         )
         if tecnico is None:
@@ -741,6 +801,11 @@ def _crear_orden_instalacion(
                     status_code=400,
                     detail=f"El técnico {slot} seleccionado no existe o no está activo",
                 )
+            if ids_esp and not tecnico_cubre(extra, ids_esp):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El técnico {slot} no tiene la especialización requerida",
+                )
             if tecnico_ocupado(db, extra.id_tecnico, fecha, hora, duracion_horas=duracion_cita):
                 raise HTTPException(
                     status_code=400,
@@ -749,6 +814,7 @@ def _crear_orden_instalacion(
         elif slot <= tecnicos_necesarios or id_sel is not None:
             extra = _asignar_tecnico_extra(
                 db, fecha, excluir_ids=elegidos_previos.copy(), hora=hora,
+                ids_especializacion=ids_esp,
                 duracion_horas=duracion_cita,
             )
             if extra is None:
@@ -763,6 +829,29 @@ def _crear_orden_instalacion(
             break
         tecnicos_extra.append(extra)
         elegidos_previos.add(extra.id_tecnico)
+
+    # Bloquear el equipo completo (orden ascendente) y revalidar TODOS los
+    # requisitos (cuenta activa, aptitud y ocupación) antes de crear la cita:
+    # serializa reservas concurrentes sobre la misma capacidad.
+    from app.services.especialidades import bloquear_tecnicos, validar_equipo_tecnicos
+
+    equipo_ids = [tecnico.id_tecnico if tecnico else None] + [e.id_tecnico for e in tecnicos_extra]
+    equipo_ids = [i for i in equipo_ids if i is not None]
+    bloquear_tecnicos(db, equipo_ids)
+    try:
+        validar_equipo_tecnicos(
+            db,
+            equipo_ids,
+            fecha,
+            hora,
+            ids_especializacion=ids_esp,
+            duracion_horas=duracion_cita,
+        )
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=409,
+            detail="Uno de los técnicos dejó de estar disponible o no cumple los requisitos. Elige otra fecha u horario.",
+        )
 
     nombre_tecnico = _nombre_tecnico(tecnico)
     nombre_tecnico_2 = _nombre_tecnico(tecnicos_extra[0]) if len(tecnicos_extra) > 0 else None
@@ -793,32 +882,40 @@ def _crear_orden_instalacion(
         cita_kwargs["nombre_tecnico_3"] = nombre_tecnico_3
     cita = Cita(**cita_kwargs)
     db.add(cita)
-    db.commit()
-    db.refresh(cita)
+    if commit:
+        db.commit()
+        db.refresh(cita)
 
     nombre_cliente = f"{cliente.first_name} {cliente.last_name}".strip() or "Cliente"
     fecha_texto = fecha.strftime("%d/%m/%Y")
 
     tecnicos_a_notificar = [t for t in (tecnico, *tecnicos_extra) if t is not None]
-    for t in tecnicos_a_notificar:
-        if t.usuario and t.usuario.email:
-            from app.services.notificaciones import notificar_cita_asignada_tecnico
 
-            notificar_cita_asignada_tecnico(
-                db,
-                t.usuario.id_usuario,
-                t.usuario.email,
-                _nombre_tecnico(t) or "técnico",
-                {
-                    "cliente": nombre_cliente,
-                    "servicio": tipo_servicio,
-                    "fecha": fecha_texto,
-                    "hora": hora,
-                    "direccion": direccion,
-                    "telefono": cliente.telefono_cliente,
-                    "descripcion": " | ".join(productos) if productos else None,
-                },
-            )
+    def _avisar_tecnicos_cita():
+        for t in tecnicos_a_notificar:
+            if t.usuario and t.usuario.email:
+                from app.services.notificaciones import notificar_cita_asignada_tecnico
+
+                notificar_cita_asignada_tecnico(
+                    db,
+                    t.usuario.id_usuario,
+                    t.usuario.email,
+                    _nombre_tecnico(t) or "técnico",
+                    {
+                        "cliente": nombre_cliente,
+                        "servicio": tipo_servicio,
+                        "fecha": fecha_texto,
+                        "hora": hora,
+                        "direccion": direccion,
+                        "telefono": cliente.telefono_cliente,
+                        "descripcion": " | ".join(productos) if productos else None,
+                    },
+                )
+
+    if avisos is None:
+        _avisar_tecnicos_cita()
+    else:
+        avisos.append(_avisar_tecnicos_cita)
 
     # El TÉCNICO 1 queda encargado de despachar también los productos del
     # pedido: la entrega se agenda el mismo día de la instalación a su nombre.
@@ -833,25 +930,32 @@ def _crear_orden_instalacion(
         pedido.id_tecnico_entrega = tecnico.id_tecnico
         pedido.nombre_tecnico_entrega = nombre_tecnico
         pedido.estado_entrega = "Asignada"
-        db.commit()
+        if commit:
+            db.commit()
 
-        if tecnico.usuario and tecnico.usuario.email:
-            from app.services.notificaciones import notificar_entrega_asignada_tecnico
+        def _avisar_tecnico_entrega():
+            if tecnico.usuario and tecnico.usuario.email:
+                from app.services.notificaciones import notificar_entrega_asignada_tecnico
 
-            notificar_entrega_asignada_tecnico(
-                db,
-                tecnico.usuario.id_usuario,
-                tecnico.usuario.email,
-                nombre_tecnico or "técnico",
-                {
-                    "pedido": pedido.id_pedido,
-                    "cliente": nombre_cliente,
-                    "direccion": direccion,
-                    "telefono": cliente.telefono_cliente,
-                    "fecha": fecha_texto,
-                    "hora": hora,
-                },
-            )
+                notificar_entrega_asignada_tecnico(
+                    db,
+                    tecnico.usuario.id_usuario,
+                    tecnico.usuario.email,
+                    nombre_tecnico or "técnico",
+                    {
+                        "pedido": pedido.id_pedido,
+                        "cliente": nombre_cliente,
+                        "direccion": direccion,
+                        "telefono": cliente.telefono_cliente,
+                        "fecha": fecha_texto,
+                        "hora": hora,
+                    },
+                )
+
+        if avisos is None:
+            _avisar_tecnico_entrega()
+        else:
+            avisos.append(_avisar_tecnico_entrega)
 
         entrega_info = {
             "id_pedido": pedido.id_pedido,
@@ -888,12 +992,14 @@ def _crear_ordenes_instalacion_pedido(
     pedido: Pedido,
     cliente: Cliente,
     lineas_servicio: list[dict],
+    commit: bool = True,
+    avisos: list | None = None,
 ) -> list[dict]:
     """Crea las órdenes de instalación para las líneas de servicio del pedido
     una vez el pago está aprobado."""
     creadas = []
     for serv in lineas_servicio:
-        orden = _crear_orden_instalacion(db, pedido, cliente, serv)
+        orden = _crear_orden_instalacion(db, pedido, cliente, serv, commit=commit, avisos=avisos)
         if orden:
             creadas.append(orden)
     return creadas
@@ -928,6 +1034,8 @@ def _crear_ordenes_instalacion_desde_detalles(
     db: Session,
     pedido: Pedido,
     cliente: Cliente,
+    commit: bool = True,
+    avisos: list | None = None,
 ) -> list[dict]:
     """Para pedidos confirmados después (pago pendiente→aprobado): genera las
     citas a partir de las líneas de servicio ya guardadas."""
@@ -952,20 +1060,15 @@ def _crear_ordenes_instalacion_desde_detalles(
             "hora": hora,
             "direccion": direccion,
         }
-        orden = _crear_orden_instalacion(db, pedido, cliente, serv)
+        orden = _crear_orden_instalacion(db, pedido, cliente, serv, commit=commit, avisos=avisos)
         if orden:
             creadas.append(orden)
     return creadas
 
 
-async def _crear_factura_y_enviar(
-    db: Session, pedido: Pedido, pago: Pago, cliente: Cliente
-) -> Factura:
-    """Crea la factura, genera su PDF en memoria y la envía por correo.
-
-    El PDF NO se guarda en disco. Si el correo falla, el pago NO se marca
-    rechazado: solo se registra el error.
-    """
+def _crear_factura(db: Session, pedido: Pedido, pago: Pago, commit: bool = True) -> Factura:
+    """Crea la factura del pedido (sin enviarla). Con ``commit=False`` la deja
+    pendiente para confirmarla en la misma transacción que el resto del flujo."""
     numero_factura = f"FAC-{fecha_bogota().strftime('%Y%m%d')}-{pedido.id_pedido:06d}"
     factura = Factura(
         id_pedido=pedido.id_pedido,
@@ -977,9 +1080,15 @@ async def _crear_factura_y_enviar(
         numero_transaccion=pago.numero_transaccion,
     )
     db.add(factura)
-    db.commit()
-    db.refresh(factura)
+    if commit:
+        db.commit()
+        db.refresh(factura)
+    return factura
 
+
+async def _enviar_factura(db: Session, factura: Factura, pedido: Pedido, cliente: Cliente) -> None:
+    """Genera el PDF de la factura y lo envía por correo (post-commit). El PDF
+    no se guarda en disco; si el correo falla solo se registra el error."""
     detalles = (
         db.query(DetallePedido)
         .filter(DetallePedido.id_pedido_d == pedido.id_pedido)
@@ -988,18 +1097,28 @@ async def _crear_factura_y_enviar(
     try:
         pdf_buffer = generar_factura_pdf(factura, pedido, cliente, detalles)
     except Exception as e:
-        print(f"Error generando PDF de factura {numero_factura}: {e}")
-        return factura
-
+        print(f"Error generando PDF de factura {factura.numero_factura}: {e}")
+        return
     try:
         enviado = await enviar_factura_por_correo(cliente.email, pdf_buffer)
     except Exception as e:
         enviado = False
-        print(f"Error enviando factura {numero_factura} a {cliente.email}: {e}")
+        print(f"Error enviando factura {factura.numero_factura} a {cliente.email}: {e}")
     if enviado:
         factura.enviada_por_correo = True
         db.commit()
 
+
+async def _crear_factura_y_enviar(
+    db: Session, pedido: Pedido, pago: Pago, cliente: Cliente
+) -> Factura:
+    """Crea la factura, genera su PDF en memoria y la envía por correo.
+
+    El PDF NO se guarda en disco. Si el correo falla, el pago NO se marca
+    rechazado: solo se registra el error.
+    """
+    factura = _crear_factura(db, pedido, pago)
+    await _enviar_factura(db, factura, pedido, cliente)
     return factura
 
 
@@ -1086,10 +1205,21 @@ def _alertar_admin_stock_agotado(db: Session, agotados: list) -> None:
         _programar_envio_correo(correo, subject, body)
 
 
-def _asignar_entrega(db: Session, pedido: Pedido, cliente: Cliente) -> dict | None:
+def _asignar_entrega(
+    db: Session,
+    pedido: Pedido,
+    cliente: Cliente,
+    commit: bool = True,
+    avisos: list | None = None,
+) -> dict | None:
     """Asigna un técnico para entregar un pedido de solo productos: la fecha
     de entrega queda entre 1 y 5 días hábiles, en franja de 1 hora, y el día
-    del técnico queda ocupado para otros clientes. Notifica al técnico."""
+    del técnico queda ocupado para otros clientes. Notifica al técnico.
+
+    Con ``commit=False`` deja la asignación pendiente para confirmarla en la
+    misma transacción que el resto del flujo. Con ``avisos`` distinto de None,
+    las notificaciones se difieren en esa lista (para enviarlas post-commit).
+    """
     from app.models.user import User
     from app.services.especialidades import _dia_es_laboral
     from app.services.notificaciones import notificar_entrega_asignada_tecnico
@@ -1122,27 +1252,29 @@ def _asignar_entrega(db: Session, pedido: Pedido, cliente: Cliente) -> dict | No
     pedido.id_tecnico_entrega = tecnico.id_tecnico
     pedido.nombre_tecnico_entrega = _nombre_tecnico(tecnico)
     pedido.estado_entrega = "Asignada"
-    db.commit()
+    if commit:
+        db.commit()
 
     nombre_cliente = f"{cliente.first_name} {cliente.last_name}".strip() or "Cliente"
-    if tecnico.usuario and tecnico.usuario.email:
-        notificar_entrega_asignada_tecnico(
-            db,
-            tecnico.usuario.id_usuario,
-            tecnico.usuario.email,
-            pedido.nombre_tecnico_entrega or "técnico",
-            {
-                "pedido": pedido.id_pedido,
-                "cliente": nombre_cliente,
-                "direccion": (cliente.address or "").strip() or "Por definir",
-                "telefono": cliente.telefono_cliente,
-                "fecha": fecha.strftime("%d/%m/%Y"),
-                "hora": "10:00",
-            },
-        )
 
-    # Notificar al cliente que su entrega fue programada.
-    try:
+    def _avisar_tecnico():
+        if tecnico.usuario and tecnico.usuario.email:
+            notificar_entrega_asignada_tecnico(
+                db,
+                tecnico.usuario.id_usuario,
+                tecnico.usuario.email,
+                pedido.nombre_tecnico_entrega or "técnico",
+                {
+                    "pedido": pedido.id_pedido,
+                    "cliente": nombre_cliente,
+                    "direccion": (cliente.address or "").strip() or "Por definir",
+                    "telefono": cliente.telefono_cliente,
+                    "fecha": fecha.strftime("%d/%m/%Y"),
+                    "hora": "10:00",
+                },
+            )
+
+    def _avisar_cliente():
         from app.services.notificaciones import notificar_entrega_asignada_cliente
 
         notificar_entrega_asignada_cliente(
@@ -1157,9 +1289,17 @@ def _asignar_entrega(db: Session, pedido: Pedido, cliente: Cliente) -> dict | No
                 "tecnico": pedido.nombre_tecnico_entrega or "técnico",
             },
         )
-        db.commit()
-    except Exception:
-        pass
+
+    if avisos is None:
+        _avisar_tecnico()
+        try:
+            _avisar_cliente()
+            db.commit()
+        except Exception:
+            pass
+    else:
+        avisos.append(_avisar_tecnico)
+        avisos.append(_avisar_cliente)
 
     return {
         "id_pedido": pedido.id_pedido,
@@ -1241,11 +1381,9 @@ async def crear_pedido(
         estado_pedido=estado_pedido,
     )
     db.add(pedido)
-    db.commit()
-    db.refresh(pedido)
+    db.flush()
 
     # Detalles de productos.
-    agotados: list = []
     for linea in lineas_producto:
         producto = linea["producto"]
         variante = linea.get("variante")
@@ -1275,16 +1413,6 @@ async def crear_pedido(
             descripcion_detalle=descripcion,
         )
         db.add(detalle)
-        if estado_pago == "aprobado":
-            if producto.venta_por_metros and linea["metros"]:
-                unidades = linea["metros"]
-            else:
-                unidades = linea["cantidad"]
-            # El stock se descuenta de la VARIANTE si el item la lleva;
-            # el stock general del producto también baja por control total.
-            resultado = descontar_stock(db, producto, variante, unidades)
-            if resultado["producto_agotado"] or resultado["variante_agotada"]:
-                agotados.append(producto)
 
     # Detalles de servicios.
     for serv in lineas_servicio:
@@ -1332,27 +1460,75 @@ async def crear_pedido(
         ),
     )
     db.add(pago)
-    db.commit()
-    db.refresh(pago)
 
     factura = None
     ordenes_instalacion: list[dict] = []
     entrega: dict | None = None
+    agotados: list = []
+    descontados: list = []
+    avisos: list = []
     if estado_pago == "aprobado":
-        factura = await _crear_factura_y_enviar(db, pedido, pago, cliente)
+        # Finalización atómica: stock + factura + entrega/órdenes + marcador
+        # ``confirmacion_completa`` se confirman en UN solo commit. El aviso de
+        # stock bajo se difiere a post-commit (su notificación confirma su
+        # propia transacción).
+        for linea in lineas_producto:
+            producto = linea["producto"]
+            variante = linea.get("variante")
+            if producto.venta_por_metros and linea["metros"]:
+                unidades = linea["metros"]
+            else:
+                unidades = linea["cantidad"]
+            resultado = descontar_stock(
+                db, producto, variante, unidades, notificar_stock_bajo=False,
+            )
+            descontados.append(producto)
+            if resultado["producto_agotado"] or resultado["variante_agotada"]:
+                agotados.append(producto)
+
+        factura = _crear_factura(db, pedido, pago, commit=False)
+
         if lineas_servicio:
             ordenes_instalacion = _crear_ordenes_instalacion_pedido(
-                db, pedido, cliente, lineas_servicio
+                db, pedido, cliente, lineas_servicio, commit=False, avisos=avisos
             )
-            # El técnico 1 de la instalación queda encargado del despacho.
             for orden in ordenes_instalacion:
                 if orden.get("entrega"):
                     entrega = orden["entrega"]
                     break
         elif lineas_producto:
-            # Pedido de solo productos: se asigna técnico para la entrega con
-            # fecha dentro de los próximos 5 días hábiles.
-            entrega = _asignar_entrega(db, pedido, cliente)
+            entrega = _asignar_entrega(db, pedido, cliente, commit=False, avisos=avisos)
+
+        pedido.confirmacion_completa = True
+
+    # Único commit de negocio: pedido + detalles + pago + stock + factura +
+    # entrega/órdenes + marcador. Un fallo previo revierte todo sin parciales.
+    db.commit()
+    db.refresh(pedido)
+    db.refresh(pago)
+
+    # ── Fase post-commit: avisos aislados (no deshacen ni repiten nada) ──
+    if estado_pago == "aprobado":
+        try:
+            await _enviar_factura(db, factura, pedido, cliente)
+        except Exception:
+            db.rollback()
+
+        for aviso in avisos:
+            try:
+                aviso()
+            except Exception:
+                db.rollback()
+
+        for producto in descontados:
+            try:
+                from app.services.inventario_service import _verificar_stock_bajo
+
+                _verificar_stock_bajo(db, producto)
+            except Exception:
+                db.rollback()
+
+        _alertar_admin_stock_agotado(db, agotados)
 
     # Notificar al cliente sobre el pedido creado.
     try:
@@ -1376,10 +1552,6 @@ async def crear_pedido(
     except Exception:
         pass
 
-    # Notificar al administrador por stock agotado en segundo plano
-    # (no bloquea el checkout).
-    _alertar_admin_stock_agotado(db, agotados)
-
     return {
         "pedido": pedido,
         "pago": pago,
@@ -1391,74 +1563,171 @@ async def crear_pedido(
     }
 
 
+def _variante_por_descripcion(prod, desc: str | None):
+    """Recupera la variante (color/medida) desde la descripción guardada."""
+    import re as _re
+
+    if not prod or not prod.variantes:
+        return None
+    m_c = _re.search(r"- Color:\s*([^-|]+)", desc or "")
+    m_m = _re.search(r"- Medida:\s*([^-|]+)", desc or "")
+    if not m_c:
+        return None
+    color_txt = m_c.group(1).strip().lower()
+    medida_txt = m_m.group(1).strip().lower() if m_m else None
+    for v in prod.variantes:
+        ok_color = (v.nombre or "").strip().lower() == color_txt
+        if not ok_color:
+            continue
+        if medida_txt is None:
+            return v
+        etiqueta = (
+            f"{v.ancho_cm} cm por {v.alto_cm} cm"
+            if (v.ancho_cm and v.alto_cm)
+            else (v.tamaño or "").strip()
+        ).lower()
+        if medida_txt == etiqueta or (v.tamaño or "").strip().lower() == medida_txt:
+            return v
+    return None
+
+
+def _cantidad_a_descontar(detalle: DetallePedido) -> Decimal:
+    """Cantidad exacta (sin redondeo) que representa un detalle para el descuento.
+
+    Para productos por metros devuelve los metros como Decimal; para el resto,
+    las unidades enteras. ``descontar_stock`` resta exactamente esta cantidad."""
+    if detalle.cantidad_metros is not None:
+        return Decimal(str(detalle.cantidad_metros))
+    return Decimal(int(detalle.cantidad_detalle or 1))
+
+
 async def confirmar_pago_pendiente(db: Session, pedido_id: int, cliente: Cliente) -> dict:
-    """Confirma un pago pendiente (punto de pago) y completa la factura."""
+    """Confirma un pago pendiente (punto de pago) de forma atómica e idempotente.
+
+    Fase transaccional (un solo commit de negocio): aprobar el pago, marcar el
+    pedido Pagado, descontar existencias y crear factura + entrega/órdenes. Un
+    fallo previo al commit no deja cambios parciales.
+
+    Fase post-commit (avisos): envío de factura, notificaciones y alertas de
+    stock, cada una aislada; un fallo aquí no deshace ni repite la confirmación.
+
+    Idempotencia: la finalización se reconoce por el marcador persistido
+    ``pedido.confirmacion_completa == True`` (se confirma en la misma transacción
+    que pago + stock + factura + entrega/órdenes). Si el pago está aprobado pero
+    el marcador no está, se trata como estado heredado incompleto y se responde
+    409 (requiere conciliación), sin éxito engañoso ni re-descuento.
+    """
     pedido = (
         db.query(Pedido)
         .filter(Pedido.id_pedido == pedido_id, Pedido.id_cliente_pe == cliente.id_cliente)
+        .with_for_update()
         .first()
     )
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
-    pago = db.query(Pago).filter(Pago.id_pedido == pedido.id_pedido).first()
+    pago = (
+        db.query(Pago)
+        .filter(Pago.id_pedido == pedido.id_pedido)
+        .with_for_update()
+        .first()
+    )
     if not pago:
         raise HTTPException(status_code=404, detail="Pago no encontrado para este pedido")
+
     if pago.estado == "aprobado":
         factura = (
-            db.query(Factura).filter(Factura.id_pedido == pedido.id_pedido).first()
+            db.query(Factura)
+            .filter(Factura.id_pedido == pedido.id_pedido)
+            .with_for_update()
+            .first()
         )
-        return {"pedido": pedido, "pago": pago, "factura": factura}
+        db.rollback()
+        if pedido.confirmacion_completa is True:
+            return {
+                "pedido": pedido,
+                "pago": pago,
+                "factura": factura,
+                "ordenes_instalacion": [],
+                "entrega": None,
+                "completado": True,
+            }
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "El pago ya fue aprobado pero la operación quedó incompleta. "
+                "Requiere conciliación manual."
+            ),
+        )
 
-    resultado = pagos_service.confirmar_pago_pendiente(pago)
-    pedido.estado_pedido = "Pagado"
-    db.commit()
-    db.refresh(pago)
+    try:
+        pagos_service.confirmar_pago_pendiente(pago)
+        pedido.estado_pedido = "Pagado"
+        pedido.confirmacion_completa = True
 
-    # Descontar stock de los productos del pedido.
-    agotados: list = []
-
-    def _variante_por_descripcion(prod, desc: str | None):
-        """Recupera la variante (color/medida) desde la descripción guardada."""
-        import re as _re
-
-        if not prod or not prod.variantes:
-            return None
-        m_c = _re.search(r"- Color:\s*([^-|]+)", desc or "")
-        m_m = _re.search(r"- Medida:\s*([^-|]+)", desc or "")
-        if not m_c:
-            return None
-        color_txt = m_c.group(1).strip().lower()
-        medida_txt = m_m.group(1).strip().lower() if m_m else None
-        for v in prod.variantes:
-            ok_color = (v.nombre or "").strip().lower() == color_txt
-            if not ok_color:
+        # Descontar existencias. Se agrupa por recurso (producto, variante) y se
+        # ordena de forma determinista por identidad, para que TODOS los pedidos
+        # bloqueen los recursos en el mismo orden y no haya interbloqueos entre
+        # pedidos con artículos en distinto orden. El aviso de stock bajo se
+        # difiere a post-commit (su notificación confirma su propia transacción).
+        agotados: list = []
+        descontados: list = []
+        descuentos: dict[tuple, dict] = {}
+        for detalle in db.query(DetallePedido).filter(DetallePedido.id_pedido_d == pedido.id_pedido):
+            if not (detalle.id_producto_d and detalle.producto):
                 continue
-            if medida_txt is None:
-                return v
-            etiqueta = (
-                f"{v.ancho_cm} cm por {v.alto_cm} cm"
-                if (v.ancho_cm and v.alto_cm)
-                else (v.tamaño or "").strip()
-            ).lower()
-            if medida_txt == etiqueta or (v.tamaño or "").strip().lower() == medida_txt:
-                return v
-        return None
-
-    for detalle in db.query(DetallePedido).filter(DetallePedido.id_pedido_d == pedido.id_pedido):
-        if detalle.id_producto_d and detalle.producto:
-            if detalle.cantidad_metros:
-                descuento = max(int(detalle.cantidad_metros), 1)
-            else:
-                descuento = max(int(detalle.cantidad_detalle or 1), 1)
             variante = _variante_por_descripcion(detalle.producto, detalle.descripcion_detalle)
-            resultado = descontar_stock(db, detalle.producto, variante, descuento)
+            clave = (detalle.producto.id_producto, variante.id if variante else None)
+            if clave not in descuentos:
+                descuentos[clave] = {"producto": detalle.producto, "variante": variante, "cantidad": Decimal("0")}
+            descuentos[clave]["cantidad"] += _cantidad_a_descontar(detalle)
+
+        for clave in sorted(descuentos.keys()):
+            info = descuentos[clave]
+            resultado = descontar_stock(
+                db, info["producto"], info["variante"], info["cantidad"],
+                notificar_stock_bajo=False,
+            )
+            descontados.append(info["producto"])
             if resultado["producto_agotado"]:
-                agotados.append(detalle.producto)
+                agotados.append(info["producto"])
 
-    factura = await _crear_factura_y_enviar(db, pedido, pago, cliente)
+        factura = _crear_factura(db, pedido, pago, commit=False)
 
-    # Notificar al cliente que su pago fue confirmado.
+        avisos: list = []
+        detalles_servicio = (
+            db.query(DetallePedido)
+            .filter(
+                DetallePedido.id_pedido_d == pedido.id_pedido,
+                DetallePedido.id_producto_d.is_(None),
+            )
+            .count()
+        )
+        entrega: dict | None = None
+        if detalles_servicio:
+            ordenes_instalacion = _crear_ordenes_instalacion_desde_detalles(
+                db, pedido, cliente, commit=False, avisos=avisos
+            )
+            for orden in ordenes_instalacion:
+                if orden.get("entrega"):
+                    entrega = orden["entrega"]
+                    break
+        else:
+            ordenes_instalacion = []
+            entrega = _asignar_entrega(db, pedido, cliente, commit=False, avisos=avisos)
+
+        # Único commit de negocio: todo lo anterior se confirma junto.
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    # ── Fase post-commit: avisos (aislados; no deshacen ni repiten nada) ──
+    try:
+        await _enviar_factura(db, factura, pedido, cliente)
+    except Exception:
+        db.rollback()
+
     try:
         from app.services.notificaciones import notificar_pago_confirmado_cliente
 
@@ -1468,40 +1737,27 @@ async def confirmar_pago_pendiente(db: Session, pedido_id: int, cliente: Cliente
             cliente_id=cliente.id_cliente,
             correo=cliente.email,
             cliente_nombre=nombre_cliente,
-            datos={
-                "pedido": pedido.id_pedido,
-                "total": float(pedido.total_pedido or 0),
-            },
+            datos={"pedido": pedido.id_pedido, "total": float(pedido.total_pedido or 0)},
         )
         db.commit()
     except Exception:
-        pass
+        db.rollback()
 
-    detalles_servicio = (
-        db.query(DetallePedido)
-        .filter(
-            DetallePedido.id_pedido_d == pedido.id_pedido,
-            DetallePedido.id_producto_d.is_(None),
-        )
-        .count()
-    )
-    entrega: dict | None = None
-    if detalles_servicio:
-        ordenes_instalacion = _crear_ordenes_instalacion_desde_detalles(
-            db, pedido, cliente
-        )
-        # El técnico 1 de la instalación queda encargado del despacho.
-        for orden in ordenes_instalacion:
-            if orden.get("entrega"):
-                entrega = orden["entrega"]
-                break
-    else:
-        # Pedido de solo productos confirmado después: asignar entrega.
-        ordenes_instalacion = []
-        entrega = _asignar_entrega(db, pedido, cliente)
+    for aviso in avisos:
+        try:
+            aviso()
+        except Exception:
+            db.rollback()
 
-    # Notificar al administrador por stock agotado en segundo plano
-    # (no bloquea la confirmación).
+    # Aviso de stock bajo (diferido a post-commit; best-effort).
+    for producto in descontados:
+        try:
+            from app.services.inventario_service import _verificar_stock_bajo
+
+            _verificar_stock_bajo(db, producto)
+        except Exception:
+            db.rollback()
+
     _alertar_admin_stock_agotado(db, agotados)
 
     return {
@@ -1512,3 +1768,119 @@ async def confirmar_pago_pendiente(db: Session, pedido_id: int, cliente: Cliente
         "entrega": entrega,
     }
 
+
+
+async def reintentar_pago_pedido(
+    db: Session,
+    cliente: Cliente,
+    pedido_id: int,
+    metodo_pago: str,
+    datos_pago: dict,
+) -> dict:
+    """Reintenta el pago de un pedido rechazado sin duplicar el pedido.
+
+    Reutiliza el mismo pedido y el mismo registro de pago. Si el reintento es
+    aprobado, la finalización (stock + factura + entrega/órdenes) se delega en
+    ``confirmar_pago_pendiente``, que es atómica e idempotente.
+    """
+    pedido = (
+        db.query(Pedido)
+        .filter(Pedido.id_pedido == pedido_id, Pedido.id_cliente_pe == cliente.id_cliente)
+        .with_for_update()
+        .first()
+    )
+    if not pedido:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    pago = (
+        db.query(Pago)
+        .filter(Pago.id_pedido == pedido.id_pedido)
+        .with_for_update()
+        .first()
+    )
+    if not pago:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Pago no encontrado para este pedido")
+
+    if pago.estado == "aprobado":
+        factura = (
+            db.query(Factura)
+            .filter(Factura.id_pedido == pedido.id_pedido)
+            .with_for_update()
+            .first()
+        )
+        completo = pedido.confirmacion_completa is True
+        db.rollback()
+        if completo:
+            return {
+                "pedido": pedido,
+                "pago": pago,
+                "factura": factura,
+                "ordenes_instalacion": [],
+                "entrega": None,
+                "completado": True,
+            }
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "El pago ya fue aprobado pero la operación quedó incompleta. "
+                "Requiere conciliación manual."
+            ),
+        )
+
+    if pago.estado != "rechazado" or pedido.estado_pedido != "Pago rechazado":
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Solo se puede reintentar el pago de un pedido rechazado",
+        )
+
+    # El importe sale del pedido (nunca del cliente): el total ya descontado y
+    # validado en el checkout es la única fuente de verdad para el cargo.
+    total = float(pedido.total_pedido or 0)
+    resultado_pago = pagos_service.procesar_pago(
+        metodo_pago,
+        datos_pago or {},
+        monto=total,
+        reference=f"NEODOMUS-{cliente.id_cliente}-{pedido.id_pedido}",
+        customer_email=cliente.email,
+    )
+    estado_pago = resultado_pago["estado"]
+
+    pago.metodo_pago = metodo_pago
+    pago.numero_transaccion = resultado_pago.get("numero_transaccion")
+    pago.monto = total
+    pago.banco = resultado_pago.get("banco")
+    pago.titular = resultado_pago.get("titular")
+    pago.ultimos_digitos = resultado_pago.get("ultimos_digitos")
+    pago.correo_paypal = resultado_pago.get("correo_paypal")
+    pago.codigo_punto_pago = resultado_pago.get("codigo_punto_pago")
+    pago.punto_pago = resultado_pago.get("punto_pago")
+    pago.referencia_pago = resultado_pago.get("referencia_pago")
+    pago.fecha_limite_pago = (
+        datetime.fromisoformat(resultado_pago["fecha_limite"])
+        if resultado_pago.get("fecha_limite")
+        else None
+    )
+    pago.fecha_pago = None
+
+    if estado_pago == "aprobado":
+        # Finaliza de forma ATÓMICA dentro de la misma transacción (un solo
+        # commit). No se deja un estado "pendiente" intermedio observable ni
+        # una ventana entre commits que permita duplicar stock/factura/avisos.
+        pago.estado = "pendiente"
+        pedido.estado_pedido = "Pago pendiente"
+        return await confirmar_pago_pendiente(db, pedido.id_pedido, cliente)
+
+    pago.estado = estado_pago
+    pedido.estado_pedido = "Pago rechazado" if estado_pago == "rechazado" else "Pago pendiente"
+    db.commit()
+
+    return {
+        "pedido": pedido,
+        "pago": pago,
+        "factura": None,
+        "ordenes_instalacion": [],
+        "entrega": None,
+    }

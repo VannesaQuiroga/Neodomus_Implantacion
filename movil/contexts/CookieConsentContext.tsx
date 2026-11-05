@@ -64,6 +64,7 @@ const CookieConsentContext = createContext<CookieConsentContextValue | null>(
   null,
 );
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 async function cargarConsentimiento(): Promise<EstadoConsentimiento> {
   try {
     const crudo = await AsyncStorage.getItem(CLAVE_CONSENTIMIENTO);
@@ -92,6 +93,7 @@ async function cargarConsentimiento(): Promise<EstadoConsentimiento> {
   }
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export function CookieConsentProvider({
   children,
 }: {

@@ -27,6 +27,12 @@ export const TRADUCCIONES_BASE: Record<string, Record<string, string>> = {
   'nav.bienvenido': { es: 'Bienvenido', en: 'Welcome' },
   'nav.verNotificaciones': { es: 'Ver notificaciones', en: 'View notifications' },
   'nav.verCarrito': { es: 'Ver carrito', en: 'View cart' },
+  'nav.recomendaciones': { es: 'Recomendaciones', en: 'Recommendations' },
+
+  // ─── Recomendaciones ──────────────────────────────────────
+  'recomendaciones.subtitulo': { es: 'Productos recomendados para ti', en: 'Recommended products for you' },
+  'recomendaciones.buscarProducto': { es: 'Buscar producto recomendado', en: 'Search recommended products' },
+  'recomendaciones.sinResultados': { es: 'No se encontraron productos recomendados', en: 'No recommended products found' },
 
   // ─── Footer ───────────────────────────────────────────────
   'footer.pagina': { es: 'Página', en: 'Page' },
@@ -676,6 +682,9 @@ export const TRADUCCIONES_BASE: Record<string, Record<string, string>> = {
   'tec.devolDetalleTitulo': { es: 'Detalle de devolución', en: 'Return details' },
   'tec.devCambioEntregadoEl': { es: 'Cambio entregado', en: 'Exchange delivered' },
   'adm.sidebar.pedidos': { es: 'Pedidos', en: 'Orders' },
+  'adm.pedidos.cliente': { es: 'Cliente', en: 'Customer' },
+  'adm.pedidos.productos': { es: 'Productos', en: 'Products' },
+  'adm.pedidos.fechaEntrega': { es: 'Fecha entrega', en: 'Delivery date' },
   'adm.pedidos.titulo': { es: 'Gestión de pedidos', en: 'Order management' },
   'adm.pedidos.desc': { es: 'Pedidos con entrega asignada. El técnico encargado (técnico 1) lleva los productos al cliente.', en: 'Orders with an assigned delivery. The lead technician (technician 1) carries the products to the customer.' },
   'adm.pedidos.buscar': { es: 'Buscar por pedido, cliente, producto o técnico…', en: 'Search by order, customer, product or technician…' },

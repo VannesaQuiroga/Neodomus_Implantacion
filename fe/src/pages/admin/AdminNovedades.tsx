@@ -1,3 +1,4 @@
+// Pantalla AdminNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -24,6 +25,9 @@ import {
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
+import AuthImage from '@components/common/AuthImage';
+import { Paginacion } from '@components/common/Paginacion';
+import { usePaginacion } from '../../hooks/usePaginacion';
 
 interface EvidenciaNovedad {
   id_evidencia_n: number;
@@ -107,10 +111,12 @@ const formatFechaCorta = (f?: string | null) => {
   return new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+// Comunica con el backend mediante GET '/novedades', GET '/tecnicos', GET `/novedades/${id}` y otras peticiones de esta vista.
 const AdminNovedades = () => {
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [tecnicos, setTecnicos] = useState<TecnicoSimple[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
 
   // Filtros
@@ -151,11 +157,12 @@ const AdminNovedades = () => {
   const [mostrarCambioTecnico, setMostrarCambioTecnico] = useState(false);
   const [nuevoTecnicoId, setNuevoTecnicoId] = useState('');
   const [motivoCambio, setMotivoCambio] = useState('');
-  const [evidenciaLupa, setEvidenciaLupa] = useState<string | null>(null);
   const [enviandoCambio, setEnviandoCambio] = useState(false);
 
+  // Comunica con el backend mediante GET '/novedades', GET '/tecnicos'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) setCargando(true);
+    setError(false);
     try {
       const [novRes, tecRes] = await Promise.all([
         api.get<Novedad[]>('/novedades'),
@@ -164,7 +171,8 @@ const AdminNovedades = () => {
       setNovedades(novRes.data);
       setTecnicos(tecRes.data);
     } catch {
-      if (!silencioso) setToast({ msg: 'Error al cargar novedades', tipo: 'err' });
+      if (!silencioso) setError(true);
+      else setToast({ msg: 'Error al cargar novedades', tipo: 'err' });
     } finally {
       setCargando(false);
     }
@@ -216,6 +224,13 @@ const AdminNovedades = () => {
 
   const hayFiltros = busqueda || filtroEstado || filtroTipo || filtroPrioridad || filtroTecnico || filtroPedido || filtroRelacion || filtroCliente || filtroConEvidencia;
 
+  const { page, setPage, totalPages, pageItems, numeroFila } = usePaginacion(filtradas, 10);
+
+  // Al cambiar cualquier filtro/búsqueda se vuelve a una página válida (la 1).
+  useEffect(() => {
+    setPage(1);
+  }, [busqueda, filtroEstado, filtroTipo, filtroPrioridad, filtroTecnico, filtroPedido, filtroRelacion, filtroCliente, filtroConEvidencia, setPage]);
+
   const limpiarFiltros = () => {
     setBusqueda('');
     setFiltroEstado('');
@@ -236,6 +251,7 @@ const AdminNovedades = () => {
     return counts;
   }, [novedades]);
 
+  // Comunica con el backend mediante GET `/novedades/${id}`.
   const abrirDetalle = async (id: number) => {
     try {
       const res = await api.get<NovedadDetalle>(`/novedades/${id}`);
@@ -247,6 +263,7 @@ const AdminNovedades = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/novedades/${detalle.id_novedad}/estado`.
   const guardarEstado = async () => {
     if (!detalle || nuevoEstado === detalle.estado_novedad) return;
     try {
@@ -262,6 +279,7 @@ const AdminNovedades = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/cupon`.
   const generarCupon = async () => {
     if (!detalle || !cuponCodigo || !cuponValor) {
       setToast({ msg: 'Completa código y valor del cupón', tipo: 'err' });
@@ -286,6 +304,7 @@ const AdminNovedades = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/responder`.
   const enviarRespuesta = async () => {
     if (!detalle || !respuestaAdmin.trim()) {
       setToast({ msg: 'Escribe una respuesta', tipo: 'err' });
@@ -307,6 +326,7 @@ const AdminNovedades = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/mensaje-cliente`.
   const enviarMensajeCliente = async () => {
     if (!detalle || !mensajeCliente.trim()) {
       setToast({ msg: 'Escribe un mensaje para el cliente', tipo: 'err' });
@@ -332,6 +352,7 @@ const AdminNovedades = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/novedades/${detalle.id_novedad}/cambiar-tecnico`.
   const cambiarTecnico = async () => {
     if (!detalle || !nuevoTecnicoId) {
       setToast({ msg: 'Selecciona un técnico', tipo: 'err' });
@@ -495,6 +516,17 @@ const AdminNovedades = () => {
           <div className="ap-loader" />
           <p>Cargando novedades...</p>
         </div>
+      ) : error ? (
+        <div className="ap-states error">
+          <div className="ap-states-icon">
+            <FaCircleInfo />
+          </div>
+          <h3>No se pudieron cargar las novedades</h3>
+          <p>Ocurrió un error al comunicarse con el servidor.</p>
+          <button type="button" className="ap-btn ap-btn-primary" onClick={() => cargar()}>
+            <FaRotateLeft /> Reintentar
+          </button>
+        </div>
       ) : filtradas.length === 0 ? (
         <div className="ap-states">
           <div className="ap-states-icon">
@@ -513,6 +545,7 @@ const AdminNovedades = () => {
           )}
         </div>
       ) : (
+        <>
         <div className="ap-table-wrap">
           <table className="ap-table">
             <thead>
@@ -531,11 +564,12 @@ const AdminNovedades = () => {
               </tr>
             </thead>
             <tbody>
-              {filtradas.map((n) => (
+              {pageItems.map((n, idx) => (
                 <tr key={n.id_novedad}>
-                  <td style={{ fontWeight: 700, color: '#d4a54b' }}>{n.id_novedad}</td>
+                  <td style={{ fontWeight: 700, color: '#d4a54b' }}>{numeroFila(idx)}</td>
                   <td>
                     <span style={{ fontSize: '0.85rem' }}>{n.tipo_novedad}</span>
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#8f8f8f' }}>ID {n.id_novedad}</span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -609,6 +643,8 @@ const AdminNovedades = () => {
             </tbody>
           </table>
         </div>
+        <Paginacion page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
       )}
 
       {/* ── Modal de detalle ────────────────────────────────── */}
@@ -724,9 +760,8 @@ const AdminNovedades = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {detalle.evidencias.map((ev) => (
                         <div key={ev.id_evidencia_n}
-                          onClick={() => setEvidenciaLupa(ev.url)}
-                          style={{ display: 'block', width: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                          <img src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
+                          style={{ display: 'block', width: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <AuthImage src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
                           {ev.fecha_subida && (
                             <div style={{ padding: '3px 6px', fontSize: '0.65rem', color: '#8f8f8f', textAlign: 'center', background: 'rgba(0,0,0,0.4)' }}>
                               {formatFechaCorta(ev.fecha_subida)}
@@ -1044,37 +1079,6 @@ const AdminNovedades = () => {
       </AnimatePresence>
 
       {/* Lightbox de evidencia */}
-      {evidenciaLupa && (
-        <div
-          onClick={() => setEvidenciaLupa(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(0,0,0,0.85)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', padding: 20,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setEvidenciaLupa(null)}
-            style={{
-              position: 'absolute', top: 16, right: 16,
-              background: 'rgba(255,255,255,0.15)', border: 'none',
-              borderRadius: '50%', width: 40, height: 40,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#fff', fontSize: '1.2rem',
-            }}
-          >
-            <FaXmark />
-          </button>
-          <img
-            src={evidenciaLupa}
-            alt="Evidencia completa"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, objectFit: 'contain' }}
-          />
-        </div>
-      )}
     </motion.section>
   );
 };

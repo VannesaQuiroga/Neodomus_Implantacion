@@ -15,7 +15,6 @@ import io
 import os
 from pathlib import Path
 
-from fastapi import HTTPException
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import letter
@@ -110,6 +109,13 @@ class LogoCircular(Flowable):
             c.circle(cx, cy, radio - 0.75)
 
 
+def _logo_factura():
+    """Una imagen de marca ausente no debe bloquear el comprobante de compra."""
+    if LOGO_PATH.is_file():
+        return LogoCircular(str(LOGO_PATH), 28 * mm)
+    return Spacer(28 * mm, 28 * mm)
+
+
 def _styles():
     estilos = getSampleStyleSheet()
     return {
@@ -157,9 +163,6 @@ def _celda(texto, estilo):
 
 def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
     """Genera el PDF de la factura en memoria y retorna un BytesIO."""
-    if not LOGO_PATH.exists():
-        raise HTTPException(status_code=500, detail="Logo de NEODOMUS no encontrado")
-
     s = _styles()
     numero_factura = factura.numero_factura
 
@@ -178,7 +181,7 @@ def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
     historia = []
 
     # ── Encabezado: logo + nombre ──────────────────────────────────────
-    tabla_logo = Table([[LogoCircular(str(LOGO_PATH), 28 * mm)]], colWidths=[30 * mm])
+    tabla_logo = Table([[_logo_factura()]], colWidths=[30 * mm])
     tabla_logo.setStyle(
         TableStyle([
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
@@ -415,9 +418,6 @@ async def enviar_factura_por_correo(to_email: str, pdf_bytes: io.BytesIO) -> boo
 
 def generar_factura_cita_pdf(factura, cita, cliente) -> io.BytesIO:
     """Genera el PDF de la factura para una cita en memoria y retorna un BytesIO."""
-    if not LOGO_PATH.exists():
-        raise HTTPException(status_code=500, detail="Logo de NEODOMUS no encontrado")
-
     s = _styles()
     numero_factura = factura.numero_factura
 
@@ -436,7 +436,7 @@ def generar_factura_cita_pdf(factura, cita, cliente) -> io.BytesIO:
     historia = []
 
     # ── Encabezado: logo + nombre ──────────────────────────────────────
-    tabla_logo = Table([[LogoCircular(str(LOGO_PATH), 28 * mm)]], colWidths=[30 * mm])
+    tabla_logo = Table([[_logo_factura()]], colWidths=[30 * mm])
     tabla_logo.setStyle(
         TableStyle([
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),

@@ -1,8 +1,10 @@
+// Compone la portada pública y sus accesos principales.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import fondo from '@assets/images/FONDO.png';
 import '@styles/home.css';
 
+// accede a localStorage para conservar o recuperar datos locales.
 const HomePage = () => {
   const [logoutMessage, setLogoutMessage] = useState('');
   const navigate = useNavigate();

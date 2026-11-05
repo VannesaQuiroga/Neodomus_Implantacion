@@ -1,3 +1,4 @@
+// Agrupa los diccionarios de traducción de los módulos administrativos.
 import { ADMIN_TRADUCCIONES_TECNICOS } from './adminTranslations-tecnicos';
 import { ADMIN_TRADUCCIONES_INSTALACIONES } from './adminTranslations-instalaciones';
 import { ADMIN_TRADUCCIONES_CONSULTAS } from './adminTranslations-consultas';

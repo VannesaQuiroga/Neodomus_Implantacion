@@ -317,6 +317,7 @@ def crear_solicitud(
 # Serialización
 # ────────────────────────────────────────────────────────────────────
 
+# Consulta Cliente, Devolucion, Producto, DetallePedido y otras entidades.
 def serializar_solicitud(db: Session, s: SolicitudDevolucion) -> dict:
     cliente = db.query(Cliente).filter(Cliente.id_cliente == s.id_cliente_s).first()
     lineas = (

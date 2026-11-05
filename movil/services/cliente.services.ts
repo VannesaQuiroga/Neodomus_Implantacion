@@ -24,9 +24,11 @@ export interface PerfilCliente {
   address?: string | null;
 }
 
+// Comunica con el backend mediante API "/clients/me".
 export const obtenerPerfilCliente = () =>
   apiFetch<PerfilCliente>("/clients/me");
 
+// Comunica con el backend mediante API "/clients/me".
 export const actualizarPerfilCliente = (datos: {
   email: string;
   first_name: string;
@@ -49,6 +51,7 @@ export const solicitarCambioCorreo = (nuevo_email: string) =>
     body: JSON.stringify({ nuevo_email }),
   });
 
+// Comunica con el backend mediante API "/auth/verify-email-change".
 export const verificarCambioCorreo = (code: string, nuevo_email: string) =>
   apiFetch<unknown>("/auth/verify-email-change", {
     method: "POST",
@@ -60,6 +63,7 @@ export const verificarCambioCorreo = (code: string, nuevo_email: string) =>
 export const obtenerSolicitudCuenta = () =>
   apiFetch<{ estado?: string | null }>("/clients/me/cuenta-solicitud");
 
+// Comunica con el backend mediante API "/clients/me/cuenta-solicitud".
 export const crearSolicitudInhabilitar = (motivo: string) =>
   apiFetch<unknown>("/clients/me/cuenta-solicitud", {
     method: "POST",
@@ -116,9 +120,11 @@ export interface Pedido {
   estado_entrega?: string | null;
 }
 
+// Comunica con el backend mediante API "/pedidos/mis-pedidos".
 export const listarMisPedidos = () =>
   apiFetch<Pedido[]>("/pedidos/mis-pedidos");
 
+// Comunica con el backend mediante API `/pedidos/${idPedido}/confirmar-pago`.
 export const confirmarPagoPedido = (idPedido: number) =>
   apiFetch<unknown>(`/pedidos/${idPedido}/confirmar-pago`, {
     method: "POST",
@@ -145,6 +151,7 @@ export interface SeguimientoPedido {
   } | null;
 }
 
+// Comunica con el backend mediante API `/pedidos/${idPedido}/seguimiento`.
 export const obtenerSeguimiento = (idPedido: number) =>
   apiFetch<SeguimientoPedido>(`/pedidos/${idPedido}/seguimiento`);
 
@@ -248,8 +255,10 @@ export interface Cita {
   estado: "Pendiente" | "Confirmada" | "Finalizada" | "Cancelada" | string;
 }
 
+// Comunica con el backend mediante API "/citas/mis-citas".
 export const listarMisCitas = () => apiFetch<Cita[]>("/citas/mis-citas");
 
+// Comunica con el backend mediante API "/citas".
 export const crearCita = (datos: {
   tipo_servicio: string;
   fecha: string;
@@ -266,6 +275,7 @@ export const crearCita = (datos: {
     body: JSON.stringify(datos),
   });
 
+// Comunica con el backend mediante API `/citas/${idCita}`.
 export const actualizarCita = (
   idCita: number,
   datos: {
@@ -283,9 +293,11 @@ export const actualizarCita = (
     body: JSON.stringify(datos),
   });
 
+// Comunica con el backend mediante API `/citas/${idCita}`.
 export const cancelarCita = (idCita: number) =>
   apiFetch<unknown>(`/citas/${idCita}`, { method: "DELETE" });
 
+// Comunica con el backend mediante API `/citas/horas-disponibles?${qs}`.
 export const listarHorasDisponibles = (params: {
   fecha: string;
   tecnico_id?: number;
@@ -306,6 +318,7 @@ export interface Tarifa {
   costo: number;
 }
 
+// Comunica con el backend mediante API "/tarifas".
 export const listarTarifas = () => apiFetch<Tarifa[]>("/tarifas");
 
 // ── Técnicos públicos ────────────────────────────────────────
@@ -322,6 +335,7 @@ export interface TecnicoPublico {
   calificacion?: number | null;
 }
 
+// Comunica con el backend mediante API `/tecnicos/publicos${qs}`.
 export const listarTecnicosPublicos = (filtros?: {
   tipo_servicio?: string;
   fecha?: string;
@@ -341,11 +355,13 @@ export const listarTecnicosPublicos = (filtros?: {
 export const listarTecnicosFavoritos = () =>
   apiFetch<TecnicoPublico[]>("/tecnicos/favoritos");
 
+// Comunica con el backend mediante API `/tecnicos/favoritos/${idTecnico}`.
 export const agregarTecnicoFavorito = (idTecnico: number) =>
   apiFetch<{ favorito: boolean }>(`/tecnicos/favoritos/${idTecnico}`, {
     method: "POST",
   });
 
+// Comunica con el backend mediante API `/tecnicos/favoritos/${idTecnico}`.
 export const eliminarTecnicoFavorito = (idTecnico: number) =>
   apiFetch<{ favorito: boolean }>(`/tecnicos/favoritos/${idTecnico}`, {
     method: "DELETE",
@@ -358,6 +374,7 @@ export interface MetodosPago {
   metodos: Record<string, unknown>;
 }
 
+// Comunica con el backend mediante API "/pedidos/metodos-pago".
 export const obtenerMetodosPago = () =>
   apiFetch<MetodosPago>("/pedidos/metodos-pago");
 
@@ -372,6 +389,7 @@ export interface Notificacion {
   fecha_creacion?: string;
 }
 
+// Comunica con el backend mediante API "/notificaciones/mias".
 export const listarNotificaciones = () =>
   apiFetch<Notificacion[]>("/notificaciones/mias");
 
@@ -392,6 +410,7 @@ export interface Reembolso {
   created_at: string;
 }
 
+// Comunica con el backend mediante API "/reembolsos/mis".
 export const listarMisReembolsos = () =>
   apiFetch<Reembolso[]>("/reembolsos/mis");
 
@@ -405,9 +424,11 @@ export interface ResenaTecnico {
   fecha_cita?: string | null;
 }
 
+// Comunica con el backend mediante API "/calificaciones/mis-dadas".
 export const listarMisResenas = () =>
   apiFetch<ResenaTecnico[]>("/calificaciones/mis-dadas");
 
+// Comunica con el backend mediante API "/calificaciones".
 export const calificarTecnico = (datos: {
   id_cita: number;
   calificacion: number;

@@ -40,6 +40,11 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Playwright (E2E)
+test-results/
+playwright-report/
+.e2e_pedido_id.txt
+
 app-example
 
 # generated native folders
@@ -58,3 +63,25 @@ evidencias_backup/
 
 # MinIO â€” datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
+
+# artefactos locales de revisión visual (PDF/PNG)
+artifacts/
+
+# Dump SQL regenerado por export_seed.py (datos locales, no versionar)
+scripts/init_db.sql
+be/.coverage
+coverage.json
+coverage.xml
+htmlcov/
+# scripts personales/temporales (no versionar)
+be/tmp_*.py
+be/verify_stock*.py
+scripts/crear_cuentas_julian_carvajal.py
+scripts/sembrar_catalogo_real.py
+scripts/subir_imagenes_reales.py
+scripts/subir_productos_minio.py
+scripts/generar_muestra_ventas.py
+be/app/tests/test_muestra_ventas.py
+
+# scripts personales one-off de backend (OAuth Gmail, migraciones puntuales)
+be/scripts/

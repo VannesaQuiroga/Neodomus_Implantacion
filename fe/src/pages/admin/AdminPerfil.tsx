@@ -1,3 +1,4 @@
+// Formulario de perfil y datos de acceso del administrador.
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
@@ -24,6 +25,7 @@ import PerfilCuenta from '@components/profile/PerfilCuenta';
 
 type TabAdmin = 'cuenta' | 'contrasena' | 'idioma';
 
+// Comunica con el backend mediante GET '/users/me', PUT '/users/me'; registra escuchas de eventos para sincronizar la vista.
 const AdminPerfil = () => {
   const { t } = useIdioma();
   const { user, refreshUserProfile } = useAuth();
@@ -40,6 +42,7 @@ const AdminPerfil = () => {
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/users/me'.
     const cargarPerfil = async () => {
       setCargando(true);
       try {
@@ -108,6 +111,7 @@ const AdminPerfil = () => {
   const nombreCompleto = (nombre || apellido) ? `${nombre} ${apellido}`.trim() : user?.nombre || t('adm.perfil.administrador');
   const correoUsuario = user?.correo || email || 'admin@neodomus.com';
 
+  // Comunica con el backend mediante PUT '/users/me'.
   const guardarCampo = async (payload: Record<string, unknown>) => {
     try {
       const body: Record<string, unknown> = { ...payload };

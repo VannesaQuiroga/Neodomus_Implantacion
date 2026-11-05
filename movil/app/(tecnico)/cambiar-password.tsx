@@ -1,3 +1,4 @@
+// Ruta móvil de cambio de contraseña. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useState } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from "react-native";
@@ -6,6 +7,7 @@ import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { apiFetch } from "@/services/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Comunica con el backend mediante API "/auth/update-password", API "/auth/change-password".
 export default function CambiarPasswordTecnico() {
   const insets = useSafeAreaInsets();
   const { t } = useIdioma();
@@ -26,6 +28,7 @@ export default function CambiarPasswordTecnico() {
     return null;
   };
 
+  // Comunica con el backend mediante API "/auth/update-password", API "/auth/change-password".
   const guardar = async () => {
     const err = validar();
     if (err) { setToast({ msg: err, ok: false }); setTimeout(() => setToast(null), 2500); return; }

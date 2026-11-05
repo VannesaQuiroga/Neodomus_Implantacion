@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Date, Text, Boolean, ForeignKey
+# Persistencia de producto. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
+from sqlalchemy import Column, Integer, String, Float, DateTime, Date, Text, Boolean, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from app.database import Base
 # ProductoMedida fue eliminado; las medidas se gestionan en ProductoVariante.
 
+# Mapea la tabla «productos»; sus referencias enlazan con proveedores, categorias.
 class Producto(Base):
     __tablename__ = "productos"
     id_producto = Column(Integer, primary_key=True, index=True)
@@ -22,7 +24,7 @@ class Producto(Base):
     color_hex = Column(String(10), nullable=True)  # #RRGGBB del color principal
     tamaño = Column(String(60), nullable=True)
     estado_producto = Column(String(20), nullable=False, default="activo")
-    stock_producto = Column(Integer, nullable=False, default=0)
+    stock_producto = Column(Numeric(12, 2), nullable=False, default=0)
     descuento_activo = Column(Float, nullable=True)
     promocion_hasta = Column(Date, nullable=True)
     es_nuevo_producto = Column(Boolean, nullable=False, default=True)

@@ -1,7 +1,9 @@
+# Persistencia de pending registration. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from sqlalchemy import Column, Integer, String, DateTime, BigInteger
 from sqlalchemy.sql import func
 from app.database import Base
 
+# Mapea la tabla «pending_registrations».
 class PendingRegistration(Base):
     __tablename__ = "pending_registrations"
 

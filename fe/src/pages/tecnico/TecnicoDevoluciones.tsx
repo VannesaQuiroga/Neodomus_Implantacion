@@ -1,3 +1,4 @@
+// Pantalla TecnicoDevoluciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -53,6 +54,7 @@ type Toast = { msg: string; tipo: 'success' | 'error' } | null;
 const urlImagen = (url?: string | null) =>
   !url ? '' : url.startsWith('http') ? url : `${API_HOST}${url}`;
 
+// Comunica con el backend mediante GET '/devoluciones/mis-recogidas', POST `/devoluciones/${idDevolucion}/evidencia-recogida`, POST `/devoluciones/${idDevolucion}/evidencia-cambio`; prepara FormData para enviar campos y archivos.
 const TecnicoDevoluciones = () => {
   const { idioma, t } = useIdioma();
   const [activas, setActivas] = useState<Recogida[]>([]);
@@ -76,6 +78,7 @@ const TecnicoDevoluciones = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante GET '/devoluciones/mis-recogidas'.
   const cargar = async () => {
     setLoading(true);
     setErrorCarga(false);
@@ -100,6 +103,7 @@ const TecnicoDevoluciones = () => {
     cargar();
   }, []);
 
+  // Comunica con el backend mediante POST `/devoluciones/${idDevolucion}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
   const confirmarRecogida = async (idDevolucion: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
     const fd = new FormData();
@@ -116,6 +120,7 @@ const TecnicoDevoluciones = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/devoluciones/${idDevolucion}/evidencia-cambio`; prepara FormData para enviar campos y archivos.
   const confirmarCambio = async (idDevolucion: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
     const fd = new FormData();

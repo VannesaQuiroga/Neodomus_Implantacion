@@ -1,3 +1,4 @@
+// Pantalla AdminDashboard de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -85,12 +86,14 @@ const AccesosRapidos = [
 
 const formatoPesos = (v: number) => `$${Math.round(v).toLocaleString('es-CO')}`;
 
+// Comunica con el backend mediante GET '/reports/resumen'.
 const AdminDashboard = () => {
   const { t, idioma } = useIdioma();
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [datos, setDatos] = useState<ReporteResumen | null>(null);
 
+  // Comunica con el backend mediante GET '/reports/resumen'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) {
       setCargando(true);
@@ -190,7 +193,7 @@ const AdminDashboard = () => {
               <div className="ap-kpi-label">
                 <FaCalendarCheck /> {t('adm.dashboard.kpiCitas')}
               </div>
-              <div className="ap-kpi-value">{datos.citas_por_estado.Confirmada || 0}</div>
+              <div className="ap-kpi-value">{datos.citas_total}</div>
               <div className="ap-mini-sub">{t('adm.dashboard.citasPendientes', { n: datos.citas_por_estado.Pendiente || 0 })}</div>
             </div>
             <div className="ap-card ap-kpi">

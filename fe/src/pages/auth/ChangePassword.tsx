@@ -1,3 +1,4 @@
+// Pantalla ChangePassword de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import api from '@services/api';
 import '@styles/login.css'; // Reutiliza estilos del login (ajusta si quieres uno específico)
@@ -24,6 +25,7 @@ const ChangePassword = () => {
     }
   }, [message, error]);
 
+  // Comunica con el backend mediante POST '/auth/change-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');

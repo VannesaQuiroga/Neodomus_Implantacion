@@ -1,3 +1,4 @@
+// Presenta la información de técnicos dentro del perfil del cliente.
 import { useEffect, useState } from 'react';
 import {
   FaHeart,
@@ -24,6 +25,7 @@ interface TecnicoPublico {
 const initials = (name: string) =>
   name.split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
+// Comunica con el backend mediante GET '/tecnicos/publicos'.
 const TechniciansTab = () => {
   const [tecnicos, setTecnicos] = useState<TecnicoPublico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,7 @@ const TechniciansTab = () => {
 
   useEffect(() => {
     let activo = true;
+    // Comunica con el backend mediante GET '/tecnicos/publicos'.
     const cargar = async () => {
       try {
         const res = await api.get<TecnicoPublico[]>('/tecnicos/publicos');

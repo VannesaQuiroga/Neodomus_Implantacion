@@ -1,26 +1,36 @@
+// Componente reutilizable ChatBotWidget para componer la interfaz de Neodomus.
 import { useEffect, useRef, useState } from 'react';
 import { FaRobot, FaMessage, FaXmark } from 'react-icons/fa6';
 import '@styles/chatbot.css';
-import { BOT_INICIAL, BOT_SUGERENCIAS, responderBot } from '../../data/botData';
+import { BOT_SUGERENCIAS } from '../../data/botData';
+import { useBotChat } from '../../hooks/useBotChat';
 
-interface ChatMsg {
-  de: 'bot' | 'usuario';
-  texto: string;
-}
-
+// registra escuchas de eventos para sincronizar la vista.
 const ChatBotWidget = () => {
   const [abierto, setAbierto] = useState(false);
-  const [chats, setChats] = useState<ChatMsg[]>([{ de: 'bot', texto: BOT_INICIAL }]);
-  const [input, setInput] = useState('');
-  const [escribiendo, setEscribiendo] = useState(false);
+  const {
+    chats,
+    input,
+    setInput,
+    escribiendo,
+    enviar,
+    confirmar,
+    esperandoConfirmacion,
+    mostrarSugerencias,
+  } = useBotChat();
   const msgsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (msgsRef.current) {
       msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
     }
   }, [chats, escribiendo, abierto]);
+
+  useEffect(() => {
+    if (abierto && !escribiendo) inputRef.current?.focus();
+  }, [abierto, escribiendo]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,18 +41,6 @@ const ChatBotWidget = () => {
     if (abierto) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [abierto]);
-
-  const enviar = (texto: string) => {
-    const mensaje = texto.trim();
-    if (!mensaje || escribiendo) return;
-    setChats((prev) => [...prev, { de: 'usuario', texto: mensaje }]);
-    setInput('');
-    setEscribiendo(true);
-    window.setTimeout(() => {
-      setChats((prev) => [...prev, { de: 'bot', texto: responderBot(mensaje) }]);
-      setEscribiendo(false);
-    }, 450);
-  };
 
   return (
     <div className="cbw-wrap" ref={panelRef}>
@@ -85,8 +83,28 @@ const ChatBotWidget = () => {
             )}
           </div>
 
-          {!escribiendo && chats.length <= 1 && (
+          {!escribiendo && esperandoConfirmacion && (
+            <div className="cbw-confirm" role="group" aria-label="¿Te puedo ayudar en algo más?">
+              <button
+                type="button"
+                className="cbw-confirm-btn si"
+                onClick={() => confirmar('si')}
+              >
+                Sí
+              </button>
+              <button
+                type="button"
+                className="cbw-confirm-btn no"
+                onClick={() => confirmar('no')}
+              >
+                No
+              </button>
+            </div>
+          )}
+
+          {!escribiendo && mostrarSugerencias && (
             <div className="cbw-sugs">
+              <span className="cbw-sugs-label">Preguntas frecuentes:</span>
               {BOT_SUGERENCIAS.map((s) => (
                 <button key={s} type="button" className="cbw-sug" onClick={() => enviar(s)}>
                   {s}
@@ -97,6 +115,7 @@ const ChatBotWidget = () => {
 
           <div className="cbw-input-row">
             <input
+              ref={inputRef}
               type="text"
               className="cbw-input"
               placeholder="Escribe tu pregunta..."

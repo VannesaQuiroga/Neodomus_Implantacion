@@ -1,3 +1,4 @@
+// Presenta los motivos y beneficios descritos para elegir Neodomus.
 import fondo2 from '@assets/images/Fondo2.png';
 import '@styles/info_pages.css';
 

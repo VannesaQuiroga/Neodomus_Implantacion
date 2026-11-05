@@ -1,5 +1,5 @@
 // src/pages/auth/Register.tsx
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@contexts/AuthContext';
@@ -26,6 +26,7 @@ const regionesColombia: Record<string, string[]> = {
   "Bogotá": ["Bogotá D.C."]
 };
 
+// Comunica con el backend mediante POST '/auth/register/client'.
 const Register = () => {
   const { openAuth, closeAuth } = useAuthModal();
   const { googleLogin } = useAuth();
@@ -37,7 +38,9 @@ const Register = () => {
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const enviandoRef = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmCorreo, setConfirmCorreo] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -81,6 +84,11 @@ const Register = () => {
       return () => clearTimeout(timer);
     }
   }, [error]);
+
+  // Permite explícitamente copiar, pegar y cortar en los campos del formulario
+  const allowClipboard = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    // No se llama e.preventDefault(), por lo que el navegador ejecuta la acción por defecto
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name } = e.target;
@@ -130,11 +138,13 @@ const Register = () => {
     return true;
   };
 
+  // Comunica con el backend mediante POST '/auth/register/client'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!validateForm()) return;
-    if (loading) return;
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setLoading(true);
     try {
       const correoNorm = formData.correo.trim().toLowerCase();
@@ -160,6 +170,7 @@ const Register = () => {
         setError(err.response?.data?.detail || 'Error al registrarse. Verifica los datos e inténtalo de nuevo.');
       }
     } finally {
+      enviandoRef.current = false;
       setLoading(false);
     }
   };
@@ -261,10 +272,9 @@ const Register = () => {
                 placeholder="Confirma tu correo"
                 value={confirmCorreo}
                 onChange={(e) => setConfirmCorreo(e.target.value)}
-                onPaste={(e) => e.preventDefault()}
-                onCopy={(e) => e.preventDefault()}
-                onCut={(e) => e.preventDefault()}
-                onContextMenu={(e) => e.preventDefault()}
+                onCopy={allowClipboard}
+                onPaste={allowClipboard}
+                onCut={allowClipboard}
                 required
                 disabled={loading}
               />
@@ -281,6 +291,9 @@ const Register = () => {
                   value={formData.contraseña}
                   autoComplete="new-password"
                   onChange={handleChange}
+                  onCopy={allowClipboard}
+                  onPaste={allowClipboard}
+                  onCut={allowClipboard}
                   required
                   disabled={loading}
                 />
@@ -309,17 +322,35 @@ const Register = () => {
               <label>Confirmación de contraseña</label>
               <div className="password-input-wrapper">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirma tu contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  onPaste={(e) => e.preventDefault()}
-                  onCopy={(e) => e.preventDefault()}
-                  onCut={(e) => e.preventDefault()}
-                  onContextMenu={(e) => e.preventDefault()}
+                  onCopy={allowClipboard}
+                  onPaste={allowClipboard}
+                  onCut={allowClipboard}
                   required
                   disabled={loading}
                 />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <line x1="21" y1="3" x2="3" y2="21"></line>
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>

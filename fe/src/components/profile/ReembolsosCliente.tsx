@@ -1,3 +1,4 @@
+// Presenta las solicitudes y el estado de los reembolsos del cliente.
 import { useEffect, useMemo, useState } from 'react';
 import { FaMagnifyingGlass } from 'react-icons/fa6';
 import '@styles/perfil-cliente.css';
@@ -35,6 +36,7 @@ const claseEstado = (estado: string) => {
 const textoEstado = (estado: string) =>
   estado === 'Procesando' ? 'En proceso' : estado;
 
+// Comunica con el backend mediante GET '/reembolsos/mis'.
 const ReembolsosCliente = () => {
   const [reembolsos, setReembolsos] = useState<ReembolsoCliente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,7 @@ const ReembolsosCliente = () => {
   const [filtroFecha, setFiltroFecha] = useState('');
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/reembolsos/mis'.
     const cargarReembolsos = async () => {
       setLoading(true);
       try {

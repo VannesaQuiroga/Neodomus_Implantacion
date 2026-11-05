@@ -1,3 +1,4 @@
+// Ruta móvil de idioma. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

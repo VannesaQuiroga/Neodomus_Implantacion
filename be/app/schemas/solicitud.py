@@ -1,8 +1,10 @@
+# Contratos de datos para solicitud. Pydantic valida los campos de entrada y de respuesta de la API.
 from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, model_validator
 
 
+# Agrupa los campos de SolicitudCreate: tipo, motivo.
 class SolicitudCreate(BaseModel):
     tipo: Literal["inhabilitar", "habilitar"]
     motivo: Optional[str] = None
@@ -14,6 +16,7 @@ class SolicitudCreate(BaseModel):
         return self
 
 
+# Agrupa los campos de SolicitudResponse: id, id_cliente, tipo, estado, motivo y los demás declarados abajo.
 class SolicitudResponse(BaseModel):
     id: int
     id_cliente: int
@@ -26,6 +29,7 @@ class SolicitudResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# Agrupa los campos de AdminSolicitudResponse: id, id_cliente, tipo, estado, motivo y los demás declarados abajo.
 class AdminSolicitudResponse(BaseModel):
     id: int
     id_cliente: int
@@ -41,6 +45,7 @@ class AdminSolicitudResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# Agrupa los campos de AdminSolicitudEmpleadoResponse: id, id_usuario, estado, created_at, resuelta_at y los demás declarados abajo.
 class AdminSolicitudEmpleadoResponse(BaseModel):
     id: int
     id_usuario: int

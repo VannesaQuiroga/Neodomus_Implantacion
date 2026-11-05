@@ -21,6 +21,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
+import EvidenciaImagen from "@/components/EvidenciaImagen";
 import {
   Novedad,
   NovedadDetalle,
@@ -66,6 +67,7 @@ const COLOR_ESTADO: Record<string, { bg: string; border: string }> = {
   Rechazada: { bg: "rgba(240,133,138,0.12)", border: "rgba(240,133,138,0.25)" },
 };
 
+// programa una actualización periódica.
 export default function NovedadesClienteScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef(null);
@@ -276,7 +278,7 @@ export default function NovedadesClienteScreen() {
                   <View style={s.evidenciasGrid}>
                     {detalle.evidencias.map((e) => (
                       <Pressable key={e.id_evidencia_n} style={s.evidenciaThumb}>
-                        <Image source={{ uri: e.url }} style={s.evidenciaThumbImg} />
+                        <EvidenciaImagen url={e.url} estilo={s.evidenciaThumbImg} />
                         {e.fecha_subida && (
                           <Text style={s.evidenciaThumbFecha}>{fmtFecha(e.fecha_subida)}</Text>
                         )}

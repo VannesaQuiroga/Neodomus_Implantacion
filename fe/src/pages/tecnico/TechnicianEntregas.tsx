@@ -1,3 +1,4 @@
+// Pantalla TechnicianEntregas de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -19,6 +20,7 @@ import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import NuevaNovedadModal from '@components/tecnico/NuevaNovedadModal';
+import AuthImage from '@components/common/AuthImage';
 
 interface CitaEntrega {
   id_cita: number;
@@ -60,12 +62,13 @@ interface Recogida {
   fecha_recogida?: string | null;
 }
 
-const API_HOST = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/api\/v1\/?$/, '');
 
-const urlEvidencia = (url: string) => (url.startsWith('http') ? url : `${API_HOST}${url}`);
+
+
 
 type Toast = { msg: string; tipo: 'success' | 'error' } | null;
 
+// Comunica con el backend mediante GET '/tecnicos/entregas', POST `/devoluciones/${idDevolucion}/evidencia-recogida`, PUT `/tecnicos/entregas/${pedidoId}/estado` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const TechnicianEntregas = () => {
   const { t } = useIdioma();
   const [entregas, setEntregas] = useState<Entrega[]>([]);
@@ -87,6 +90,7 @@ const TechnicianEntregas = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante GET '/tecnicos/entregas'.
   const cargar = async () => {
     setLoading(true);
     setErrorCarga(false);
@@ -107,6 +111,7 @@ const TechnicianEntregas = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/devoluciones/${idDevolucion}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
   const confirmarRecogida = async (idDevolucion: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
     const fd = new FormData();
@@ -129,6 +134,7 @@ const TechnicianEntregas = () => {
     return () => detenerUbicacion();
   }, []);
 
+  // Comunica con el backend mediante PUT `/tecnicos/entregas/${pedidoId}/estado`.
   const actualizarEntrega = async (pedidoId: number, nuevoEstado: string) => {
     setUpdatingEntrega(pedidoId);
     try {
@@ -157,6 +163,7 @@ const TechnicianEntregas = () => {
     setCompartiendoUbicacion(false);
   };
 
+  // Comunica con el backend mediante POST '/tecnicos/ubicacion'.
   const compartirUbicacion = () => {
     if (!('geolocation' in navigator)) {
       notificar(t('tec.ubicacionNoSoportada'), 'error');
@@ -200,6 +207,7 @@ const TechnicianEntregas = () => {
   const evidenciaRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [subiendoEvidenciaId, setSubiendoEvidenciaId] = useState<number | null>(null);
 
+  // Comunica con el backend mediante POST `/tecnicos/entregas/${pedidoId}/evidencias`, PUT `/tecnicos/entregas/${pedidoId}/estado`; prepara FormData para enviar campos y archivos.
   const subirEvidencias = async (pedidoId: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
     setSubiendoEvidenciaId(pedidoId);
@@ -367,12 +375,17 @@ const TechnicianEntregas = () => {
                       <button
                         type="button"
                         className="ap-btn ap-btn-ok"
-                        disabled={updatingEntrega === e.id_pedido}
+                        disabled={
+                          updatingEntrega === e.id_pedido ||
+                          subiendoEvidenciaId === e.id_pedido
+                        }
                         onClick={() => evidenciaRefs.current[e.id_pedido]?.click()}
                         title="Al elegir las fotos el pedido se marca como Entregado"
                       >
                         <FaCircleCheck />
-                        {updatingEntrega === e.id_pedido ? t('tec.procesando') : t('tec.entregado')}
+                        {subiendoEvidenciaId === e.id_pedido
+                          ? t('tec.procesando')
+                          : t('tec.entregado')}
                       </button>
                     )}
                   </div>
@@ -392,13 +405,12 @@ const TechnicianEntregas = () => {
                   (e.evidencias_entrega || []).length > 0 && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {(e.evidencias_entrega || []).slice(0, 3).map((url) => (
-                        <a key={url} href={urlEvidencia(url)} target="_blank" rel="noopener noreferrer">
-                          <img
-                            src={urlEvidencia(url)}
-                            alt="Evidencia"
-                            style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
-                          />
-                        </a>
+                        <AuthImage
+                          key={url}
+                          src={url}
+                          alt="Evidencia"
+                          style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
+                        />
                       ))}
                       {(e.evidencias_entrega || []).length > 3 && (
                         <span className="muted">+{(e.evidencias_entrega || []).length - 3}</span>

@@ -104,6 +104,7 @@ def _create_tokens(
 # 📝 Registro y verificación de clientes (con pendientes)
 # ──────────────────────────────────────────────────────────────────
 
+# Consulta PendingRegistration; confirma los cambios con la sesión de base de datos.
 async def register_client(db: Session, client_data: ClientCreate, background_tasks=None) -> dict:
     if _get_client_by_email(db, client_data.email):
         raise HTTPException(status_code=400, detail="El email ya está registrado")
@@ -141,6 +142,7 @@ async def register_client(db: Session, client_data: ClientCreate, background_tas
             raise
     return {"msg": "Registro pendiente. Revisa tu correo para el código de verificación."}
 
+# Consulta PendingRegistration; confirma los cambios con la sesión de base de datos.
 def verify_client_email(db: Session, code: str) -> None:
     pending = db.query(PendingRegistration).filter(PendingRegistration.code == code).first()
     if not pending or pending.expires_at < datetime.utcnow():
@@ -162,6 +164,7 @@ def verify_client_email(db: Session, code: str) -> None:
     log_email_verified(pending.email)
     respaldar_usuarios()
 
+# Consulta PendingRegistration; confirma los cambios con la sesión de base de datos.
 async def resend_verification_code(db: Session, email: str) -> dict:
     pending = db.query(PendingRegistration).filter(PendingRegistration.email == email).first()
     if not pending:
@@ -192,6 +195,7 @@ def solicitar_habilitacion(db: Session, email: str, password: str) -> dict:
     raise HTTPException(401, "Credenciales inválidas")
 
 
+# Consulta SolicitudCuenta; confirma los cambios con la sesión de base de datos.
 def _solicitar_habilitacion_cliente(db: Session, client: Cliente, password: str) -> dict:
     if not verify_password(password, client.password_hash):
         raise HTTPException(401, "Credenciales inválidas")
@@ -216,6 +220,7 @@ def _solicitar_habilitacion_cliente(db: Session, client: Cliente, password: str)
     return {"msg": "Solicitud de habilitación enviada al administrador"}
 
 
+# Consulta SolicitudHabilitacionEmpleado; confirma los cambios con la sesión de base de datos.
 def _solicitar_habilitacion_empleado(db: Session, user: User, password: str) -> dict:
     if not verify_password(password, user.password_hash):
         raise HTTPException(401, "Credenciales inválidas")
@@ -243,6 +248,7 @@ def _solicitar_habilitacion_empleado(db: Session, user: User, password: str) -> 
 # 🔐 Login unificado (con rol)
 # ──────────────────────────────────────────────────────────────────
 
+# Consulta PendingRegistration.
 def login(db: Session, login_data: UserLogin) -> TokenResponse:
     email = login_data.email
     password = login_data.password
@@ -322,6 +328,7 @@ def login(db: Session, login_data: UserLogin) -> TokenResponse:
 # 🔄 Refresco de token
 # ──────────────────────────────────────────────────────────────────
 
+# Consulta User, Cliente.
 def refresh_access_token(db: Session, refresh_token: str) -> TokenResponse:
     payload = decode_token(refresh_token)
     if not payload or payload.get("type") != "refresh":
@@ -369,6 +376,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> TokenResponse:
 # 🔒 Cambio de contraseña
 # ──────────────────────────────────────────────────────────────────
 
+# confirma los cambios con la sesión de base de datos.
 def change_password(db: Session, current_user: User | Cliente, req: ChangePasswordRequest, ip: str = None) -> None:
     if isinstance(current_user, User):
         stored_hash = current_user.password_hash
@@ -407,6 +415,7 @@ def update_password(db: Session, current_user: User, new_password: str, ip: str 
 # 📧 Recuperación de contraseña (código de 6 dígitos)
 # ──────────────────────────────────────────────────────────────────
 
+# confirma los cambios con la sesión de base de datos.
 async def request_password_reset(db: Session, email: str, ip: str = None) -> None:
     client = _get_client_by_email(db, email)
     user_type = None
@@ -436,6 +445,7 @@ async def request_password_reset(db: Session, email: str, ip: str = None) -> Non
     except Exception as e:
         print(f"Error enviando código de recuperación a {email}: {e}")
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def verify_password_reset_code(db: Session, email: str, code: str) -> None:
     token_rec = db.execute(
         select(PasswordResetToken).where(
@@ -448,6 +458,7 @@ def verify_password_reset_code(db: Session, email: str, code: str) -> None:
     if not token_rec:
         raise HTTPException(400, "Código inválido o expirado")
 
+# confirma los cambios con la sesión de base de datos.
 def reset_password(db: Session, req: ResetPasswordRequest) -> None:
     code = req.token
     token_rec = db.execute(

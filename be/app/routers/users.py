@@ -1,3 +1,4 @@
+# Rutas de users. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,6 +18,7 @@ from app.utils.security import get_current_employee, hash_password
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+# Agrupa los campos de EmployeeCreate: first_name, last_name, email, password, telefono_usuario y los demás declarados abajo.
 class EmployeeCreate(BaseModel):
     first_name: str
     last_name: str
@@ -29,6 +31,7 @@ class EmployeeCreate(BaseModel):
     especializaciones_ids: Optional[List[int]] = None
 
 
+# Agrupa los campos de EmployeeUpdate: first_name, last_name, email, password, telefono_usuario y los demás declarados abajo.
 class EmployeeUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -144,6 +147,7 @@ def _aplicar_especializaciones(db: Session, ficha: Tecnico, ids: List[int]) -> N
     ficha.especializaciones = encontradas
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -241,6 +245,7 @@ def get_roles(_admin_user: User = Depends(_admin), db: Session = Depends(get_db)
     return [{"id": r.id_rol, "nombre": r.nombre_rol} for r in roles]
 
 
+# Consulta User.
 @router.get("/", response_model=List[EmployeeResponse])
 def get_users(
     _admin_user: User = Depends(_admin),
@@ -302,6 +307,7 @@ def crear_empleado(
     return {"msg": "Usuario registrado correctamente", "id": usuario.id_usuario, "email": email}
 
 
+# Consulta User, Tecnico; confirma los cambios con la sesión de base de datos.
 @router.put("/{user_id}", response_model=dict)
 async def editar_empleado(
     user_id: int,
@@ -329,11 +335,9 @@ async def editar_empleado(
     especializaciones_ids = upd.pop("especializaciones_ids", None)
     motivo = upd.pop("motivo", None)
     nueva_password = upd.pop("password", None)
-    if nueva_password:
-        if len(nueva_password) < 6:
-            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
-        usuario.password_hash = hash_password(nueva_password)
-        usuario.password_reset_required = True
+
+    # Detectar la intención de desactivación ANTES de mutar cualquier campo,
+    # para poder rechazarla sin aplicar cambios parciales.
     cambio_estado = False
     activo = usuario.is_active
     desactivado_hasta = usuario.desactivado_hasta
@@ -344,6 +348,25 @@ async def editar_empleado(
             desactivado_hasta = upd["desactivado_hasta"]
         if activo:
             upd["desactivado_hasta"] = None
+
+    # Guarda de custodia: un técnico con entregas Recogido/En camino no puede
+    # desactivarse. Se valida (con bloqueo de fila) antes de aplicar cambios,
+    # enviar notificaciones o iniciar reasignaciones. Se bloquea primero el
+    # técnico para coordinar con reservas concurrentes (orden Tecnico → Pedido).
+    if cambio_estado and not activo:
+        ficha = db.query(Tecnico).filter(Tecnico.id_usuario_t == user_id).first()
+        if ficha:
+            from app.services.asignacion_service import validar_desactivacion_sin_custodia
+            from app.services.especialidades import bloquear_tecnicos
+
+            bloquear_tecnicos(db, [ficha.id_tecnico])
+            validar_desactivacion_sin_custodia(db, ficha.id_tecnico)
+
+    if nueva_password:
+        if len(nueva_password) < 6:
+            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+        usuario.password_hash = hash_password(nueva_password)
+        usuario.password_reset_required = True
     for campo, valor in upd.items():
         setattr(usuario, campo, valor)
     if certificacion is not None or especializaciones_ids is not None:
@@ -368,6 +391,7 @@ async def editar_empleado(
     return {"msg": "Usuario actualizado correctamente", "id": user_id}
 
 
+# Consulta User, Tecnico; confirma los cambios con la sesión de base de datos.
 @router.delete("/{user_id}", response_model=dict)
 async def desactivar_empleado(
     user_id: int,
@@ -379,6 +403,15 @@ async def desactivar_empleado(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     if usuario.id_usuario == _admin_user.id_usuario:
         raise HTTPException(status_code=400, detail="No puedes desactivar tu propia cuenta")
+    # Guarda de custodia antes de guardar cualquier cambio. Se bloquea primero
+    # el técnico para coordinar con reservas concurrentes (Tecnico → Pedido).
+    ficha = db.query(Tecnico).filter(Tecnico.id_usuario_t == user_id).first()
+    if ficha:
+        from app.services.asignacion_service import validar_desactivacion_sin_custodia
+        from app.services.especialidades import bloquear_tecnicos
+
+        bloquear_tecnicos(db, [ficha.id_tecnico])
+        validar_desactivacion_sin_custodia(db, ficha.id_tecnico)
     usuario.is_active = False
     db.commit()
     await _notificar_estado_empleado(usuario, False, usuario.desactivado_hasta)
@@ -392,23 +425,85 @@ async def subir_foto_perfil(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
 ):
-    """Sube una foto de perfil del empleado a MinIO y la asocia a su cuenta."""
-    if not archivo.content_type or not archivo.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+    """Sube una foto de perfil del empleado a MinIO y la asocia a su cuenta.
+
+    Valida el CONTENIDO real con Pillow (no confía en content_type/extensión):
+    solo formatos raster JPEG/PNG/WEBP, ≤ 5 MB y ≤ 8000×8000 píxeles. Rechaza
+    HTML/SVG disfrazados de imagen. El nombre del objeto es único, de modo que
+    reemplazar la foto genera una URL nueva (sin caché del navegador).
+    """
+    import io
+    import uuid
+    from pathlib import Path
+
+    from PIL import Image
+
+    if not archivo or not archivo.filename:
+        raise HTTPException(status_code=400, detail="Selecciona un archivo de imagen")
+
+    FORMATOS_PERMITIDOS = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}
+    ext = Path(archivo.filename or "").suffix.lower()
+    if ext not in FORMATOS_PERMITIDOS:
+        raise HTTPException(status_code=400, detail="Formato no permitido (usa JPG, PNG o WEBP)")
+
     contenido = await archivo.read()
+    if not contenido:
+        raise HTTPException(status_code=400, detail="El archivo está vacío")
     if len(contenido) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB")
-    ext = archivo.filename.rsplit(".", 1)[-1] if archivo.filename and "." in archivo.filename else "jpg"
-    nombre = f"perfil_usuario_{current_user.id_usuario}.{ext}"
-    from app.services.minio_service import subir_imagen, eliminar_objeto
-    if current_user.foto_url:
-        prefijo = f"{current_user.foto_url.split('/minio/')[-1]}" if "/minio/" in current_user.foto_url else None
-        if prefijo:
-            eliminar_objeto(prefijo)
+
+    # Verificación real del contenido: integridad y formato raster.
+    try:
+        with Image.open(io.BytesIO(contenido)) as img:
+            img.verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+
+    try:
+        with Image.open(io.BytesIO(contenido)) as img:
+            formato = (img.format or "").upper()
+            ancho, alto = img.size
+    except Exception:
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+
+    if formato != FORMATOS_PERMITIDOS[ext]:
+        raise HTTPException(status_code=400, detail="La extensión no coincide con el contenido real")
+    if ancho <= 0 or alto <= 0 or ancho > 8000 or alto > 8000:
+        raise HTTPException(status_code=400, detail="Dimensiones de imagen no permitidas")
+
+    from app.services.minio_service import eliminar_imagen_perfil, subir_imagen
+
+    nombre = f"perfil_usuario_{current_user.id_usuario}_{uuid.uuid4().hex}{ext}"
+    # 1) Sube la foto nueva (si falla, la foto vigente queda intacta).
     url = subir_imagen("perfiles", nombre, contenido)
+    anterior = current_user.foto_url
     current_user.foto_url = url
-    db.commit()
+    # 2) Confirma la referencia nueva en BD. Si el commit falla, se revierte la
+    # referencia y se limpia SOLO el objeto nuevo (huérfano), conservando el
+    # anterior hasta que la referencia nueva quede persistida.
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        try:
+            eliminar_imagen_perfil(url)
+        except Exception:
+            pass
+        raise
     db.refresh(current_user)
+    # 3) Borra el objeto anterior solo DESPUÉS de confirmar la referencia nueva.
+    # Si esta limpieza falla, se conserva la foto nueva (ya válida) y se registra
+    # el fallo sin exponer secretos ni URLs.
+    if anterior:
+        try:
+            eliminar_imagen_perfil(anterior)
+        except Exception:
+            import logging
+
+            logging.getLogger("neodomus").warning(
+                "No se pudo eliminar la foto de perfil anterior (usuario %s)",
+                current_user.id_usuario,
+            )
     return _perfil_empleado(current_user, db)
 
 

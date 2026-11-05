@@ -1,3 +1,4 @@
+// Comparte qué formulario de autenticación debe mostrarse dentro del modal.
 import { createContext, useCallback, useContext, useState, ReactNode } from 'react';
 
 export type AuthStep =

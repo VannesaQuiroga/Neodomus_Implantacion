@@ -22,7 +22,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-HASH_ADMIN = "$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG"
+HASH_ADMIN = "$2b$12$Qqz0cnPdWjfTTHY6zHO3JufPEaAK0RSjNDZkdDMOgT9JCdKUt1CGq"
 
 
 def _seed(bind, table, sql):
@@ -207,16 +207,16 @@ def upgrade() -> None:
         "usuarios",
         f"""
         INSERT INTO usuarios (first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active) VALUES
-        ('CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '{HASH_ADMIN}', 2, 1),
-        ('JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '{HASH_ADMIN}', 2, 1),
-        ('JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '{HASH_ADMIN}', 2, 1),
-        ('LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '{HASH_ADMIN}', 1, 1),
-        ('ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '{HASH_ADMIN}', 2, 1),
-        ('CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '{HASH_ADMIN}', 1, 1),
-        ('NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '{HASH_ADMIN}', 1, 1),
-        ('LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '{HASH_ADMIN}', 2, 1),
-        ('JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '{HASH_ADMIN}', 2, 1),
-        ('MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '{HASH_ADMIN}', 2, 1)
+        ('Usuario Demo 01', 'Sintetico', 1, 1023456790, 3001234567, 'demo001@example.com', '{HASH_ADMIN}', 2, 1),
+        ('Usuario Demo 02', 'Sintetico', 1, 1034567890, 3002345678, 'demo002@example.com', '{HASH_ADMIN}', 2, 1),
+        ('Usuario Demo 03', 'Sintetico', 1, 1078901234, 3003456789, 'demo003@example.com', '{HASH_ADMIN}', 2, 1),
+        ('Usuario Demo 04', 'Sintetico', 1, 1090123456, 3004567890, 'demo004@example.com', '{HASH_ADMIN}', 1, 1),
+        ('Usuario Demo 05', 'Sintetico', 1, 1056789012, 3005678901, 'demo005@example.com', '{HASH_ADMIN}', 2, 1),
+        ('Usuario Demo 06', 'Sintetico', 1, 1089012345, 3006789012, 'demo006@example.com', '{HASH_ADMIN}', 1, 1),
+        ('Usuario Demo 07', 'Sintetico', 1, 1045678901, 3007890123, 'demo007@example.com', '{HASH_ADMIN}', 1, 1),
+        ('Usuario Demo 08', 'Sintetico', 2, 1009876543, 3008901234, 'demo008@example.com', '{HASH_ADMIN}', 2, 1),
+        ('Usuario Demo 09', 'Sintetico', 2, 1012345678, 3009012345, 'demo009@example.com', '{HASH_ADMIN}', 2, 1),
+        ('Usuario Demo 10', 'Sintetico', 2, 1067890123, 3010123456, 'demo010@example.com', '{HASH_ADMIN}', 2, 1)
         """,
     )
 
@@ -244,16 +244,16 @@ def upgrade() -> None:
         "clientes",
         f"""
         INSERT INTO clientes (first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token) VALUES
-        ('LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '{HASH_ADMIN}', 1, NULL),
-        ('DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '{HASH_ADMIN}', 1, NULL),
-        ('ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '{HASH_ADMIN}', 1, NULL),
-        ('MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '{HASH_ADMIN}', 1, NULL),
-        ('NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '{HASH_ADMIN}', 1, NULL),
-        ('FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '{HASH_ADMIN}', 1, NULL),
-        ('CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '{HASH_ADMIN}', 1, NULL),
-        ('SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '{HASH_ADMIN}', 1, NULL),
-        ('SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', '{HASH_ADMIN}', 1, NULL),
-        ('MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', '{HASH_ADMIN}', 1, NULL)
+        ('Usuario Demo 11', 'Sintetico', 1, 1012345678, 3001234567, 'demo011@example.com', 'Cra 10 #12-34', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 12', 'Sintetico', 1, 1034567890, 3023456789, 'demo012@example.com', 'Av 30 #15-09', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 13', 'Sintetico', 2, 1045678901, 3034567890, 'demo013@example.com', 'Mz A Casa 10', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 14', 'Sintetico', 1, 1056789012, 3045678901, 'demo014@example.com', 'Cl 8B #20-45', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 15', 'Sintetico', 1, 1078901234, 3067890123, 'demo015@example.com', 'Cl 19 #13-55', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 16', 'Sintetico', 1, 1089012345, 3078901234, 'demo016@example.com', 'Av 68 #54-23', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 17', 'Sintetico', 2, 1090123456, 3089012345, 'demo017@example.com', 'Cl 100 #25-10', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 18', 'Sintetico', 1, 1101234567, 3090123456, 'demo018@example.com', 'Cra 7 #89-12', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 19', 'Sintetico', 1, 1112345678, 3101234567, 'demo019@example.com', 'Cl 50 #12-34', '{HASH_ADMIN}', 1, NULL),
+        ('Usuario Demo 20', 'Sintetico', 2, 1123456789, 3112345678, 'demo020@example.com', 'Av 20 #45-67', '{HASH_ADMIN}', 1, NULL)
         """,
     )
 

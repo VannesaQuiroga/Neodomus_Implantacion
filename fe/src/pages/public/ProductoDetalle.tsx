@@ -1,10 +1,20 @@
+import { MetrosSelect } from '@components/common/MetrosSelect';
+// Pantalla ProductoDetalle de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaCheck, FaTruckFast, FaShieldHalved, FaRotateLeft, FaUsers, FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
+import ProductoCard from '@components/productos/ProductoCard';
 import api from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useFavoritos } from '@utils/favoritos';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { parseMetros } from '@utils/metros';
+import { stockDisponibleProducto, stockDisponibleVariante } from '@utils/productoDisponibilidad';
+import {
+  precioOriginalProducto,
+  precioUnitarioProducto,
+  subtotalLinea,
+} from '@utils/productoPrecio';
 import '@styles/producto-detalle.css';
 
 interface Producto {
@@ -20,6 +30,8 @@ interface Producto {
   id_cate_pr?: number;
   nombre_categoria?: string;
   stock_producto?: number;
+  stock_disponible?: number;
+  disponible?: boolean;
   stock_estado?: 'disponible' | 'bajo' | 'agotado';
   descuento_activo?: number | null;
   precio_final?: number | null;
@@ -41,8 +53,6 @@ interface Producto {
     stock: number;
   }[];
 }
-
-const METROS_OPCIONES = [10, 20, 30, 40, 50];
 
 const PALETAS: Record<number, string[]> = {
   1: ['Blanco', 'Negro', 'Gris'],
@@ -142,6 +152,7 @@ const CARACTERISTICAS: Record<number, string[]> = {
   ],
 };
 
+// Comunica con el backend mediante GET `/productos/${id}`; registra escuchas de eventos para sincronizar la vista.
 const ProductoDetalle = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -200,19 +211,22 @@ const ProductoDetalle = () => {
       (v) =>
         v.nombre === color &&
         (!usaTamanos || medidaDe(v) === tamano),
-    ) ||
-    variantes.find((v) => v.nombre === color) ||
-    null;
-  const stockDisponible = varianteActiva
-    ? (varianteActiva.stock ?? 0)
-    : (producto?.stock_producto ?? 0);
+    ) ?? null;
+  const stockDisponible = producto
+    ? (varianteActiva
+        ? stockDisponibleVariante(producto, varianteActiva)
+        : (variantes.length ? 0 : stockDisponibleProducto(producto)))
+    : 0;
   const precioBase = producto?.precio_final ?? producto?.precio_venta_producto ?? 0;
-  // Precio de la variante elegida; si no define uno propio, el del producto.
-  const precioUnitario = varianteActiva?.precio ?? precioBase;
-  const precioFinal = precioUnitario;
-  const tieneDescuento = producto?.precio_final != null && Boolean(producto?.descuento_activo && producto.descuento_activo > 0);
+  const precioUnitario = producto ? precioUnitarioProducto(producto, varianteActiva) : 0;
+  const precioOriginal = producto ? precioOriginalProducto(producto, varianteActiva) : null;
+  const tieneDescuento = precioOriginal != null;
   const totalMetros = (producto?.venta_por_metros ? metros * unidadesMetros : 0);
   const maxUnidades = producto?.venta_por_metros && metros > 0 ? Math.max(1, Math.floor((stockDisponible || 0) / metros) || 1) : 99;
+  const puedeAgregar =
+    stockDisponible > 0 &&
+    (!variantes.length || Boolean(varianteActiva)) &&
+    (!producto?.venta_por_metros || (metros > 0 && totalMetros <= stockDisponible));
   const imagen =
     imagenActiva ||
     varianteActiva?.imagen_url ||
@@ -253,6 +267,7 @@ const ProductoDetalle = () => {
   }, [color, tamano]);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET `/productos/${id}`.
     const fetchProducto = async () => {
       setLoading(true);
       try {
@@ -296,6 +311,7 @@ const ProductoDetalle = () => {
   };
 
   useEffect(() => {
+    // Comunica con el backend mediante GET `/productos/${id}`.
     const refetch = () => {
       api.get(`/productos/${id}`).then((res) => setProducto(res.data)).catch(() => undefined);
     };
@@ -328,20 +344,31 @@ const ProductoDetalle = () => {
       const paramColor = searchParams.get('color');
       const colorInicial = paramColor && paleta.includes(paramColor) ? paramColor : paleta[0];
       setColor(colorInicial);
-      // Selecciona la primera medida disponible si el producto las usa.
-      if (usaTamanos) {
+      // Selecciona la combinación solicitada o la primera disponible.
+      if (producto.variantes?.length) {
+        const paramMedida = (searchParams.get('medida') || '').trim();
+        const delColor = producto.variantes.filter(v => v.nombre === colorInicial);
         const primeraVariante =
-          producto.variantes?.find(v => v.nombre === colorInicial) ||
-          producto.variantes?.[0];
-        setTamano(
-          (primeraVariante?.etiqueta_medida || primeraVariante?.tamaño || '').trim(),
-        );
+          delColor.find(v => paramMedida && medidaDe(v) === paramMedida && (v.stock || 0) > 0) ||
+          delColor.find(v => (v.stock || 0) > 0) ||
+          delColor[0] ||
+          producto.variantes.find(v => (v.stock || 0) > 0) ||
+          producto.variantes[0];
+        if (primeraVariante) {
+          setColor(primeraVariante.nombre);
+          setTamano(usaTamanos ? medidaDe(primeraVariante) : '');
+        }
       } else {
         setTamano('');
       }
       const paramMetros = searchParams.get('metros');
       if (producto.venta_por_metros) {
-        if (paramMetros) setMetros(METROS_OPCIONES.includes(Number(paramMetros)) ? Number(paramMetros) : 10);
+        if (paramMetros) {
+          const r = parseMetros(paramMetros);
+          if (r.valor != null) {
+            setMetros(r.valor);
+          }
+        }
         const paramUnidades = searchParams.get('unidades') || searchParams.get('cantidad');
         if (paramUnidades) {
           const u = Math.max(1, Number(paramUnidades) || 1);
@@ -420,7 +447,7 @@ const ProductoDetalle = () => {
         {
           id_producto: producto.id_producto,
           nombre_producto: producto.nombre_producto,
-          precio_venta_producto: precioFinal,
+          precio_venta_producto: precioUnitario,
           imagen,
           venta_por_metros: true,
           color,
@@ -549,11 +576,11 @@ const ProductoDetalle = () => {
                   <div className="detalle-precio-total-row">
                     {tieneDescuento && (
                       <span className="detalle-precio-original">
-                        ${(producto.precio_venta_producto * totalMetros).toLocaleString()}
+                        ${subtotalLinea(precioOriginal!, unidadesMetros, metros).toLocaleString()}
                       </span>
                     )}
                     <span className="detalle-precio-monto">
-                      ${(precioFinal * totalMetros).toLocaleString()}
+                      ${subtotalLinea(precioUnitario, unidadesMetros, metros).toLocaleString()}
                     </span>
                     <span className="detalle-precio-sufijo">COP</span>
                     {tieneDescuento && (
@@ -561,18 +588,18 @@ const ProductoDetalle = () => {
                     )}
                   </div>
                   <span className="detalle-precio-unitario">
-                    ${precioFinal.toLocaleString()} COP / metro · {metros} m × {unidadesMetros} {unidadesMetros === 1 ? 'unidad' : 'unidades'} = {totalMetros} m total
+                    ${precioUnitario.toLocaleString()} COP / metro · {metros} m × {unidadesMetros} {unidadesMetros === 1 ? 'unidad' : 'unidades'} = {totalMetros} m total
                   </span>
                 </>
               ) : (
                 <>
                   {tieneDescuento && (
                     <span className="detalle-precio-original">
-                      ${(producto.precio_venta_producto).toLocaleString()}
+                      ${precioOriginal!.toLocaleString()}
                     </span>
                   )}
                   <span className="detalle-precio-monto">
-                    ${precioFinal.toLocaleString()}
+                    ${subtotalLinea(precioUnitario, cantidad).toLocaleString()}
                   </span>
                   <span className="detalle-precio-sufijo">COP</span>
                   {tieneDescuento && (
@@ -613,10 +640,12 @@ const ProductoDetalle = () => {
                       const variantesTamano = variantes.filter(
                         v => medidaDe(v) === t,
                       );
-                      const stockTamano = variantesTamano.reduce(
-                        (acc, v) => acc + (v.stock || 0),
-                        0,
-                      );
+                      const stockTamano = producto
+                        ? Math.max(
+                            0,
+                            ...variantesTamano.map((v) => stockDisponibleVariante(producto, v)),
+                          )
+                        : 0;
                       const precioTamano =
                         variantesTamano.find(v => v.precio != null)?.precio ??
                         precioBase;
@@ -676,17 +705,31 @@ const ProductoDetalle = () => {
                     ).trim();
                     const esDegradado = fondo.startsWith('linear');
                     let agotado = false;
-                    if (variante) {
-                      agotado = (variante.stock ?? 0) <= 0;
-                    } else if (esColorPrincipal) {
-                      agotado = (producto.stock_producto ?? 0) <= 0;
+                    if (producto) {
+                      agotado = variante
+                        ? stockDisponibleVariante(producto, variante) <= 0
+                        : (variantes.length > 0 || (esColorPrincipal && stockDisponibleProducto(producto) <= 0));
                     }
                     return (
                       <button
                         key={c}
                         type="button"
                         className={`detalle-swatch ${color === c ? 'activo' : ''} ${agotado ? 'agotado' : ''}`}
-                        onClick={() => { setColor(c); setImagenActiva(null); }}
+                        onClick={() => {
+                          setColor(c);
+                          if (usaTamanos) {
+                            const compatible = variantes.find(
+                              v => v.nombre === c && medidaDe(v) === tamano && (v.stock || 0) > 0,
+                            );
+                            if (!compatible) {
+                              const alternativa = variantes.find(
+                                v => v.nombre === c && (v.stock || 0) > 0,
+                              );
+                              if (alternativa) setTamano(medidaDe(alternativa));
+                            }
+                          }
+                          setImagenActiva(null);
+                        }}
                         disabled={agotado}
                         aria-label={`Color ${c}${agotado ? ' (sin stock)' : ''}`}
                         title={agotado ? `${c} — sin stock` : c}
@@ -712,24 +755,15 @@ const ProductoDetalle = () => {
                       <div className="detalle-metros-campo">
                         <span className="detalle-metros-label">Metros por unidad</span>
                         <div className="detalle-metros-select-wrap">
-                          <select
-                            className="detalle-metros-select"
-                            value={metros}
-                            onChange={(e) => {
-                              const nuevo = Number(e.target.value);
+                          <MetrosSelect className="detalle-metros-select" value={metros} max={stockDisponible / Math.max(1, unidadesMetros)}
+                            aria-label="Metros por unidad" onChange={(nuevo) => {
                               setMetros(nuevo);
-                              if (nuevo * unidadesMetros > stockDisponible) {
-                                const maxU = Math.max(1, Math.floor(stockDisponible / nuevo) || 1);
-                                if (unidadesMetros > maxU) setUnidadesMetros(maxU);
-                              }
-                            }}
-                            aria-label="Metros por unidad"
-                          >
-                            {METROS_OPCIONES.map(m => (
-                              <option key={m} value={m}>{m} m</option>
-                            ))}
-                          </select>
+                              const maxU = Math.max(1, Math.floor(stockDisponible / nuevo));
+                              if (unidadesMetros > maxU) setUnidadesMetros(maxU);
+                            }} />
+                          <span className="detalle-metros-unidad">m</span>
                         </div>
+
                       </div>
                       <div className="detalle-metros-campo detalle-unidades-campo">
                         <span className="detalle-metros-label">Unidades</span>
@@ -794,7 +828,7 @@ const ProductoDetalle = () => {
                       </div>
                       <div className="detalle-precio-desglose-fila detalle-precio-desglose-total">
                         <span>Total</span>
-                        <strong>${(precioUnitario * totalMetros).toLocaleString()} COP</strong>
+                        <strong>${subtotalLinea(precioUnitario, unidadesMetros, metros).toLocaleString()} COP</strong>
                       </div>
                       <span className="detalle-precio-desglose-meta">{totalMetros} m en total · ${precioUnitario.toLocaleString()} / m</span>
                     </div>
@@ -849,7 +883,7 @@ const ProductoDetalle = () => {
                   </div>
                 )}
 
-                <button type="button" className="detalle-agregar-btn" onClick={handleAgregarAlCarrito}>
+                <button type="button" className="detalle-agregar-btn" onClick={handleAgregarAlCarrito} disabled={!puedeAgregar}>
                   Agregar al carrito
                 </button>
 
@@ -867,7 +901,7 @@ const ProductoDetalle = () => {
                 <strong>
                   $
                   {(
-                    producto.venta_por_metros ? precioUnitario * totalMetros : precioUnitario * cantidad
+                    producto.venta_por_metros ? subtotalLinea(precioUnitario, unidadesMetros, metros) : subtotalLinea(precioUnitario, cantidad)
                   ).toLocaleString()}{' '}
                   COP
                 </strong>
@@ -880,14 +914,14 @@ const ProductoDetalle = () => {
             {variantes.length > 0 && (
               <div className="detalle-combos">
                 <span className="detalle-label">
-                  Combinaciones disponibles ({variantes.filter(v => (v.stock || 0) > 0).length}):
+                  Combinaciones disponibles ({variantes.filter(v => producto && stockDisponibleVariante(producto, v) > 0).length}):
                 </span>
                 <div className="detalle-combos-grid">
                   {variantes.map((v) => {
                     const medida = medidaDe(v);
                     const activa =
                       v.nombre === color && (!usaTamanos || medida === tamano);
-                    const agotada = (v.stock || 0) <= 0;
+                    const agotada = !producto || stockDisponibleVariante(producto, v) <= 0;
                     const fondo = (v.hex || COLOR_HEX[v.nombre] || '#ccc').trim();
                     return (
                       <button
@@ -911,7 +945,7 @@ const ProductoDetalle = () => {
                           <small>
                             {agotada
                               ? 'Agotado'
-                              : `${v.stock} u. · $${Number(
+                              : `${producto ? stockDisponibleVariante(producto, v) : 0} u. · $${Number(
                                   v.precio ?? precioBase,
                                 ).toLocaleString()}`}
                           </small>
@@ -944,36 +978,30 @@ const ProductoDetalle = () => {
           </div>
         </div>
 
-        {/* Recomendados — solo en pantallas grandes */}
+        {/* Recomendados — mismo diseño premium que la página de productos */}
         {recomendados.length > 0 && (
           <div className="detalle-recomendados">
             <h3 className="detalle-recomendados-titulo">También te puede interesar</h3>
-            <div className="detalle-recomendados-wrap">
-              <button className="carousel-flecha" onClick={() => scrollCarousel('izq')} aria-label="Anterior">
+            <div className="detalle-recomendados-carousel-wrap">
+              <button
+                className="carousel-flecha carousel-flecha-izq"
+                onClick={() => scrollCarousel('izq')}
+                aria-label="Desplazar a la izquierda"
+              >
                 <FaChevronLeft />
               </button>
               <div className="detalle-recomendados-carousel" ref={carouselRef}>
-                {recomendados.map((p) => {
-                  const img = p.imagen_url || `/productos/${p.id_producto}.jpg`;
-                  const precio = p.precio_final ?? p.precio_venta_producto;
-                  return (
-                    <Link key={p.id_producto} to={`/producto/${p.id_producto}`} className="recomendado-card">
-                      <div className="recomendado-img-wrap">
-                        <img src={img} alt={p.nombre_producto} className="recomendado-img" loading="lazy" />
-                        {p.descuento_activo != null && p.descuento_activo > 0 && (
-                          <span className="recomendado-badge">-{p.descuento_activo}%</span>
-                        )}
-                      </div>
-                      <div className="recomendado-info">
-                        <span className="recomendado-nombre">{p.nombre_producto}</span>
-                        <span className="recomendado-precio">${precio?.toLocaleString('es-CO')}</span>
-                        {p.stock_estado === 'agotado' && <span className="recomendado-agotado">Agotado</span>}
-                      </div>
-                    </Link>
-                  );
-                })}
+                <div className="productos-grid detalle-recomendados-grid">
+                  {recomendados.map((p) => (
+                    <ProductoCard key={p.id_producto} producto={p} />
+                  ))}
+                </div>
               </div>
-              <button className="carousel-flecha" onClick={() => scrollCarousel('der')} aria-label="Siguiente">
+              <button
+                className="carousel-flecha carousel-flecha-der"
+                onClick={() => scrollCarousel('der')}
+                aria-label="Desplazar a la derecha"
+              >
                 <FaChevronRight />
               </button>
             </div>

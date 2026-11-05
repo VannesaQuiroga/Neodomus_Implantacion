@@ -1,4 +1,5 @@
-﻿from datetime import datetime
+﻿# Persistencia de notificacion. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
+from datetime import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base

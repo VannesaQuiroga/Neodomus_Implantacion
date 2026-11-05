@@ -1,3 +1,4 @@
+// Pantalla TecnicoCitas de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useCallback } from 'react';
 import {
   FaCalendarCheck,
@@ -66,6 +67,7 @@ const ESTADO_COLORES: Record<string, { color: string; bg: string; border: string
   Cancelada: { color: '#e5484d', bg: 'rgba(229,72,77,0.1)', border: 'rgba(229,72,77,0.35)' },
 };
 
+// Comunica con el backend mediante GET '/tecnicos/mis-citas', GET `/tecnicos/citas/${citaId}/horas-disponibles`, PUT `/tecnicos/citas/${reagendando.id_cita}/reagendar`; programa una actualización periódica.
 const TecnicoCitas = () => {
   const { idioma, t } = useIdioma();
   const [citas, setCitas] = useState<Cita[]>([]);
@@ -85,6 +87,7 @@ const TecnicoCitas = () => {
 
   const [novedadCita, setNovedadCita] = useState<Cita | null>(null);
 
+  // Comunica con el backend mediante GET '/tecnicos/mis-citas'.
   const fetchCitas = async () => {
     try {
       const res = await api.get('/tecnicos/mis-citas');
@@ -164,6 +167,7 @@ const TecnicoCitas = () => {
     setToastReagendar(null);
   };
 
+  // Comunica con el backend mediante PUT `/tecnicos/citas/${reagendando.id_cita}/reagendar`.
   const confirmarReagendar = async () => {
     if (!reagendando || !nuevaFecha || !nuevaHora) return;
     setEnviandoReagendamiento(true);

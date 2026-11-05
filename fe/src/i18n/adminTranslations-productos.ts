@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de productos. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_PRODUCTOS: Record<string, { es: string; en: string }> = {
   'adm.productos.titulo': { es: 'Productos', en: 'Products' },
   'adm.productos.subtituloConteo': { es: '{n} productos en el catálogo de la tienda', en: '{n} products in the store catalog' },

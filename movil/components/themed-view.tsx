@@ -1,3 +1,4 @@
+// Componente reutilizable themed-view para componer la interfaz de Neodomus.
 import { View, type ViewProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';

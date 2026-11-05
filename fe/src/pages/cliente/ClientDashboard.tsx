@@ -1,3 +1,4 @@
+// Presenta al cliente un resumen de su cuenta y accesos a sus gestiones.
 import { useState, useEffect } from 'react';
 import api from '@services/api';
 import { useCart } from '@contexts/CartContext';
@@ -26,6 +27,7 @@ interface Categoria {
   descripcion: string;
 }
 
+// Comunica con el backend mediante GET '/productos/categorias', GET '/productos/?limit=100'; registra escuchas de eventos para sincronizar la vista.
 const ClientDashboard = () => {
   const { addItem } = useCart();
   const [todosProductos, setTodosProductos] = useState<Producto[]>([]);
@@ -41,6 +43,7 @@ const ClientDashboard = () => {
   const [cartMessage, setCartMessage] = useState('');
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/categorias'.
     const fetchCategorias = async () => {
       try {
         const res = await api.get('/productos/categorias');
@@ -53,6 +56,7 @@ const ClientDashboard = () => {
   }, []);
 
   useEffect(() => {
+    // Comunica con el backend mediante GET '/productos/?limit=100'.
     const fetchProductos = async (silencioso = false) => {
       if (!silencioso) setLoading(true);
       try {

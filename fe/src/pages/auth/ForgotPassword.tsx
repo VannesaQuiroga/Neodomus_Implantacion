@@ -1,3 +1,4 @@
+// Pantalla ForgotPassword de Neodomus. Reúne el estado y las acciones de su vista.
 
 import "../../styles/forgot-password.css";
 import { useState } from 'react';
@@ -5,6 +6,7 @@ import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 
 
+// Comunica con el backend mediante POST '/auth/forgot-password'.
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -12,6 +14,7 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const { openAuth } = useAuthModal();
 
+  // Comunica con el backend mediante POST '/auth/forgot-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();

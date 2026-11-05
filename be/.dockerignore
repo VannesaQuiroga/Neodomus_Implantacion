@@ -1,0 +1,14 @@
+.venv
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+.git
+.gitignore
+tmp_*.py
+verify_*.py
+backup_*.sql
+evidencias_backup

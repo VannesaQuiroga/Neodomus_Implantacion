@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de reportes. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_REPORTES: Record<string, { es: string; en: string }> = {
   'adm.reportes.titulo': { es: 'Reportes', en: 'Reports' },
   'adm.reportes.subtitulo': {

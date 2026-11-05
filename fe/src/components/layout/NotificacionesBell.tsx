@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: NotificacionesBell. Se reutiliza en las pantallas de su área.
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -31,6 +32,9 @@ export const ICONO_TIPO: Record<TipoNotificacion, React.ReactNode> = {
   recogida: <FaBoxOpen />,
   producto: <FaBoxOpen />,
   promocion: <FaPercent />,
+  novedad: <FaCircleInfo />,
+  cupon: <FaPercent />,
+  asignacion: <FaCalendarCheck />,
   recordatorio_cita: <FaStar />,
   recordatorio_producto: <FaStar />,
 };
@@ -47,7 +51,10 @@ export const ETIQUETA_TIPO: Record<TipoNotificacion, string> = {
   devolucion: 'Devolución',
   recogida: 'Recogida',
   producto: 'Producto nuevo',
-  promocion: 'Promoción',
+  promocion: 'Promoci��n',
+  novedad: 'Novedad',
+  cupon: 'Cup��n',
+  asignacion: 'Asignaci��n',
   recordatorio_cita: 'Encuesta de servicio',
   recordatorio_producto: 'Encuesta de productos',
 };
@@ -61,8 +68,11 @@ interface NotificacionesBellProps {
   iconClassName?: string;
   ariaLabel?: string;
   titulo?: string;
+  error?: string | null;
+  onRetry?: () => void | Promise<void>;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const NotificacionesBell = ({
   notificaciones,
   cargando = false,
@@ -72,6 +82,8 @@ const NotificacionesBell = ({
   iconClassName = '',
   ariaLabel = 'Notificaciones',
   titulo = 'Notificaciones',
+  error = null,
+  onRetry,
 }: NotificacionesBellProps) => {
   const [open, setOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -114,14 +126,27 @@ const NotificacionesBell = ({
           </Link>
         </div>
 
+        {error && (
+          <div className="anr-notif-empty" role="alert">
+            <span>{error}</span>
+            {onRetry && (
+              <button type="button" className="anr-notif-ver" onClick={() => void onRetry()}>
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="anr-notif-list">
           {cargando ? (
             <div className="anr-notif-empty">Cargando...</div>
           ) : recientes.length === 0 ? (
-            <div className="anr-notif-empty">
-              <FaBell />
-              No hay notificaciones
-            </div>
+            error ? null : (
+              <div className="anr-notif-empty">
+                <FaBell />
+                No hay notificaciones
+              </div>
+            )
           ) : (
             recientes.map((n) => (
               <Link

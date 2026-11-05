@@ -1,8 +1,10 @@
+# Persistencia de password reset token. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from app.database import Base
 
+# Mapea la tabla «password_reset_tokens».
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 

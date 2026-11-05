@@ -1,3 +1,4 @@
+// Pantalla AdminDevoluciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -101,6 +102,7 @@ const formatFecha = (fecha: string) => {
   return `${f[2]}/${f[1]}/${f[0]}`;
 };
 
+// Comunica con el backend mediante GET '/devoluciones/admin/solicitudes', GET '/reembolsos', GET '/reembolsos/elegibles' y otras peticiones de esta vista.
 const AdminDevoluciones = () => {
   const { t } = useIdioma();
   const [vista, setVista] = useState<Vista>('solicitudes');
@@ -109,6 +111,7 @@ const AdminDevoluciones = () => {
   const [elegibles, setElegibles] = useState<ElegibleItem[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
+  const [errorReembolsos, setErrorReembolsos] = useState(false);
   const [procesando, setProcesando] = useState<number | null>(null);
   const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string; is_active: boolean }[]>([]);
 
@@ -134,13 +137,18 @@ const AdminDevoluciones = () => {
     window.setTimeout(() => setToast(null), 3200);
   };
 
+  // Comunica con el backend mediante GET '/devoluciones/admin/solicitudes', GET '/reembolsos', GET '/reembolsos/elegibles' y otras peticiones de esta vista.
   const cargar = async (silencioso = false): Promise<SolicitudItem[]> => {
     if (!silencioso) setCargando(true);
     setError(false);
+    setErrorReembolsos(false);
     try {
       const [resS, resR, resE, resT] = await Promise.all([
         api.get<SolicitudItem[]>('/devoluciones/admin/solicitudes'),
-        api.get<ReembolsoItem[]>('/reembolsos').catch(() => ({ data: [] as ReembolsoItem[] })),
+        api.get<ReembolsoItem[]>('/reembolsos').catch(() => {
+          setErrorReembolsos(true);
+          return { data: [] as ReembolsoItem[] };
+        }),
         api.get<ElegibleItem[]>('/reembolsos/elegibles').catch(() => ({ data: [] as ElegibleItem[] })),
         api.get<{ id_tecnico: number; first_name: string; last_name: string; is_active: boolean }[]>(
           '/tecnicos',
@@ -178,6 +186,7 @@ const AdminDevoluciones = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Comunica con el backend mediante PUT `/devoluciones/admin/solicitudes/${s.id_solicitud}/estado`.
   const cambiarEstado = async (
     s: SolicitudItem,
     estado: string,
@@ -199,6 +208,7 @@ const AdminDevoluciones = () => {
     }
   };
 
+  // Comunica con el backend mediante PUT `/devoluciones/admin/solicitudes/${detalleSol.id_solicitud}/estado`.
   const guardarObservaciones = async () => {
     if (!detalleSol) return;
     setProcesando(detalleSol.id_solicitud);
@@ -234,6 +244,7 @@ const AdminDevoluciones = () => {
     setAprobarSol(null);
   };
 
+  // Comunica con el backend mediante PUT `/devoluciones/admin/${idDevolucion}/reasignar-tecnico`.
   const reasignarTecnico = async (idDevolucion: number, idTecnico: number) => {
     if (!idTecnico) return;
     setReasignandoLinea(idDevolucion);
@@ -258,6 +269,7 @@ const AdminDevoluciones = () => {
     setRetencionPct(elegida ? '15' : '');
   };
 
+  // Comunica con el backend mediante POST '/reembolsos'.
   const crearReembolso = async () => {
     if (!selReembolso) {
       notify(t('adm.instalaciones.reembolsoEligeCita'), 'err');
@@ -296,6 +308,7 @@ const AdminDevoluciones = () => {
     }
   };
 
+  // Comunica con el backend mediante POST `/reembolsos/${id}/procesar`.
   const reprocesarReembolso = async (id: number) => {
     setProcesandoReembolso(id);
     try {
@@ -515,6 +528,19 @@ const AdminDevoluciones = () => {
             ))}
           </div>
         )
+      ) : errorReembolsos ? (
+        <div className="ap-card">
+          <div className="ap-states error">
+            <div className="ap-states-icon">
+              <FaCircleInfo />
+            </div>
+            <h3>{t('adm.instalaciones.errorTitulo')}</h3>
+            <p>{t('adm.instalaciones.errorDesc')}</p>
+            <button type="button" className="ap-btn ap-btn-ghost" onClick={() => cargar()}>
+              {t('adm.instalaciones.reintentar')}
+            </button>
+          </div>
+        </div>
       ) : (
         <>
           <div className="ap-card ap-tarifas-card">

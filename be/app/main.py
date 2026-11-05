@@ -13,9 +13,13 @@ from app.middleware import setup_cors, setup_rate_limit, setup_security_headers
 async def lifespan(_app: FastAPI):
     from app.services.scheduler import detener_scheduler, iniciar_scheduler
 
-    iniciar_scheduler()
+    # En pruebas E2E se arranca un servidor dedicado con DISABLE_SCHEDULER=1 para
+    # no ejecutar trabajos en segundo plano sobre la base de pruebas.
+    if os.getenv("DISABLE_SCHEDULER") != "1":
+        iniciar_scheduler()
     yield
-    detener_scheduler()
+    if os.getenv("DISABLE_SCHEDULER") != "1":
+        detener_scheduler()
 
 # Importar routers
 from app.routers import (
@@ -75,10 +79,11 @@ PRODUCTOS_IMG_DIR = Path(__file__).resolve().parent / "static" / "productos"
 PRODUCTOS_IMG_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=PRODUCTOS_IMG_DIR), name="uploads")
 
-# Evidencias de trabajo de los técnicos servidas desde /evidencias
-EVIDENCIAS_DIR = Path(__file__).resolve().parent / "static" / "evidencias"
-EVIDENCIAS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/evidencias", StaticFiles(directory=EVIDENCIAS_DIR), name="evidencias")
+# Las evidencias de trabajo son archivos PRIVADOS del negocio: no se sirven por
+# un montaje estático público. Se descargan mediante rutas autorizadas
+# (app.routers.tecnicos: /tecnicos/evidencias/.../archivo) que comprueban
+# asignación/rol. El directorio de archivos heredados se conserva (no se borra),
+# pero ya no se expone directamente.
 
 # Endpoint de prueba
 @app.get("/")

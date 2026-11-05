@@ -4,13 +4,13 @@ import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 import '@styles/verify-email.css';
 
+// Comunica con el backend mediante POST '/auth/verify-email', POST '/auth/resend-verification'.
 const VerifyEmail = () => {
   const { email, openAuth } = useAuthModal();
   
   // Estado para las 6 cajitas individuales del código
   const [codeArray, setCodeArray] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [canResend, setCanResend] = useState(true);
   const [countdown, setCountdown] = useState(0);
@@ -75,6 +75,7 @@ const VerifyEmail = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/verify-email'.
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalCode = codeArray.join('');
@@ -85,7 +86,6 @@ const VerifyEmail = () => {
     }
     setLoading(true);
     setError('');
-    setMessage('');
     try {
       await api.post('/auth/verify-email', null, { params: { code: finalCode } });
       openAuth('ingresar');
@@ -96,16 +96,15 @@ const VerifyEmail = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/resend-verification'.
   const handleResend = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!canResend) return;
     setCanResend(false);
     setError('');
-    setMessage('');
     setLoading(true);
     try {
       await api.post('/auth/resend-verification', { email });
-      setMessage('Se ha enviado un nuevo código a tu correo.');
       setCountdown(30);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al reenviar el código');
@@ -160,7 +159,6 @@ const VerifyEmail = () => {
             <strong className="user-email">{email || 'tu correo'}</strong>
           </p>
           
-          {message && <div className="success-msg">{message}</div>}
           {error && <div className="error-msg">{error}</div>}
           
           {/* Grilla de 6 inputs individuales */}

@@ -1,4 +1,6 @@
+# Rutas de auth. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -40,23 +42,25 @@ from app.utils.security import (
     set_auth_cookies,
     clear_auth_cookies,
     REFRESH_COOKIE_NAME,
-    ACCESS_COOKIE_NAME,
-    decode_token,
 )
 from app.middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+# Agrupa los campos de ForgotPasswordRequest: email.
 class ForgotPasswordRequest(BaseModel):
     email: str
 
+# Agrupa los campos de ResetPasswordCodeRequest: token, new_password.
 class ResetPasswordCodeRequest(BaseModel):
     token: str
     new_password: str
 
+# Agrupa los campos de ResendVerificationRequest: email.
 class ResendVerificationRequest(BaseModel):
     email: str
 
+# Agrupa los campos de RefreshTokenRequest: refresh_token.
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
@@ -84,6 +88,21 @@ async def resend_verification_endpoint(request: Request, req: ResendVerification
 def login_endpoint(request: Request, response: Response, login_data: UserLogin, db: Session = Depends(get_db)):
     result = login(db, login_data)
     # Cookies HttpOnly para la web; los tokens también van en el cuerpo para el móvil.
+    set_auth_cookies(response, result.access_token, result.refresh_token)
+    return result
+
+@router.post("/token", response_model=TokenResponse)
+@limiter.limit("5/minute")
+def oauth2_token_endpoint(
+    request: Request,
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    """Intercambia email/contraseña del formulario OAuth2 de Swagger por tokens."""
+    # OAuth2 llama al campo `username`; en este proyecto el nombre de usuario es el email.
+    login_data = UserLogin(email=form_data.username, password=form_data.password)
+    result = login(db, login_data)
     set_auth_cookies(response, result.access_token, result.refresh_token)
     return result
 
@@ -130,7 +149,7 @@ def logout(response: Response):
 
 
 @router.get("/session")
-def session_actual(request: Request, db: Session = Depends(get_db)):
+def session_actual(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Tipo y rol de la cuenta de la sesión actual.
     Prioriza el header Authorization (cada pestaña envía su propio token
     desde localStorage). Si no hay header, cae a la cookie HttpOnly
@@ -140,35 +159,23 @@ def session_actual(request: Request, db: Session = Depends(get_db)):
     El rol se lee de la BD (no del claim del JWT): si el rol cambió después
     de emitirse el token, el frontend lo sabe antes de llamar a endpoints
     que exigen permisos y evita errores 403 con una vista equivocada."""
-    from app.utils.security import _token_desde_request
-    token = _token_desde_request(request, None)
-    payload = decode_token(token) if token else None
-    if not payload:
-        raise HTTPException(status_code=401, detail="Sin sesión válida")
-    user_type = payload.get("user_type")
-    uid = payload.get("uid")
-    sub = payload.get("sub")
-    rol_claim = payload.get("rol")
-
-    rol = rol_claim
-    if user_type == "employee":
-        user = None
-        if uid:
-            try:
-                user = db.query(User).filter(User.id_usuario == int(uid)).first()
-            except (TypeError, ValueError):
-                user = None
-        if user is None and sub:
-            user = db.query(User).filter(User.email == sub).first()
-        if user:
-            rol = db.execute(
-                select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == user.id_rol_u)
-            ).scalar_one_or_none() or rol_claim
+    # Comparte autenticación con las rutas protegidas: access válido y cuenta
+    # activa, con prioridad de Authorization sobre la cookie de compatibilidad.
+    if isinstance(current_user, User):
+        user_type = "employee"
+        uid = current_user.id_usuario
+        rol = db.execute(
+            select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
+        ).scalar_one_or_none()
+    else:
+        user_type = "client"
+        uid = current_user.id_cliente
+        rol = "cliente"
 
     return {
         "user_type": user_type,
         "rol": rol,
-        "uid": uid,
+        "uid": str(uid),
     }
 
 @router.post("/change-password")

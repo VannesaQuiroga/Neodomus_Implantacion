@@ -1,3 +1,4 @@
+// Ruta móvil de historial. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -53,6 +54,7 @@ function formatFechaLarga(fecha: string, idioma: string) {
   } catch { return fecha; }
 }
 
+// Comunica con el backend mediante API "/tecnicos/mis-citas", API "/tecnicos/entregas", API "/tecnicos/mis-entregas"; programa una actualización periódica.
 export default function TecnicoHistorialScreen() {
   const scrollRef = useRef<ScrollView>(null);
   useScrollTopAlEntrar(scrollRef);
@@ -94,6 +96,7 @@ export default function TecnicoHistorialScreen() {
     setFiltroEntrega("todas");
   }, [vista]);
 
+  // Comunica con el backend mediante API "/tecnicos/mis-citas".
   const fetchCitas = async () => {
     try {
       const res = await apiFetch<any[]>("/tecnicos/mis-citas");
@@ -112,6 +115,7 @@ export default function TecnicoHistorialScreen() {
   useEffect(() => {
     if (vista !== "entregas" || entregas.length > 0) return;
     let activo = true;
+    // Comunica con el backend mediante API "/tecnicos/entregas", API "/tecnicos/mis-entregas".
     const cargar = async () => {
       try {
         const res = await apiFetch<any[]>("/tecnicos/entregas").catch(() => apiFetch<any[]>("/tecnicos/mis-entregas"));

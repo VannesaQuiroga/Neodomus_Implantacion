@@ -1,3 +1,4 @@
+// Componente reutilizable hello-wave para componer la interfaz de Neodomus.
 import Animated from 'react-native-reanimated';
 
 export function HelloWave() {

@@ -1,5 +1,6 @@
+# Rutas de productos. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, Depends, Query, HTTPException, File, UploadFile, Request
-from sqlalchemy import select, and_, or_, exists
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -22,6 +23,11 @@ from app.utils.security import (
     ACCESS_COOKIE_NAME,
 )
 from app.services import minio_service
+from app.services.disponibilidad_service import (
+    filtro_disponible_publico,
+    producto_disponible,
+    stock_disponible_producto,
+)
 
 # Umbral de stock bajo (configurable). Productos con stock >= STOCK_MINIMO
 # se consideran "disponible"; entre 1 y STOCK_MINIMO-1 "bajo"; 0 => "agotado".
@@ -34,7 +40,7 @@ PRODUCTOS_IMG_DIR.mkdir(parents=True, exist_ok=True)
 EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 
-def _estado_stock(stock: int) -> str:
+def _estado_stock(stock) -> str:
     if stock <= 0:
         return "agotado"
     if stock < STOCK_MINIMO:
@@ -62,9 +68,10 @@ class VarianteResponse(BaseModel):
     etiqueta_medida: Optional[str] = None
     precio: Optional[float] = None
     imagen_url: Optional[str] = None
-    stock: int = 0
+    stock: float = 0
 
 
+# Agrupa los campos de ProductoResponse: id_producto, nombre_producto, marca, venta_por_metros, referencia_producto y los demás declarados abajo.
 class ProductoResponse(BaseModel):
     id_producto: int
     nombre_producto: str
@@ -85,7 +92,9 @@ class ProductoResponse(BaseModel):
     color_hex: Optional[str] = None
     tamaño: Optional[str] = None
     estado_producto: str = "activo"
-    stock_producto: int = 0
+    stock_producto: float = 0
+    stock_disponible: float = 0
+    disponible: bool = False
     stock_estado: str = "disponible"
     stock_minimo: int = STOCK_MINIMO
     descuento_activo: Optional[float] = None
@@ -101,6 +110,7 @@ class ProductoResponse(BaseModel):
     variantes: List[VarianteResponse] = []
 
 
+# Agrupa los campos de ProductoCreate: nombre_producto, marca, venta_por_metros, referencia_producto, id_proveedor_pr y los demás declarados abajo.
 class ProductoCreate(BaseModel):
     nombre_producto: str
     marca: Optional[str] = None
@@ -117,7 +127,7 @@ class ProductoCreate(BaseModel):
     color_hex: Optional[str] = None
     tamaño: Optional[str] = None
     estado_producto: Optional[str] = "activo"
-    stock_producto: int = 0
+    stock_producto: float = 0
     descuento_activo: Optional[float] = None
     promocion_hasta: Optional[str] = None
     es_nuevo_producto: Optional[bool] = True
@@ -128,12 +138,14 @@ class ProductoCreate(BaseModel):
     especializaciones_ids: Optional[List[int]] = None
 
 
+# Agrupa los campos de CategoriaResponse: id_categoria, nombre_categoria, descripcion.
 class CategoriaResponse(BaseModel):
     id_categoria: int
     nombre_categoria: str
     descripcion: Optional[str] = None
 
 
+# Agrupa los campos de VarianteCreate: nombre, hex, tamaño, ancho_cm, alto_cm y los demás declarados abajo.
 class VarianteCreate(BaseModel):
     nombre: str
     hex: Optional[str] = None
@@ -142,9 +154,10 @@ class VarianteCreate(BaseModel):
     alto_cm: Optional[int] = None
     precio: Optional[float] = None
     imagen_url: Optional[str] = None
-    stock: int = 0
+    stock: float = 0
 
 
+# Agrupa los campos de ProveedorResponse: id_proveedor, nombre_proveedor, contacto_proveedor, telefono_proveedor, correo_proveedor y los demás declarados abajo.
 class ProveedorResponse(BaseModel):
     id_proveedor: int
     nombre_proveedor: str
@@ -154,6 +167,7 @@ class ProveedorResponse(BaseModel):
     direccion_proveedor: Optional[str] = None
 
 
+# Agrupa los campos de ProveedorCreate: nombre_proveedor, contacto_proveedor, telefono_proveedor, correo_proveedor, direccion_proveedor.
 class ProveedorCreate(BaseModel):
     nombre_proveedor: str
     contacto_proveedor: Optional[str] = None
@@ -162,6 +176,7 @@ class ProveedorCreate(BaseModel):
     direccion_proveedor: Optional[str] = None
 
 
+# Agrupa los campos de SolicitudReabastecimientoItem: id_producto, cantidad, id_variante, marca.
 class SolicitudReabastecimientoItem(BaseModel):
     id_producto: int
     cantidad: float = 1
@@ -169,6 +184,7 @@ class SolicitudReabastecimientoItem(BaseModel):
     marca: Optional[str] = None
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -247,6 +263,8 @@ def _serializar(p: Producto) -> ProductoResponse:
         tamaño=p.tamaño,
         estado_producto=p.estado_producto or "activo",
         stock_producto=p.stock_producto or 0,
+        stock_disponible=float(stock_disponible_producto(p)),
+        disponible=producto_disponible(p),
         stock_estado=_estado_stock(p.stock_producto or 0),
         stock_minimo=STOCK_MINIMO,
         descuento_activo=descuento,
@@ -365,6 +383,7 @@ def _avisar_producto_en_promocion(db: Session, producto: Producto) -> None:
     )
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _validar_dificultad(valor: Optional[str]) -> Optional[str]:
     if valor is None:
         return None
@@ -432,6 +451,7 @@ def _vincular_especializaciones_automatico(db: Session, producto: Producto) -> N
 router = APIRouter(prefix="/productos", tags=["productos"])
 
 
+# Consulta Producto.
 @router.get("/", response_model=dict)
 def listar_productos(
     db: Session = Depends(get_db),
@@ -449,19 +469,11 @@ def listar_productos(
     elif estado == "inactivo":
         query = query.filter(Producto.estado_producto == "inactivo")
     if current_user is None:
-        # El público solo ve productos activos, visibles y con stock suficiente (> STOCK_MINIMO)
-        # o con variantes que tengan stock suficiente.
+        # El público solo ve productos activos, visibles y realmente comprables.
         query = query.filter(
+            Producto.estado_producto == "activo",
             Producto.visible_cliente == True,  # noqa: E712
-            or_(
-                Producto.stock_producto > STOCK_MINIMO,
-                exists().where(
-                    and_(
-                        ProductoVariante.id_producto == Producto.id_producto,
-                        ProductoVariante.stock > STOCK_MINIMO,
-                    )
-                ),
-            )
+            filtro_disponible_publico(),
         )
     if search:
         query = query.filter(Producto.nombre_producto.ilike(f"%{search}%"))
@@ -661,6 +673,7 @@ async def solicitar_reabastecimiento(
     }
 
 
+# Consulta Producto.
 @router.get("/{producto_id}", response_model=ProductoResponse)
 def obtener_producto(
     producto_id: int,
@@ -671,10 +684,9 @@ def obtener_producto(
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     if current_user is None:
-        if p.estado_producto == "inactivo":
+        if p.estado_producto == "inactivo" or not p.visible_cliente:
             raise HTTPException(status_code=404, detail="Producto no encontrado")
-        con_stock = (p.stock_producto or 0) > STOCK_MINIMO or any(v.stock > STOCK_MINIMO for v in p.variantes)
-        if not con_stock:
+        if not producto_disponible(p):
             raise HTTPException(status_code=404, detail="Producto no encontrado")
     return _serializar(p)
 
@@ -961,7 +973,14 @@ def toggle_visibilidad_cliente(
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    producto.visible_cliente = not bool(producto.visible_cliente)
+    nuevo_visible = not bool(producto.visible_cliente)
+    if nuevo_visible and not producto_disponible(producto):
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede publicar un producto sin stock disponible. Repón existencias primero.",
+        )
+
+    producto.visible_cliente = nuevo_visible
     db.commit()
     db.refresh(producto)
 

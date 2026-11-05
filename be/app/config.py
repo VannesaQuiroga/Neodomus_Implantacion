@@ -4,6 +4,13 @@ from pydantic_settings import BaseSettings
 from pydantic import ConfigDict, model_validator
 
 
+# El Client ID de OAuth es público, así que se usa como valor por defecto para
+# que el login con Google funcione al clonar el proyecto sin configurar .env.
+DEFAULT_GOOGLE_SIGNIN_CLIENT_ID = (
+    "230717458999-qlm6dpfl8ui8idqfupgfr8lou9k48i0f.apps.googleusercontent.com"
+)
+
+
 class Settings(BaseSettings):
     """
     Configuración central de la aplicación.
@@ -21,7 +28,7 @@ class Settings(BaseSettings):
     
     # --- Verificación de email y recuperación de contraseña ---
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
-    # 🔥 NUEVA variable en MINUTOS para el código de recuperación
+    # NUEVA variable en MINUTOS para el código de recuperación
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 10   # 10 minutos por defecto
     # Opcional: se mantiene por compatibilidad, pero ya no se usa
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 1
@@ -42,7 +49,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REFRESH_TOKEN: str = ""
-    GOOGLE_SIGNIN_CLIENT_ID: str = ""
+    GOOGLE_SIGNIN_CLIENT_ID: str = DEFAULT_GOOGLE_SIGNIN_CLIENT_ID
 
     # --- Pasarela de pagos ---
     # PAYMENT_PROVIDER="simulator" (por defecto): simulador académico local,
@@ -63,6 +70,9 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = "neodomus-media"
     MINIO_PUBLIC_ENDPOINT: str = "http://localhost:9000"
     MINIO_SECURE: bool = False
+    # Bucket PRIVADO para evidencias y adjuntos del negocio (sin lectura anónima).
+    # El bucket público MINIO_BUCKET sigue sirviendo solo el catálogo de productos.
+    MINIO_PRIVATE_BUCKET: str = "neodomus-private"
 
     # --- Frontend URLs ---
     FRONTEND_URL: str = "http://localhost:5173"
@@ -71,6 +81,13 @@ class Settings(BaseSettings):
     
     # --- Entorno ---
     ENVIRONMENT: str = "development"  # development, staging, production
+
+    @model_validator(mode="after")
+    def _aplicar_google_signin_por_defecto(self):
+        """Usa el Client ID público si la variable llega vacía (p. ej. Docker Compose)."""
+        if not self.GOOGLE_SIGNIN_CLIENT_ID:
+            self.GOOGLE_SIGNIN_CLIENT_ID = DEFAULT_GOOGLE_SIGNIN_CLIENT_ID
+        return self
 
     @model_validator(mode="after")
     def _validate_production_secrets(self):

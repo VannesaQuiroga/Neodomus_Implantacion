@@ -32,6 +32,7 @@ PAGOS_CITA_VALIDOS = ("aprobado", "pagado")
 REEMBOLSOS_ACTIVOS = ("Pendiente", "Procesando", "Reembolsado")
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -44,6 +45,7 @@ def _admin(
     return current_user
 
 
+# Consulta Cliente.
 def _nombre_cliente(db: Session, id_cliente: Optional[int]) -> Optional[str]:
     if id_cliente is None:
         return None
@@ -53,6 +55,7 @@ def _nombre_cliente(db: Session, id_cliente: Optional[int]) -> Optional[str]:
     return f"{cliente.first_name} {cliente.last_name}".strip()
 
 
+# Consulta Cita, Pedido.
 def _serializar_reembolso(db: Session, r: Reembolso) -> dict:
     cita = db.query(Cita).filter(Cita.id_cita == r.id_cita).first() if r.id_cita else None
     pedido = (
@@ -61,13 +64,27 @@ def _serializar_reembolso(db: Session, r: Reembolso) -> dict:
     id_cliente = pedido.id_cliente_pe if pedido else (cita.id_cliente if cita else None)
     if pedido:
         referencia = f"Pedido #{pedido.id_pedido}"
-        detalle = f"Pedido · {pedido.fecha_peedido:%d/%m/%Y} · ${float(pedido.total_pedido or 0):,.0f}"
+        fecha_pedido = (
+            f"{pedido.fecha_peedido:%d/%m/%Y}" if pedido.fecha_peedido else "sin fecha"
+        )
+        detalle = f"Pedido �� {fecha_pedido} �� ${float(pedido.total_pedido or 0):,.0f}"
     elif cita:
         referencia = f"Cita #{cita.id_cita}"
-        detalle = f"{cita.tipo_servicio} · {cita.fecha} {cita.hora}"
+        detalle = f"{cita.tipo_servicio} �� {cita.fecha} {cita.hora}"
     else:
-        referencia = "—"
-        detalle = None
+        # Reembolsos históricos cuyos registros de cita/pedido ya no existen:
+        # conservan al menos su propio número y la transacción original.
+        referencia = f"Reembolso #{r.id_reembolso}"
+        detalle = " �� ".join(
+            parte
+            for parte in (
+                f"Transacción original {r.numero_transaccion_original}"
+                if r.numero_transaccion_original
+                else None,
+                r.motivo,
+            )
+            if parte
+        ) or None
     return {
         "id_reembolso": r.id_reembolso,
         "id_cita": r.id_cita,
@@ -234,6 +251,7 @@ def _validar_pedido_reembolsable(db: Session, id_pedido: int) -> tuple[float, st
     return monto, pago.numero_transaccion, pedido
 
 
+# Agrupa los campos de ReembolsoCreate: id_cita, id_pedido, monto, motivo.
 class ReembolsoCreate(BaseModel):
     id_cita: Optional[int] = None
     id_pedido: Optional[int] = None
@@ -401,6 +419,7 @@ def crear_reembolso_manual(
     return _serializar_reembolso(db, reembolso)
 
 
+# Agrupa los campos de ReembolsoPedidoSolicitud: motivo.
 class ReembolsoPedidoSolicitud(BaseModel):
     motivo: Optional[str] = None
 
@@ -436,6 +455,7 @@ def solicitar_reembolso_pedido(
     return _serializar_reembolso(db, reembolso)
 
 
+# Agrupa los campos de ProcesarReembolsoIn: porcentaje_cliente.
 class ProcesarReembolsoIn(BaseModel):
     porcentaje_cliente: Optional[float] = Field(default=None, ge=0, le=100)
 

@@ -23,6 +23,7 @@ export interface SesionGuardada {
   rol?: string | null;
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export async function guardarSesion(sesion: SesionGuardada): Promise<void> {
   const pares: [string, string][] = [
     [ACCESS_TOKEN_KEY, sesion.accessToken],
@@ -34,6 +35,7 @@ export async function guardarSesion(sesion: SesionGuardada): Promise<void> {
   await AsyncStorage.multiSet(pares);
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export async function obtenerSesion(): Promise<SesionGuardada | null> {
   const pares = await AsyncStorage.multiGet([
     ACCESS_TOKEN_KEY,
@@ -55,6 +57,7 @@ export async function obtenerSesion(): Promise<SesionGuardada | null> {
   return { accessToken, refreshToken, userType, correo, rol };
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export async function borrarSesion(): Promise<void> {
   await AsyncStorage.multiRemove([
     ACCESS_TOKEN_KEY,

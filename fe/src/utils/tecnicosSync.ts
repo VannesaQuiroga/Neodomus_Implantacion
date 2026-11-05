@@ -18,6 +18,7 @@ export const notificarCambiosTecnicos = (): void => {
 
 type Cancelar = () => void;
 
+// registra escuchas de eventos para sincronizar la vista.
 export const suscribirCambiosTecnicos = (callback: Cancelar): Cancelar => {
   let canal: BroadcastChannel | null = null;
   try {

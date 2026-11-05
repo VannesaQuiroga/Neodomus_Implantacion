@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: AmbientBackground. Se reutiliza en las pantallas de su área.
 import '@styles/ambient.css';
 
 const AmbientBackground = () => {

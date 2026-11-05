@@ -180,11 +180,18 @@ def _celda(texto, estilo):
 
 
 def _cop(valor) -> str:
+    """Formatea un importe en COP (es-CO) conservando 2 decimales.
+
+    Evita redondear a pesos enteros para no perder precisión monetaria
+    (p. ej. 3999.75 se muestra como $3.999,75 y no como $4.000).
+    """
     try:
-        v = float(valor or 0)
+        v = round(float(valor or 0), 2)
     except (TypeError, ValueError):
-        v = 0
-    return f"${v:,.0f} COP".replace(",", ".")
+        v = 0.0
+    entero, decimal = f"{v:.2f}".split(".")
+    miles = f"{int(entero):,}".replace(",", ".")
+    return f"${miles},{decimal} COP"
 
 
 def _logo_pdf(ancho: float = 24) -> Image | None:
@@ -286,8 +293,8 @@ def generar_ventas_pdf(
     historia.append(Paragraph("<b>RESUMEN</b>", s["seccion"]))
     res_data = [
         [_celda("Total Pedidos", s["label"]), _celda(str(resumen["total_pedidos"]), s["valor"])],
-        [_celda("Ventas Productos", s["label"]), _celda(_cop(resumen["total_ventas_pedidos"]), s["valor"])],
-        [_celda("Ingresos Citas", s["label"]), _celda(_cop(resumen["total_ingresos_citas"]), s["valor"])],
+        [_celda("Ventas brutas (productos)", s["label"]), _celda(_cop(resumen["total_ventas_pedidos"]), s["valor"])],
+        [_celda("Ingresos por citas", s["label"]), _celda(_cop(resumen["total_ingresos_citas"]), s["valor"])],
     ]
     res_tabla = Table(res_data, colWidths=[60 * mm, 80 * mm])
     res_tabla.setStyle(TableStyle([
@@ -314,6 +321,11 @@ def generar_ventas_pdf(
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
     ]))
     historia.append(total_tabla)
+    historia.append(Spacer(1, 2 * mm))
+    historia.append(Paragraph(
+        "Las ventas se reportan en términos BRUTOS: no se descuentan reembolsos.",
+        s["nota"],
+    ))
     historia.append(Spacer(1, 6 * mm))
 
     # ── Detalle por periodo ──────────────────────────────

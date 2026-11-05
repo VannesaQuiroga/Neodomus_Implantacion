@@ -1,3 +1,4 @@
+// Permite al administrador consultar y filtrar sus avisos.
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,6 +41,9 @@ const ICONO_TIPO: Record<TipoNotificacion, React.ReactNode> = {
   recogida: <FaBoxOpen />,
   producto: <FaBoxOpen />,
   promocion: <FaPercent />,
+  novedad: <FaCircleInfo />,
+  cupon: <FaPercent />,
+  asignacion: <FaCalendarCheck />,
   recordatorio_cita: <FaStar />,
   recordatorio_producto: <FaStar />,
 };
@@ -56,14 +60,18 @@ const ETIQUETA_TIPO: Record<TipoNotificacion, string> = {
   devolucion: 'Devolución',
   recogida: 'Recogida',
   producto: 'Producto nuevo',
-  promocion: 'Promoción',
+  promocion: 'Promoci��n',
+  novedad: 'Novedad',
+  cupon: 'Cup��n',
+  asignacion: 'Asignaci��n',
   recordatorio_cita: 'Encuesta de servicio',
   recordatorio_producto: 'Encuesta de productos',
 };
 
 const AdminNotificaciones = () => {
   const { t } = useIdioma();
-  const { notificaciones, cargando, noLeidas, recargar, marcarLeida } = useAdminNotificaciones();
+  const { notificaciones, cargando, noLeidas, error, recargar, marcarLeida, leerTodas } =
+    useAdminNotificaciones();
   const [filtro, setFiltro] = useState<'todas' | TipoNotificacion>('todas');
 
   const visibles = useMemo(
@@ -91,8 +99,30 @@ const AdminNotificaciones = () => {
             <FaBell />
             {t('adm.notificaciones.sinLeer', { n: noLeidas })}
           </span>
+          <button
+            type="button"
+            className="ap-btn ap-btn-ghost"
+            onClick={() => void leerTodas()}
+            disabled={noLeidas === 0}
+          >
+            {t('notif.marcarTodas')}
+          </button>
         </div>
       </div>
+
+      {error && !cargando && (
+        <div className="ap-card" role="alert">
+          <div className="ap-states error">
+            <div className="ap-states-icon">
+              <FaCircleInfo />
+            </div>
+            <h3>{error}</h3>
+            <button type="button" className="ap-btn ap-btn-ghost" onClick={() => void recargar()}>
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="ap-pills">
         {FILTROS.map((f) => (
@@ -117,18 +147,20 @@ const AdminNotificaciones = () => {
           </div>
         </div>
       ) : visibles.length === 0 ? (
-        <div className="ap-card">
-          <div className="ap-states">
-            <div className="ap-states-icon">
-              <FaBell />
+        error ? null : (
+          <div className="ap-card">
+            <div className="ap-states">
+              <div className="ap-states-icon">
+                <FaBell />
+              </div>
+              <h3>{t('adm.notificaciones.vacio')}</h3>
+              <p>{t('adm.notificaciones.vacioDesc')}</p>
+              <button type="button" className="ap-btn ap-btn-ghost" onClick={() => recargar()}>
+                {t('adm.notificaciones.actualizar')}
+              </button>
             </div>
-            <h3>{t('adm.notificaciones.vacio')}</h3>
-            <p>{t('adm.notificaciones.vacioDesc')}</p>
-            <button type="button" className="ap-btn ap-btn-ghost" onClick={() => recargar()}>
-              {t('adm.notificaciones.actualizar')}
-            </button>
           </div>
-        </div>
+        )
       ) : (
         <AnimatePresence mode="wait">
           <motion.div
@@ -159,7 +191,13 @@ const AdminNotificaciones = () => {
                   <p className="an-msg">{notificacion.mensaje}</p>
                   {notificacion.accion && (
                     <div className="an-actions">
-                      <Link to={notificacion.accion.to} className="ap-btn ap-btn-ghost">
+                      <Link
+                        to={notificacion.accion.to}
+                        className="ap-btn ap-btn-ghost"
+                        onClick={() => {
+                          if (!notificacion.leida) void marcarLeida(notificacion.id);
+                        }}
+                      >
                         {notificacion.accion.label} <FaArrowRight />
                       </Link>
                     </div>

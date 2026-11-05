@@ -1,3 +1,4 @@
+# Rutas de clientes. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.models.pedido import Pedido
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),

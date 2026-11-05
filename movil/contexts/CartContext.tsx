@@ -23,6 +23,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { Producto } from "@/services/productos.service";
 import { urlImagenProducto } from "@/services/productos.service";
+import { parseMetros } from "@/utils/metros";
 import { useAuth } from "./AuthContext";
 
 const CLAVE_CARRITO = "neodomus_carrito";
@@ -63,7 +64,7 @@ interface CarritoContextValue {
     opciones?: { cantidad?: number; metros?: number; color?: string; tamaño?: string; medida?: string; id_variante?: number },
   ) => void;
   updateQuantity: (clave: string, cantidad: number) => void;
-  updateMetros: (clave: string, metros: number) => void;
+  updateMetros: (clave: string, metros: number | string) => void;
   removeItem: (clave: string) => void;
   clearCart: () => void;
 }
@@ -74,6 +75,7 @@ function cargarItemsGuardados(): ItemCarrito[] {
   return [];
 }
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export function CarritoProvider({ children }: { children: React.ReactNode }) {
   const { autenticado } = useAuth();
   const [items, setItems] = useState<ItemCarrito[]>(cargarItemsGuardados);
@@ -129,7 +131,8 @@ export function CarritoProvider({ children }: { children: React.ReactNode }) {
       setItems((prev) => {
         const esMetros = !!producto.venta_por_metros;
         const cantidadSolicitada = Math.max(1, cantidad);
-        const metrosSolicitado = esMetros ? Math.max(1, Math.round(metros ?? 10)) : undefined;
+        const metrosParseado = esMetros ? parseMetros(metros ?? 10) : null;
+        const metrosSolicitado = esMetros ? (metrosParseado?.valor ?? 10) : undefined;
 
         const claveNueva = claveItemCarrito({
           id_producto: producto.id_producto,
@@ -191,13 +194,13 @@ export function CarritoProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const updateMetros = useCallback((clave: string, metros: number) => {
+  const updateMetros = useCallback((clave: string, metros: number | string) => {
     setItems((prev) =>
-      prev.map((item) =>
-        claveItemCarrito(item) === clave
-          ? { ...item, metros: Math.max(1, Math.round(metros)) }
-          : item,
-      ),
+      prev.map((item) => {
+        if (claveItemCarrito(item) !== clave) return item;
+        const r = parseMetros(metros);
+        return r.valor != null ? { ...item, metros: r.valor } : item;
+      }),
     );
   }, []);
 

@@ -8,6 +8,7 @@
 import { apiFetch } from "./api";
 import type { UserType } from "./storage";
 
+// Comunica con el backend mediante API "/clients/me", API "/users/me".
 export const obtenerPerfil = (userType: UserType) =>
   userType === "client"
     ? apiFetch<Record<string, unknown>>("/clients/me")

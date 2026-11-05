@@ -20,12 +20,14 @@
   z-index: 2;
   width: 100%;
   max-width: 530px;
+  min-width: 0;
   padding: 10px 20px 8px 20px; /* Reducido al mínimo el espacio interno */
   background: rgba(0, 0, 0, 0.96);
   border: 1.5px solid #ffd700;
   border-radius: 14px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
   box-sizing: border-box;
+  overflow-wrap: anywhere;
 }
 
 /* Encabezado y Avatar súper pequeños */
@@ -76,9 +78,10 @@
 /* Grilla del Formulario */
 .form-grid {
   display: grid   ;
-  grid-template-columns: repeat(2, 1fr)   ;
+  grid-template-columns: repeat(2, minmax(0, 1fr))   ;
   gap: 4px 12px   ; /* Espacio mínimo entre filas */
   margin-bottom: 4px   ;
+  min-width: 0   ;
 }
 
 .input-group-block {
@@ -86,6 +89,7 @@
   flex-direction: column   ;
   align-items: flex-start   ;
   width: 100%   ;
+  min-width: 0   ;
   box-sizing: border-box   ;
 }
 
@@ -99,6 +103,7 @@
 
 .select-wrapper {
   width: 100%   ;
+  min-width: 0   ;
   display: block   ;
   box-sizing: border-box   ;
 }
@@ -107,6 +112,7 @@
 .register-form input,
 .register-form select {
   width: 100%   ;
+  min-width: 0   ;
   height: 30px   ; /* Bajó de 34px a 30px */
   padding: 0 8px   ;
   background: #0a0a0a   ;
@@ -158,6 +164,7 @@
 .password-input-wrapper {
   position: relative;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box   ;
 }
 .password-toggle {
@@ -222,8 +229,7 @@
   color: #999999   ;
   font-size: 9.5px   ;
   text-align: left   ;
-  white-space: normal; /* Permite que el texto se ajuste dentro del contenedor */
-}
+
 
 .checkbox-row input[type="checkbox"] {
   width: 11px   ;
@@ -274,9 +280,11 @@
   display: flex   ;
   align-items: center   ;
   justify-content: center   ;
+  flex-wrap: wrap   ;
   gap: 6px   ;
   margin-top: 10px   ;
   font-size: 11px   ;
+  text-align: center   ;
   color: #aaaaaa   ; /* Texto de pregunta en gris suave */
 }
 
@@ -301,7 +309,16 @@ button.login-accent-link {
 }
 
 /* Mensajes Informativos */
-.error, .success { padding: 3px 8px; border-radius: 4px; font-size: 10.5px; margin-bottom: 2px; text-align: left; }
+.error, .success {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  margin-bottom: 2px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .error { background: rgba(255, 0, 0, 0.08); color: #ff6b6b; }
 .success { background: rgba(0, 255, 0, 0.08); color: #2ecc71; }
 

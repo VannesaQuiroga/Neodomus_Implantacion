@@ -1,3 +1,4 @@
+// Ruta móvil de explore. Expo Router la incorpora a la navegación según su ubicación en app/.
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 

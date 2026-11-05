@@ -1,3 +1,4 @@
+// Pantalla InfoSectionsContainer de Neodomus. Reúne el estado y las acciones de su vista.
 import fondo2 from '@assets/images/Fondo2.png';
 import sobreImg from '@assets/images/sobre.jpeg';
 import blog1 from '@assets/images/blog1.jpeg';

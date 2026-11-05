@@ -23,6 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
+import EvidenciaImagen from "@/components/EvidenciaImagen";
 import {
   SearchBar,
   FilterChip,
@@ -114,6 +115,7 @@ const fmtFechaHora = (f?: string | null) => {
 
 type PasoFormulario = "cliente" | "origen" | "detalle" | "evidencia";
 
+// programa una actualización periódica.
 export default function NovedadesScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef(null);
@@ -1031,7 +1033,7 @@ export default function NovedadesScreen() {
                   <View style={s.evidenciasGrid}>
                     {detalle.evidencias.map((e) => (
                       <Pressable key={e.id_evidencia_n} style={s.evidenciaThumb}>
-                        <Image source={{ uri: e.url }} style={s.evidenciaThumbImg} />
+                        <EvidenciaImagen url={e.url} estilo={s.evidenciaThumbImg} />
                         {e.fecha_subida && (
                           <Text style={s.evidenciaThumbFecha}>{fmtFecha(e.fecha_subida)}</Text>
                         )}

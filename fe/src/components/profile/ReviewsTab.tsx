@@ -1,3 +1,4 @@
+// Presenta las valoraciones disponibles en el perfil del cliente.
 import { useEffect, useState } from 'react';
 import { FaRegStar, FaStar, FaPlus, FaTrashCan, FaUserTie } from 'react-icons/fa6';
 import api from '@services/api';
@@ -46,6 +47,7 @@ const formatearFecha = (fecha?: string | null) => {
   }
 };
 
+// Comunica con el backend mediante GET '/calificaciones/mis-dadas', POST '/calificaciones'.
 const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
   const [seccion, setSeccion] = useState<'tecnicos' | 'productos'>('tecnicos');
   const [resenas, setResenas] = useState<Resena[]>(getResenas());
@@ -62,6 +64,7 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
   const [comentarioPend, setComentarioPend] = useState<Record<number, string>>({});
   const [guardandoPend, setGuardandoPend] = useState<number | null>(null);
 
+  // Comunica con el backend mediante GET '/calificaciones/mis-dadas'.
   const cargarResenasTecnicos = async () => {
     const res = await api.get<ResenaTecnico[]>('/calificaciones/mis-dadas');
     setResenasTecnicos(res.data || []);
@@ -86,6 +89,7 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Comunica con el backend mediante POST '/calificaciones'.
   const guardarCalificacionTecnico = async (cita: CitaPendiente) => {
     const nota = ratingPend[cita.id_cita] || 0;
     if (!nota) {

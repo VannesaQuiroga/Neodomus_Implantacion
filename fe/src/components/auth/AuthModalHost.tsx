@@ -1,3 +1,4 @@
+// Componente reutilizable AuthModalHost para componer la interfaz de Neodomus.
 import { useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import Login from '@pages/auth/Login';

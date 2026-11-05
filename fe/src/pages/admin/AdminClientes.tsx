@@ -1,3 +1,4 @@
+// Pantalla AdminClientes de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUsers, FaCircleInfo, FaMagnifyingGlass, FaEye, FaPowerOff, FaXmark, FaSpinner, FaBox, FaWrench, FaRotateLeft } from 'react-icons/fa6';
@@ -5,6 +6,8 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { Paginacion } from '@components/common/Paginacion';
+import { usePaginacion } from '../../hooks/usePaginacion';
 import type { ClienteAdmin } from '../../types';
 
 interface PedidoCliente {
@@ -62,6 +65,7 @@ interface DevolucionCliente {
 
 type TabHistorial = 'pedidos' | 'servicios' | 'devoluciones';
 
+// Comunica con el backend mediante GET '/clients', GET `/clients/${cliente.id_cliente}/pedidos`, GET `/clients/${cliente.id_cliente}/servicios` y otras peticiones de esta vista; crea una URL temporal para acceder al archivo recibido.
 const AdminClientes = () => {
   const { t, idioma } = useIdioma();
   const [clientes, setClientes] = useState<ClienteAdmin[]>([]);
@@ -84,6 +88,7 @@ const AdminClientes = () => {
   const [confirmModal, setConfirmModal] = useState<{ cliente: ClienteAdmin; accion: 'inhabilitar' | 'habilitar' } | null>(null);
   const [procesando, setProcesando] = useState(false);
 
+  // Comunica con el backend mediante GET '/clients'.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -112,6 +117,8 @@ const AdminClientes = () => {
       (c.telefono_cliente?.toString() || '').includes(q)
     );
   });
+
+  const { page, setPage, totalPages, pageItems, numeroFila } = usePaginacion(filtrados, 10);
 
   const formatoFecha = (f: string | null | undefined) => {
     if (!f) return '—';
@@ -149,6 +156,7 @@ const AdminClientes = () => {
     return resultado;
   };
 
+  // Comunica con el backend mediante GET `/clients/${cliente.id_cliente}/pedidos`, GET `/clients/${cliente.id_cliente}/servicios`, GET `/clients/${cliente.id_cliente}/devoluciones`.
   const abrirDetalle = async (cliente: ClienteAdmin) => {
     setClienteDetalle(cliente);
     setCargandoHistorial(true);
@@ -222,7 +230,7 @@ const AdminClientes = () => {
             type="text"
             placeholder={t('adm.clientes.buscarPlaceholder')}
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
           />
         </form>
       </div>
@@ -268,6 +276,7 @@ const AdminClientes = () => {
             <table className="ap-table">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>{t('adm.clientes.colCliente')}</th>
                   <th>{t('adm.clientes.colTelefono')}</th>
                   <th>{t('adm.clientes.colRegistro')}</th>
@@ -278,8 +287,9 @@ const AdminClientes = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((c) => (
+                {pageItems.map((c, idx) => (
                   <tr key={c.id_cliente}>
+                    <td className="muted">{numeroFila(idx)}</td>
                     <td>
                       <div className="ap-cell-user">
                         <span className="ap-initials" aria-hidden="true">
@@ -347,6 +357,7 @@ const AdminClientes = () => {
               </tbody>
             </table>
           </div>
+          <Paginacion page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
 

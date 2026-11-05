@@ -1,3 +1,4 @@
+// Pantalla TecnicoHistorial de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import {
   FaCalendarDays,
@@ -11,6 +12,7 @@ import {
 } from 'react-icons/fa6';
 import { useIdioma } from '@i18n/IdiomaContext';
 import api from '@services/api';
+import AuthImage from '@components/common/AuthImage';
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 
@@ -33,9 +35,9 @@ interface Cita {
   evidencias?: { url: string; descripcion?: string | null }[];
 }
 
-const API_HOST = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/api\/v1\/?$/, '');
 
-const urlEvidencia = (url: string) => (url.startsWith('http') ? url : `${API_HOST}${url}`);
+
+
 
 interface EntregaHistorial {
   id_pedido: number;
@@ -68,6 +70,7 @@ const ESTADO_BADGE: Record<string, string> = {
   Cancelada: 'err',
 };
 
+// Comunica con el backend mediante GET '/tecnicos/mis-citas', GET '/tecnicos/entregas'; programa una actualización periódica.
 const TecnicoHistorial = () => {
   const { idioma, t } = useIdioma();
   const [vista, setVista] = useState<'citas' | 'entregas'>('citas');
@@ -101,6 +104,7 @@ const TecnicoHistorial = () => {
     setFiltroHora('');
   };
 
+  // Comunica con el backend mediante GET '/tecnicos/mis-citas'.
   const fetchCitas = async () => {
     try {
       const res = await api.get('/tecnicos/mis-citas');
@@ -122,6 +126,7 @@ const TecnicoHistorial = () => {
   useEffect(() => {
     if (vista !== 'entregas' || entregas.length > 0) return;
     let activo = true;
+    // Comunica con el backend mediante GET '/tecnicos/entregas'.
     const cargarEntregas = async () => {
       try {
         const res = await api.get('/tecnicos/entregas');
@@ -340,13 +345,12 @@ const TecnicoHistorial = () => {
                         {e.evidencias_entrega && e.evidencias_entrega.length > 0 ? (
                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                             {e.evidencias_entrega.slice(0, 3).map((url) => (
-                              <a key={url} href={urlEvidencia(url)} target="_blank" rel="noopener noreferrer">
-                                <img
-                                  src={urlEvidencia(url)}
-                                  alt="Evidencia"
-                                  style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6 }}
-                                />
-                              </a>
+                              <AuthImage
+                                key={url}
+                                src={url}
+                                alt="Evidencia"
+                                style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6 }}
+                              />
                             ))}
                             {e.evidencias_entrega.length > 3 && (
                               <span className="muted">+{e.evidencias_entrega.length - 3}</span>
@@ -434,18 +438,12 @@ const TecnicoHistorial = () => {
                           {cita.evidencias && cita.evidencias.length > 0 ? (
                             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                               {cita.evidencias.slice(0, 3).map((ev) => (
-                                <a
+                                <AuthImage
                                   key={ev.url}
-                                  href={urlEvidencia(ev.url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <img
-                                    src={urlEvidencia(ev.url)}
-                                    alt="Evidencia"
-                                    style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6 }}
-                                  />
-                                </a>
+                                  src={ev.url}
+                                  alt="Evidencia"
+                                  style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6 }}
+                                />
                               ))}
                               {cita.evidencias.length > 3 && (
                                 <span className="muted">+{cita.evidencias.length - 3}</span>

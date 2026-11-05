@@ -55,6 +55,7 @@ const TABS: { id: TabAyuda; texto: string; icono: string }[] = [
   { id: "consulta", texto: "Enviar consulta", icono: "paper-plane" },
 ];
 
+// Comunica con el backend mediante API "/faq".
 export default function PantallaAyuda() {
   const scrollRef = useRef<ScrollView | null>(null);
   // Entrar a Ayuda desde otra sección → empezar arriba.

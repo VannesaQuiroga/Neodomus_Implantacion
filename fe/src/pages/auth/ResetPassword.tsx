@@ -1,9 +1,11 @@
+// Pantalla ResetPassword de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 
 import '@styles/resetpassword.css';
 
+// Comunica con el backend mediante POST '/auth/reset-password'.
 const ResetPassword = () => {
   const { token, openAuth } = useAuthModal();
 
@@ -28,7 +30,6 @@ const ResetPassword = () => {
     passwordErrors.number &&
     passwordErrors.special;
 
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -38,16 +39,16 @@ const ResetPassword = () => {
       setError('Token no válido');
     }
 
-    if (message || error) {
+    if (error) {
       const timer = setTimeout(() => {
-        setMessage('');
         setError('');
       }, 5000);
 
       return () => clearTimeout(timer);
     }
-  }, [token, message, error]);
+  }, [token, error]);
 
+  // Comunica con el backend mediante POST '/auth/reset-password'.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -67,7 +68,6 @@ const ResetPassword = () => {
 
     setLoading(true);
     setError('');
-    setMessage('');
 
     try {
       await api.post('/auth/reset-password', {
@@ -75,11 +75,7 @@ const ResetPassword = () => {
         new_password: newPassword,
       }, { timeout: 15000 });
 
-      setMessage(
-        'Contraseña actualizada correctamente. Volviendo al inicio de sesión...'
-      );
-
-      window.setTimeout(() => openAuth('ingresar'), 900);
+      openAuth('ingresar');
     } catch (err: any) {
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         setError('La solicitud tardó demasiado. Verifica tu conexión e inténtalo nuevamente.');
@@ -141,12 +137,6 @@ const ResetPassword = () => {
           Crea una nueva contraseña segura para
           acceder nuevamente a tu cuenta.
         </p>
-
-        {message && (
-          <div className="success-message">
-            {message}
-          </div>
-        )}
 
         {error && (
           <div className="error-message">

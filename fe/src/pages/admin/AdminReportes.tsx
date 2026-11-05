@@ -1,3 +1,4 @@
+// Pantalla AdminReportes de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useIdioma } from '@i18n/IdiomaContext';
@@ -23,6 +24,7 @@ import '@styles/dashboard-admin.css';
 import api, { descargarReportePdf } from '@services/api';
 import type { ReporteResumen } from '../../types';
 
+// Comunica con el backend mediante GET '/reports/resumen'.
 const AdminReportes = () => {
   const { t } = useIdioma();
   const [datos, setDatos] = useState<ReporteResumen | null>(null);
@@ -67,6 +69,7 @@ const AdminReportes = () => {
     return true;
   };
 
+  // Comunica con el backend mediante GET '/reports/resumen'.
   const cargar = async (inicio?: string, fin?: string) => {
     const ini = inicio ?? fechaInicio;
     const ffin = fin ?? fechaFin;

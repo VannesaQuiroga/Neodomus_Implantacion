@@ -1,7 +1,9 @@
+# Contratos de datos para user. Pydantic valida los campos de entrada y de respuesta de la API.
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+# Agrupa los campos de EmployeeResponse: id_usuario, first_name, last_name, id_tipo_documento_u, documento_usuario y los demás declarados abajo.
 class EmployeeResponse(BaseModel):
     id_usuario: int
     first_name: str
@@ -26,14 +28,17 @@ class PerfilEmpleadoResponse(EmployeeResponse):
 
 # app/schemas/user.py (añade al final)
 
+# Agrupa los campos de UserBase: email, first_name, last_name.
 class UserBase(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
 
+# Agrupa los campos de UserCreate: password.
 class UserCreate(UserBase):
     password: str
 
+# Agrupa los campos de UserOut: id_usuario, is_active, created_at.
 class UserOut(UserBase):
     id_usuario: int
     is_active: bool
@@ -41,6 +46,7 @@ class UserOut(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+# Agrupa los campos de UserUpdate: first_name, last_name, email, telefono_usuario, documento_usuario y los demás declarados abajo.
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None

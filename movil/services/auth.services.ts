@@ -58,6 +58,7 @@ export const verificarCorreo = (code: string) =>
     { method: "POST" },
   );
 
+// Comunica con el backend mediante API "/auth/resend-verification".
 export const reenviarVerificacion = (email: string) =>
   apiFetch<Record<string, unknown>>("/auth/resend-verification", {
     method: "POST",
@@ -79,9 +80,11 @@ export const solicitarHabilitacion = (email: string, password: string) =>
     body: json({ email, password }),
   });
 
+// Comunica con el backend mediante API "/auth/logout".
 export const cerrarSesionBackend = () =>
   apiFetch<{ msg: string }>("/auth/logout", { method: "POST" });
 
+// Comunica con el backend mediante API "/auth/session".
 export const validarSesionBackend = () =>
   apiFetch<SesionBackend>("/auth/session");
 
@@ -93,6 +96,7 @@ export const solicitarRecuperacionPassword = (email: string) =>
     body: json({ email }),
   });
 
+// Comunica con el backend mediante API "/auth/verify-code".
 export const verificarCodigoRecuperacion = (email: string, code: string) =>
   apiFetch<{ valid: boolean; message?: string }>("/auth/verify-code", {
     method: "POST",

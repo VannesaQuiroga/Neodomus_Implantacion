@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: Navbar. Se reutiliza en las pantallas de su área.
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@contexts/AuthContext";
 import { useAuthModal } from "@contexts/AuthModalContext";
@@ -15,6 +16,7 @@ import helpIcon from "@assets/images/Icono.png";
 
 import "../../styles/navbar.css";
 
+// Comunica con el backend mediante GET "/clients/me"; registra escuchas de eventos para sincronizar la vista.
 const Navbar = () => {
   const { user, rol, logout } = useAuth();
   const { openAuth } = useAuthModal();
@@ -25,7 +27,8 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const rolNotificaciones = rol === 'cliente' || rol === 'administrador' || rol === 'tecnico' ? rol : null;
-  const { notificaciones, cargando, marcarLeida } = useNotificacionesRol(rolNotificaciones);
+  const { notificaciones, cargando, error, recargar, marcarLeida } =
+    useNotificacionesRol(rolNotificaciones);
 
   const getPerfilPath = () => {
     if (rol === "cliente") return "/perfil";
@@ -58,6 +61,7 @@ const Navbar = () => {
   // token y, como el refresh también es rechazado, cierra la sesión al instante.
   useEffect(() => {
     if (rol !== "cliente") return;
+    // Comunica con el backend mediante GET "/clients/me".
     const verificarCuenta = () => {
       api.get("/clients/me").catch(() => {
         /* el interceptor maneja el 401 y cierra sesión */
@@ -106,6 +110,7 @@ const Navbar = () => {
             {!rol ? (
               <>
                 <Link to="/productos">{t('nav.productos')}</Link>
+                <Link to="/recomendaciones">{t('nav.recomendaciones')}</Link>
                 <Link to="/info">{t('nav.sobreNosotros')}</Link>
 
                 <Link to="/ayuda" className="icon-link">
@@ -118,6 +123,7 @@ const Navbar = () => {
                 {rol === "cliente" && (
                   <>
                     <Link to="/productos">{t('nav.productos')}</Link>
+                    <Link to="/recomendaciones">{t('nav.recomendaciones')}</Link>
                     <Link to="/cliente/tecnicos">{t('nav.tecnicos')}</Link>
                     <Link to="/cliente/citas">{t('nav.citas')}</Link>
                     <Link to="/cliente/ayuda">{t('nav.ayuda')}</Link>
@@ -155,6 +161,8 @@ const Navbar = () => {
                 buttonClassName="notif-button"
                 iconClassName="notif-icon"
                 ariaLabel={t('nav.verNotificaciones')}
+                error={error}
+                onRetry={recargar}
               />
             )}
 

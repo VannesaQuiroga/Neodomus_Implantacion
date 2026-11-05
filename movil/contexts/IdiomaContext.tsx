@@ -217,6 +217,7 @@ interface IdiomaContextValue {
 
 const IdiomaContext = createContext<IdiomaContextValue | null>(null);
 
+// accede a AsyncStorage para conservar o recuperar datos locales.
 export function IdiomaProvider({ children }: { children: React.ReactNode }) {
   const [idioma, setIdiomaEstado] = useState<Idioma>("es");
 

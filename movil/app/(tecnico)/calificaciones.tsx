@@ -1,3 +1,4 @@
+// Ruta móvil de calificaciones. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -15,6 +16,7 @@ import {
   formatDateDisplay,
 } from "@/components/tecnico/Filtros";
 
+// Comunica con el backend mediante API "/calificaciones/mis".
 export default function TecnicoCalificacionesScreen() {
   const scrollRef = useRef<ScrollView>(null);
   useScrollTopAlEntrar(scrollRef);

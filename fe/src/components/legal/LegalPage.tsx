@@ -1,3 +1,4 @@
+// Componente reutilizable LegalPage para componer la interfaz de Neodomus.
 import { Link } from 'react-router-dom';
 import {
   FaChevronLeft, FaCircleCheck, FaCircleDot

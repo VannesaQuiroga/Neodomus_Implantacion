@@ -1,3 +1,4 @@
+// Pantalla AdminProductoDetalle de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -98,6 +99,7 @@ const VACIO: EstadoForm = {
   especializaciones_ids: [],
 };
 
+// Comunica con el backend mediante POST '/productos/upload-imagen', GET '/productos/categorias', GET '/productos/proveedores' y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const AdminProductoDetalle = () => {
   const { idioma, t } = useIdioma();
   const { id } = useParams<{ id: string }>();
@@ -108,6 +110,11 @@ const AdminProductoDetalle = () => {
   const proveedorParam = searchParams.get('proveedor');
   const categoriaInicial = esNuevo && categoriaParam && /^\d+$/.test(categoriaParam) ? categoriaParam : '';
   const proveedorInicial = esNuevo && proveedorParam && /^\d+$/.test(proveedorParam) ? proveedorParam : '';
+  const filtrosVolver = new URLSearchParams();
+  if (categoriaParam && /^\d+$/.test(categoriaParam)) filtrosVolver.set('categoria', categoriaParam);
+  else if (proveedorParam && /^\d+$/.test(proveedorParam)) filtrosVolver.set('proveedor', proveedorParam);
+  const queryFiltros = filtrosVolver.toString();
+  const volverUrl = queryFiltros ? `/admin/productos?${queryFiltros}` : '/admin/productos';
 
   const [producto, setProducto] = useState<ProductoAdmin | null>(null);
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
@@ -139,6 +146,7 @@ const AdminProductoDetalle = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const varianteFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Comunica con el backend mediante POST '/productos/upload-imagen'; prepara FormData para enviar campos y archivos.
   const subirArchivo = async (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -180,6 +188,7 @@ const AdminProductoDetalle = () => {
     }
   };
 
+  // Comunica con el backend mediante GET '/productos/categorias', GET '/productos/proveedores', GET '/especializaciones' y otras peticiones de esta vista.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -263,6 +272,7 @@ const AdminProductoDetalle = () => {
   const setCampo = (campo: keyof EstadoForm, valor: string) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
+  // Comunica con el backend mediante POST '/productos/proveedores', GET '/productos/categorias', GET '/productos/proveedores'.
   const crearProveedor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoProveedor.nombre_proveedor.trim()) {
@@ -357,6 +367,7 @@ const AdminProductoDetalle = () => {
     return null;
   };
 
+  // Comunica con el backend mediante POST '/productos', POST `/productos/${nuevoId}/variantes`, PUT `/productos/${id}`.
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
     const invalido = validar();
@@ -417,7 +428,7 @@ const AdminProductoDetalle = () => {
         }
         notify(t('adm.productoDetalle.notifyProductoCreado'));
         window.dispatchEvent(new CustomEvent('admin-producto-updated'));
-        navigate(`/admin/productos/${nuevoId}`, { replace: true });
+        navigate(`/admin/productos/${nuevoId}${queryFiltros ? `?${queryFiltros}` : ''}`, { replace: true });
         return;
       } else {
         await api.put(`/productos/${id}`, payload);
@@ -439,6 +450,7 @@ const AdminProductoDetalle = () => {
 
   const agregarVariante = () => setVariantesForm((prev) => [...prev, VARIANTE_VACIA()]);
 
+  // Comunica con el backend mediante DELETE `/productos/${id}/variantes/${v.id}`.
   const quitarVariante = async (i: number, v: VarianteForm) => {
     if (v.id && !esNuevo) {
       setGuardando(true);
@@ -457,6 +469,7 @@ const AdminProductoDetalle = () => {
     setVariantesForm((prev) => prev.filter((_, j) => j !== i));
   };
 
+  // Comunica con el backend mediante PUT `/productos/${id}/variantes/${v.id}`, POST `/productos/${id}/variantes`.
   const guardarVariante = async (i: number, v: VarianteForm) => {
     const invalido = validarVariante(v);
     if (invalido) {
@@ -503,13 +516,14 @@ const AdminProductoDetalle = () => {
     }
   };
 
+  // Comunica con el backend mediante DELETE `/productos/${id}`.
   const eliminar = async () => {
     setGuardando(true);
     try {
       const res = await api.delete(`/productos/${id}`);
       window.dispatchEvent(new CustomEvent('admin-producto-updated'));
       notify(res.data?.msg || t('adm.productoDetalle.notifyProductoEliminado'));
-      window.setTimeout(() => navigate('/admin/productos', { replace: true }), 600);
+      window.setTimeout(() => navigate(volverUrl, { replace: true }), 600);
     } catch (err: any) {
       const msg = err.response?.data?.detail;
       notify(typeof msg === 'string' ? msg : t('adm.productoDetalle.notifyEliminarError'), 'err');
@@ -534,7 +548,7 @@ const AdminProductoDetalle = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Link to="/admin/productos" className="ap-back-link">
+      <Link to={volverUrl} className="ap-back-link">
         <FaArrowLeft /> {t('adm.productoDetalle.volver')}
       </Link>
 
@@ -1281,7 +1295,7 @@ const AdminProductoDetalle = () => {
               className="ap-btn ap-btn-ghost"
               onClick={() => {
                 setEditar(esNuevo);
-                if (!esNuevo) navigate('/admin/productos', { replace: true });
+                if (!esNuevo) navigate(volverUrl, { replace: true });
               }}
               disabled={guardando}
             >

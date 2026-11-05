@@ -1,3 +1,4 @@
+// Componente reutilizable parallax-scroll-view para componer la interfaz de Neodomus.
 import type { PropsWithChildren, ReactElement } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {

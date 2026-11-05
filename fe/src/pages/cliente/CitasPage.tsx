@@ -1,3 +1,4 @@
+// Pantalla CitasPage de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
@@ -215,6 +216,7 @@ const CitasPage = () => {
     if (vista !== 'agendar') return;
     let activo = true;
     let primera = true;
+    // Comunica con el backend mediante GET `/tecnicos/publicos${qs ? `?${qs}` : ''}`.
     const fetchTecnicos = async () => {
       if (primera) {
         setTecnicosLoading(true);
@@ -291,6 +293,7 @@ const CitasPage = () => {
     }
   }, [isAuthenticated]);
 
+  // Comunica con el backend mediante POST `/citas/ofertas/${idOferta}/aceptar`.
   const aceptarOferta = async (idOferta: number) => {
     setAceptandoOferta(idOferta);
     try {
@@ -335,6 +338,7 @@ const CitasPage = () => {
       return;
     }
     let activo = true;
+    // Comunica con el backend mediante GET `/citas/horas-disponibles?${params.toString()}`.
     const cargarHoras = async () => {
       try {
         const params = new URLSearchParams({ fecha: form.fecha });
@@ -382,6 +386,7 @@ const CitasPage = () => {
       return;
     }
     let activo = true;
+    // Comunica con el backend mediante GET `/citas/horas-disponibles?${params.toString()}`.
     const cargar = async () => {
       setAplazandoCargandoHoras(true);
       try {
@@ -413,6 +418,7 @@ const CitasPage = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  // Comunica con el backend mediante PUT `/citas/${editandoId}`, POST '/citas'; accede a sessionStorage para conservar o recuperar datos locales.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -508,6 +514,9 @@ const CitasPage = () => {
     } catch (err: any) {
       console.error(err);
       setToast({ msg: err.response?.data?.detail || t('citas.errorGenerico'), tipo: 'error' });
+      // Ante un conflicto (409) se recarga la disponibilidad sin perder los
+      // demás datos del formulario.
+      setHorasRefreshKey((k) => k + 1);
     } finally {
       setSubmitting(false);
     }
@@ -526,6 +535,7 @@ const CitasPage = () => {
     setAplazandoHoras([]);
   };
 
+  // Comunica con el backend mediante PUT `/citas/${id}`.
   const confirmarAplazo = async (id: number) => {
     if (!aplazandoFecha || !aplazandoHora) return;
     setAplazando(true);
@@ -540,11 +550,13 @@ const CitasPage = () => {
     } catch (err: any) {
       console.error(err);
       setToast({ msg: err.response?.data?.detail || t('citas.errorGenerico'), tipo: 'error' });
+      setHorasRefreshKey((k) => k + 1);
     }
     cancelarAplazo();
     setAplazando(false);
   };
 
+  // Comunica con el backend mediante DELETE `/citas/${id}`.
   const cancelarCita = async (id: number) => {
     setCancelandoId(id);
     try {
@@ -565,6 +577,7 @@ const CitasPage = () => {
     setCancelandoId(null);
   };
 
+  // Comunica con el backend mediante POST '/calificaciones'.
   const enviarCalificacion = async () => {
     if (!calificandoCita) return;
     if (ratingEstrellas < 1 || ratingEstrellas > 5) {

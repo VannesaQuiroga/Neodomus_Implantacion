@@ -1,3 +1,4 @@
+// Pantalla AdminProveedores de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,6 +7,8 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { Paginacion } from '@components/common/Paginacion';
+import { usePaginacion } from '../../hooks/usePaginacion';
 import type { ProveedorAdmin, ProductoAdmin } from '../../types';
 
 interface PaginaProductos {
@@ -21,6 +24,7 @@ const VACIO = {
   direccion_proveedor: '',
 };
 
+// Comunica con el backend mediante GET '/productos/proveedores', GET '/productos/?limit=100', PUT `/productos/proveedores/${editandoId}` y otras peticiones de esta vista; registra escuchas de eventos para sincronizar la vista.
 const AdminProveedores = () => {
   const { t } = useIdioma();
   const [proveedores, setProveedores] = useState<ProveedorAdmin[]>([]);
@@ -34,6 +38,7 @@ const AdminProveedores = () => {
   const [busqueda, setBusqueda] = useState('');
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
 
+  // Comunica con el backend mediante GET '/productos/proveedores', GET '/productos/?limit=100'.
   const cargar = async () => {
     setCargando(true);
     setError(false);
@@ -67,6 +72,7 @@ const AdminProveedores = () => {
   const setCampo = (campo: keyof typeof VACIO, valor: string) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
+  // Comunica con el backend mediante PUT `/productos/proveedores/${editandoId}`, POST '/productos/proveedores'.
   const crearProveedor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nombre_proveedor.trim()) {
@@ -139,6 +145,8 @@ const AdminProveedores = () => {
     );
   }, [proveedores, busqueda]);
 
+  const { page, setPage, totalPages, pageItems, numeroFila } = usePaginacion(visibles, 10);
+
   return (
     <motion.section
       className="admin-panel"
@@ -162,12 +170,12 @@ const AdminProveedores = () => {
 
       <form className="ap-search" style={{ marginBottom: 14 }} onSubmit={(e) => e.preventDefault()}>
         <FaMagnifyingGlass />
-        <input
-          type="text"
-          placeholder={t('adm.proveedores.buscarPlaceholder')}
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder={t('adm.proveedores.buscarPlaceholder')}
+            value={busqueda}
+            onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
+          />
       </form>
 
       {cargando ? (
@@ -216,6 +224,7 @@ const AdminProveedores = () => {
             <table className="ap-table">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>{t('adm.proveedores.colProveedor')}</th>
                   <th>{t('adm.proveedores.colContacto')}</th>
                   <th>{t('adm.proveedores.colTelefonoCorreo')}</th>
@@ -225,10 +234,11 @@ const AdminProveedores = () => {
                 </tr>
               </thead>
               <tbody>
-                {visibles.map((prov) => {
+                {pageItems.map((prov, idx) => {
                   const r = resumen(prov.id_proveedor);
                   return (
                     <tr key={prov.id_proveedor}>
+                      <td className="muted">{numeroFila(idx)}</td>
                       <td>
                         <div className="ap-cell-user">
                           <div className="an-icon cuenta" style={{ width: 38, height: 38, fontSize: 16 }}>
@@ -273,6 +283,7 @@ const AdminProveedores = () => {
               </tbody>
             </table>
           </div>
+          <Paginacion page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
 

@@ -1,3 +1,4 @@
+// Componente reutilizable AuthModalLayout para componer la interfaz de Neodomus.
 import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import ProductosPublicos from '@pages/public/ProductosPublicos';

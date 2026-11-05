@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+// Reúne las opciones de ayuda y contacto para el cliente.
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
 import {
@@ -9,7 +10,8 @@ import {
 import '@styles/ayuda.css';
 import api from '@services/api';
 import { CATEGORIAS_CONSULTA, CATEGORIAS_CONSULTA_ORDER } from '../../constants';
-import { BOT_INICIAL, BOT_SUGERENCIAS, responderBot } from '../../data/botData';
+import { BOT_SUGERENCIAS } from '../../data/botData';
+import { useBotChat } from '../../hooks/useBotChat';
 
 interface FAQ {
   id: number;
@@ -25,11 +27,7 @@ interface ConsultaForm {
   categoria: string;
 }
 
-interface ChatMsg {
-  de: 'bot' | 'usuario';
-  texto: string;
-}
-
+// Comunica con el backend mediante GET '/faq', POST '/contacto'.
 const AyudaPage = () => {
   const { user, isAuthenticated } = useAuth();
   const { t } = useIdioma();
@@ -45,11 +43,24 @@ const AyudaPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
-  const [chats, setChats] = useState<ChatMsg[]>([{ de: 'bot', texto: BOT_INICIAL }]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatEscribiendo, setChatEscribiendo] = useState(false);
+  const {
+    chats,
+    input: chatInput,
+    setInput: setChatInput,
+    escribiendo: chatEscribiendo,
+    enviar,
+    confirmar,
+    esperandoConfirmacion,
+    mostrarSugerencias,
+  } = useBotChat();
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (activeTab === 'chat' && !chatEscribiendo) chatInputRef.current?.focus();
+  }, [activeTab, chatEscribiendo]);
+
+  useEffect(() => {
+    // Comunica con el backend mediante GET '/faq'.
     const fetchFAQs = async () => {
       try {
         const res = await api.get('/faq');
@@ -79,20 +90,7 @@ const AyudaPage = () => {
     setConsulta(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const respondoBot = (texto: string): string => responderBot(texto);
-
-  const enviarChat = (texto: string) => {
-    const mensaje = texto.trim();
-    if (!mensaje || chatEscribiendo) return;
-    setChats(prev => [...prev, { de: 'usuario', texto: mensaje }]);
-    setChatInput('');
-    setChatEscribiendo(true);
-    window.setTimeout(() => {
-      setChats(prev => [...prev, { de: 'bot', texto: respondoBot(mensaje) }]);
-      setChatEscribiendo(false);
-    }, 450);
-  };
-
+  // Comunica con el backend mediante POST '/contacto'.
   const handleConsultaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consulta.nombre.trim() || !consulta.email.trim() || !consulta.mensaje.trim()) {
@@ -272,8 +270,29 @@ const AyudaPage = () => {
                   )}
                 </div>
 
+                <div className="ayuda-chat-confirm">
+                  {!chatEscribiendo && esperandoConfirmacion && (
+                    <>
+                      <button
+                        type="button"
+                        className="ayuda-chat-confirm-btn si"
+                        onClick={() => confirmar('si')}
+                      >
+                        Sí
+                      </button>
+                      <button
+                        type="button"
+                        className="ayuda-chat-confirm-btn no"
+                        onClick={() => confirmar('no')}
+                      >
+                        No
+                      </button>
+                    </>
+                  )}
+                </div>
+
                 <div className="ayuda-chat-sugs">
-                  {!chatEscribiendo && chats.length <= 1 && (
+                  {!chatEscribiendo && mostrarSugerencias && (
                     <>
                       <span className="ayuda-chat-sugs-label">Preguntas frecuentes:</span>
                       <div className="ayuda-chat-sugs-list">
@@ -282,7 +301,7 @@ const AyudaPage = () => {
                             type="button"
                             key={s}
                             className="ayuda-chat-sug"
-                            onClick={() => enviarChat(s)}
+                            onClick={() => enviar(s)}
                           >
                             {s}
                           </button>
@@ -294,20 +313,21 @@ const AyudaPage = () => {
 
                 <div className="ayuda-chat-input-row">
                   <input
+                    ref={chatInputRef}
                     type="text"
                     className="ayuda-input"
                     placeholder="Escribe tu pregunta..."
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') enviarChat(chatInput);
+                      if (e.key === 'Enter') enviar(chatInput);
                     }}
                   />
                   <button
                     type="button"
                     className="ayuda-btn ayuda-btn-primary"
                     disabled={chatEscribiendo}
-                    onClick={() => enviarChat(chatInput)}
+                    onClick={() => enviar(chatInput)}
                   >
                     <FaMessage />
                   </button>

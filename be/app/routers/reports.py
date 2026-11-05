@@ -1,3 +1,4 @@
+# Rutas de reports. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -30,6 +31,7 @@ from app.utils.security import get_current_employee
 router = APIRouter(prefix="/reports", tags=["Reportes"])
 
 
+# Valida las condiciones de esta operación y devuelve un error HTTP si no se cumplen.
 def _admin(
     current_user: User = Depends(get_current_employee),
     db: Session = Depends(get_db),
@@ -196,7 +198,10 @@ def _resolver_rango(
     fecha_fin: Optional[date],
 ) -> tuple[date, date]:
     """Devuelve (inicio, fin) según el periodo si el usuario no los definió."""
-    hoy = date.today()
+    # Fechas de negocio en hora local de Bogotá (no la del servidor/UTC).
+    from app.utils.fechas import fecha_bogota
+
+    hoy = fecha_bogota().date()
     if fecha_inicio and fecha_fin:
         return fecha_inicio, fecha_fin
     if periodo == "dia":
@@ -274,13 +279,13 @@ def resumen_admin(
         func.date_format(Pedido.fecha_peedido, "%Y-%m").label("mes"),
         func.count(Pedido.id_pedido).label("cantidad"),
         func.coalesce(func.sum(Pedido.total_pedido), 0).label("ventas"),
-    ).filter(Pedido.fecha_peedido.isnot(None), Pedido.estado_pedido != 'Entregado')
+    ).filter(Pedido.fecha_peedido.isnot(None), Pedido.estado_pedido == "Pagado")
     if filtro_pedidos:
         q_pedidos_data = q_pedidos_data.filter(*filtro_pedidos)
     pedidos_data = q_pedidos_data.group_by("mes").order_by("mes").all()
 
-    q_ventas_total = db.query(func.coalesce(func.sum(Pedido.total_pedido), 0)).filter(Pedido.estado_pedido != 'Entregado')
-    q_pedidos_total = db.query(func.count(Pedido.id_pedido)).filter(Pedido.estado_pedido != 'Entregado')
+    q_ventas_total = db.query(func.coalesce(func.sum(Pedido.total_pedido), 0)).filter(Pedido.estado_pedido == "Pagado")
+    q_pedidos_total = db.query(func.count(Pedido.id_pedido)).filter(Pedido.estado_pedido == "Pagado")
     if filtro_pedidos:
         q_ventas_total = q_ventas_total.filter(*filtro_pedidos)
         q_pedidos_total = q_pedidos_total.filter(*filtro_pedidos)
@@ -398,10 +403,18 @@ def reporte_ventas(
     db: Session = Depends(get_db),
 ):
     """Reporte de ventas (pedidos + ingresos por citas) filtrado por periodo."""
+    if (fecha_inicio is None) != (fecha_fin is None):
+        raise HTTPException(status_code=400, detail="Debes indicar la fecha de inicio y la fecha de fin")
+    if fecha_inicio and fecha_fin and fecha_fin < fecha_inicio:
+        raise HTTPException(status_code=400, detail="La fecha final no puede ser anterior a la fecha inicial")
     inicio, fin = _resolver_rango(periodo, fecha_inicio, fecha_fin)
     grupo = _group_expr(periodo, Pedido.fecha_peedido)
 
     # ── Pedidos (ventas de productos) ────────────────────
+    # Ventas brutas: solo estado comercial "Pagado" (pago aprobado). El estado
+    # de ENTREGA (estado_entrega: Asignada/En camino/Entregado...) es independiente
+    # y NO altera estado_pedido, por lo que una compra entregada/instalada sigue
+    # contando como venta. No se descuentan reembolsos.
     q_pedidos = (
         db.query(
             grupo.label("g"),
@@ -410,6 +423,7 @@ def reporte_ventas(
         )
         .filter(
             Pedido.fecha_peedido.isnot(None),
+            Pedido.estado_pedido == "Pagado",
             func.date(Pedido.fecha_peedido) >= inicio,
             func.date(Pedido.fecha_peedido) <= fin,
         )
@@ -468,9 +482,9 @@ def reporte_ventas(
         "id_tecnico_filtro": id_tecnico,
         "resumen": {
             "total_pedidos": total_pedidos_count,
-            "total_ventas_pedidos": total_ventas_pedidos,
-            "total_ingresos_citas": total_ingresos_citas,
-            "total_ingresos": total_ventas_pedidos + total_ingresos_citas,
+            "total_ventas_pedidos": round(total_ventas_pedidos, 2),
+            "total_ingresos_citas": round(total_ingresos_citas, 2),
+            "total_ingresos": round(total_ventas_pedidos + total_ingresos_citas, 2),
         },
         "ventas_por_periodo": ventas_por_periodo,
     }
@@ -742,6 +756,7 @@ def lista_tecnicos_reporte(
 # ── Helpers para datos de descarga ───────────────────────────────
 
 
+# Consulta Tecnico, User.
 def _resolver_nombre_tecnico(db: Session, id_tecnico: int | None) -> str | None:
     if id_tecnico is None:
         return None
@@ -764,6 +779,7 @@ def _datos_ventas(db, id_tecnico, inicio, fin, periodo):
         )
         .filter(
             Pedido.fecha_peedido.isnot(None),
+            Pedido.estado_pedido == "Pagado",
             func.date(Pedido.fecha_peedido) >= inicio,
             func.date(Pedido.fecha_peedido) <= fin,
         )
@@ -809,9 +825,9 @@ def _datos_ventas(db, id_tecnico, inicio, fin, periodo):
 
     resumen = {
         "total_pedidos": total_p,
-        "total_ventas_pedidos": total_vp,
-        "total_ingresos_citas": total_ic,
-        "total_ingresos": total_vp + total_ic,
+        "total_ventas_pedidos": round(total_vp, 2),
+        "total_ingresos_citas": round(total_ic, 2),
+        "total_ingresos": round(total_vp + total_ic, 2),
     }
     return resumen, detalle
 
@@ -879,6 +895,10 @@ def ventas_pdf(
     db: Session = Depends(get_db),
 ):
     """Descargar reporte de ventas en PDF."""
+    if (fecha_inicio is None) != (fecha_fin is None):
+        raise HTTPException(status_code=400, detail="Debes indicar la fecha de inicio y la fecha de fin")
+    if fecha_inicio and fecha_fin and fecha_fin < fecha_inicio:
+        raise HTTPException(status_code=400, detail="La fecha final no puede ser anterior a la fecha inicial")
     inicio, fin = _resolver_rango(periodo, fecha_inicio, fecha_fin)
     resumen, detalle = _datos_ventas(db, id_tecnico, inicio, fin, periodo)
     nombre_tec = _resolver_nombre_tecnico(db, id_tecnico)

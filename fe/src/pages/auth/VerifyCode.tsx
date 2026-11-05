@@ -1,8 +1,10 @@
+// Pantalla VerifyCode de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
 import '@styles/verifyCode.css';
 
+// Comunica con el backend mediante POST '/auth/verify-code', POST '/auth/forgot-password'.
 const VerifyCode = () => {
   const { email, openAuth } = useAuthModal();
 
@@ -13,7 +15,6 @@ const VerifyCode = () => {
   const [countdown, setCountdown] = useState(600);
 
   const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     if (countdown > 0) {
@@ -34,6 +35,7 @@ const VerifyCode = () => {
       .padStart(2, '0')}`;
   };
 
+  // Comunica con el backend mediante POST '/auth/verify-code'.
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -46,7 +48,6 @@ const VerifyCode = () => {
 
     if (loading) return;
     setError('');
-    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -73,6 +74,7 @@ const VerifyCode = () => {
     }
   };
 
+  // Comunica con el backend mediante POST '/auth/forgot-password'.
   const handleResend = async (
     e: React.MouseEvent
   ) => {
@@ -83,16 +85,11 @@ const VerifyCode = () => {
 
     setResendLoading(true);
     setError('');
-    setSuccessMsg('');
 
     try {
       await api.post('/auth/forgot-password', {
         email,
       }, { timeout: 15000 });
-
-      setSuccessMsg(
-        'Si el correo está registrado, recibirás un nuevo código en breve.'
-      );
 
       setCountdown(600);
     } catch (err: any) {
@@ -194,12 +191,6 @@ const VerifyCode = () => {
         {error && (
           <div className="error-message">
             {error}
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="success-message">
-            {successMsg}
           </div>
         )}
 

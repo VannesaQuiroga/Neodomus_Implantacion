@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianNavbar. Se reutiliza en las pantallas de su área.
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaBars, FaChevronDown, FaRightFromBracket, FaUserGear } from 'react-icons/fa6';
@@ -14,6 +15,7 @@ interface TechnicianNavbarProps {
   onMenuToggle: () => void;
 }
 
+// registra escuchas de eventos para sincronizar la vista.
 const TechnicianNavbar = ({ onMenuToggle }: TechnicianNavbarProps) => {
   const { logout } = useAuth();
   const { t } = useIdioma();
@@ -21,7 +23,7 @@ const TechnicianNavbar = ({ onMenuToggle }: TechnicianNavbarProps) => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [, forceUpdate] = useState(0);
-  const { notificaciones, cargando, marcarLeida } = useTecnicoNotificaciones();
+  const { notificaciones, cargando, error, recargar, marcarLeida } = useTecnicoNotificaciones();
 
   useEffect(() => {
     const handler = () => forceUpdate(v => v + 1);
@@ -90,6 +92,8 @@ const userData = (() => {
             marcarLeida={marcarLeida}
             ariaLabel={t('tec.notificaciones')}
             titulo={t('tec.notificaciones')}
+            error={error}
+            onRetry={recargar}
           />
 
           <span className="anr-sep" />

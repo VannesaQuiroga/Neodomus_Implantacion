@@ -1,3 +1,4 @@
+// Pantalla AdminFacturas de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState } from 'react';
 import { FaFileInvoice, FaFilePdf, FaEnvelope } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
@@ -36,6 +37,7 @@ const formatearFecha = (fecha?: string | null) => {
   }
 };
 
+// Comunica con el backend mediante GET '/pedidos/admin/facturas'.
 const AdminFacturas = () => {
   const [facturas, setFacturas] = useState<FacturaAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -43,6 +45,7 @@ const AdminFacturas = () => {
   const [descargandoId, setDescargandoId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
 
+  // Comunica con el backend mediante GET '/pedidos/admin/facturas'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) setCargando(true);
     try {

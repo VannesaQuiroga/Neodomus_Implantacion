@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from app.models.devolucion import Devolucion
 
 
+# Mapea la tabla «novedades»; sus referencias enlazan con tecnicos, pedidos, citas, clientes, devoluciones, usuarios.
 class Novedad(Base):
     __tablename__ = "novedades"
 
@@ -83,6 +84,7 @@ class Novedad(Base):
     )
 
 
+# Mapea la tabla «novedad_historial»; sus referencias enlazan con novedades, usuarios.
 class NovedadHistorial(Base):
     __tablename__ = "novedad_historial"
 
@@ -122,6 +124,7 @@ class EvidenciaNovedad(Base):
     novedad = relationship("Novedad", back_populates="evidencias")
 
 
+# Mapea la tabla «cupones_descuento»; sus referencias enlazan con clientes, novedades, usuarios.
 class CuponDescuento(Base):
     __tablename__ = "cupones_descuento"
 

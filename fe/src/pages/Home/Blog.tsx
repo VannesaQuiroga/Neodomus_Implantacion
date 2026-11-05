@@ -1,3 +1,4 @@
+// Presenta las tarjetas de contenido informativo de domótica.
 import fondo2 from '@assets/images/Fondo2.png';
 import blog1 from '@assets/images/blog1.jpeg';
 import blog2 from '@assets/images/blog2.jpeg';

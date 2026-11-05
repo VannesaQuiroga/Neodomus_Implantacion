@@ -1,3 +1,4 @@
+// Contenido de los términos de uso dentro de la plantilla legal.
 import { FaFileContract } from 'react-icons/fa6';
 import LegalPage from '@components/legal/LegalPage';
 

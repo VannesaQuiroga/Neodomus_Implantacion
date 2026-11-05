@@ -1,3 +1,4 @@
+// Pantalla ClienteNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,6 +20,7 @@ import {
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
+import AuthImage from '@components/common/AuthImage';
 
 interface EvidenciaNovedad {
   id_evidencia_n: number;
@@ -81,6 +83,7 @@ const formatFechaCorta = (f?: string | null) => {
   return new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+// Comunica con el backend mediante GET '/novedades/cliente/novedades', GET `/novedades/${id}`.
 const ClienteNovedades = () => {
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -88,8 +91,8 @@ const ClienteNovedades = () => {
   const [detalle, setDetalle] = useState<NovedadDetalle | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
-  const [evidenciaLupa, setEvidenciaLupa] = useState<string | null>(null);
 
+  // Comunica con el backend mediante GET '/novedades/cliente/novedades'.
   const cargar = async (silencioso = false) => {
     if (!silencioso) setCargando(true);
     try {
@@ -130,6 +133,7 @@ const ClienteNovedades = () => {
     return true;
   });
 
+  // Comunica con el backend mediante GET `/novedades/${id}`.
   const abrirDetalle = async (id: number) => {
     try {
       const res = await api.get<NovedadDetalle>(`/novedades/${id}`);
@@ -367,9 +371,8 @@ const ClienteNovedades = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {detalle.evidencias.map((ev) => (
                         <div key={ev.id_evidencia_n}
-                          onClick={() => setEvidenciaLupa(ev.url)}
-                          style={{ display: 'block', width: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                          <img src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
+                          style={{ display: 'block', width: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <AuthImage src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
                         </div>
                       ))}
                     </div>
@@ -437,15 +440,6 @@ const ClienteNovedades = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {evidenciaLupa && (
-        <div onClick={() => setEvidenciaLupa(null)} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 20 }}>
-          <button type="button" onClick={() => setEvidenciaLupa(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.2rem' }}>
-            <FaXmark />
-          </button>
-          <img src={evidenciaLupa} alt="Evidencia completa" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, objectFit: 'contain' }} />
-        </div>
-      )}
     </motion.section>
   );
 };

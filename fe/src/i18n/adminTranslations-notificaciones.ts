@@ -1,3 +1,4 @@
+// Textos del módulo administrativo de notificaciones. Cada clave reúne sus versiones en español e inglés.
 export const ADMIN_TRADUCCIONES_NOTIFICACIONES: Record<string, { es: string; en: string }> = {
   'adm.notificaciones.titulo': { es: 'Notificaciones', en: 'Notifications' },
   'adm.notificaciones.subtitulo': { es: 'Solicitudes de cuenta y alertas de stock de productos.', en: 'Account requests and product stock alerts.' },

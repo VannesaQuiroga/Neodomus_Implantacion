@@ -1,3 +1,4 @@
+// Componente de navegación y estructura visual: TechnicianDrawer. Se reutiliza en las pantallas de su área.
 import React from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
