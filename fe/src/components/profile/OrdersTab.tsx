@@ -54,6 +54,17 @@ interface CitaPedido {
   tipo_servicio?: string | null;
 }
 
+interface NovedadPedido {
+  id_novedad: number;
+  id_pedido: number | null;
+  tipo_novedad: string;
+  descripcion_novedad: string;
+  estado_novedad: string;
+  fecha_reporte: string | null;
+  mensaje_cliente: string | null;
+  solucion_cliente: string | null;
+}
+
 interface Pedido {
   id_pedido: number;
   fecha?: string | null;
@@ -204,6 +215,7 @@ const pedidoCompletado = (pedido: Pedido): boolean =>
 // Comunica con el backend mediante GET '/pedidos/mis-pedidos', POST `/pedidos/${pedidoId}/confirmar-pago`, GET `/pedidos/${pedidoId}/seguimiento` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [novedadesPedido, setNovedadesPedido] = useState<NovedadPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -232,12 +244,25 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const fotosCalif = useRef<Record<number, File>>({});
   const pollRef = useRef<number | null>(null);
 
+  const cargarNovedadesPedido = async () => {
+    try {
+      const res = await api.get<NovedadPedido[]>('/novedades/cliente/novedades');
+      setNovedadesPedido(res.data || []);
+    } catch (err) {
+      console.error('No se pudieron cargar las novedades de pedidos:', err);
+    }
+  };
+
   // Comunica con el backend mediante GET '/pedidos/mis-pedidos'.
   const cargarPedidos = async () => {
     setLoading(true);
     try {
-      const res = await api.get<Pedido[]>('/pedidos/mis-pedidos');
+      const [res, novedadesRes] = await Promise.all([
+        api.get<Pedido[]>('/pedidos/mis-pedidos'),
+        api.get<NovedadPedido[]>('/novedades/cliente/novedades').catch(() => ({ data: [] as NovedadPedido[] })),
+      ]);
       setPedidos(res.data || []);
+      setNovedadesPedido(novedadesRes.data || []);
       setError('');
     } catch (err: any) {
       console.error(err);
@@ -491,6 +516,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
           {pedidos.map((pedido) => {
             const abierto = expanded === pedido.id_pedido;
             const colorEstado = estadoColor[pedido.estado] || '#d3ac4d';
+            const novedadesDelPedido = novedadesPedido.filter((n) => n.id_pedido === pedido.id_pedido);
             return (
               <div className="pf-order" key={pedido.id_pedido}>
                 <div className="pf-order-top">
@@ -500,6 +526,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                       {pedido.factura?.numero_factura || `Pedido ${pedido.id_pedido}`}
                       {pedido.fecha ? ` · ${formatearFecha(pedido.fecha)}` : ''}
                     </span>
+                    {novedadesDelPedido.length > 0 && (
+                      <span className="pf-order-novedad-badge">
+                        <FaCircleExclamation /> {novedadesDelPedido.length} {novedadesDelPedido.length === 1 ? 'novedad' : 'novedades'}
+                      </span>
+                    )}
                   </div>
                   <div className="pf-order-stats">
                     <span className="pf-status-badge" style={{ background: colorEstado }}>
@@ -515,6 +546,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                   onClick={() => {
                     const nuevo = !abierto;
                     setExpanded(nuevo ? pedido.id_pedido : null);
+                    if (nuevo) cargarNovedadesPedido();
                     if (nuevo && pedidoCompletado(pedido)) {
                       cargarResenas(pedido);
                       setSeguimientoDe(null);
@@ -529,6 +561,33 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
                 {abierto && (
                   <div className="pf-order-details">
+                    {novedadesDelPedido.length > 0 && (
+                      <div className="pf-detail-block pf-order-novedades">
+                        <h4 className="pf-detail-title"><FaCircleExclamation /> Novedades de este pedido</h4>
+                        {novedadesDelPedido.map((n) => (
+                            <article className="pf-order-novedad" key={n.id_novedad}>
+                              <div className="pf-order-novedad-head">
+                                <strong>{n.tipo_novedad}</strong>
+                                <span className="pf-order-novedad-status">{n.estado_novedad}</span>
+                              </div>
+                              {n.fecha_reporte && <time>{formatearFecha(n.fecha_reporte)}</time>}
+                              <p>{n.descripcion_novedad}</p>
+                              {n.mensaje_cliente && (
+                                <div className="pf-order-novedad-answer">
+                                  <strong>Actualización del equipo</strong>
+                                  <p>{n.mensaje_cliente}</p>
+                                </div>
+                              )}
+                              {n.solucion_cliente && (
+                                <div className="pf-order-novedad-answer">
+                                  <strong>Solución</strong>
+                                  <p>{n.solucion_cliente}</p>
+                                </div>
+                              )}
+                            </article>
+                          ))}
+                      </div>
+                    )}
                     <div className="pf-detail-block">
                       <h4 className="pf-detail-title">Productos</h4>
                       <div className="pf-order-items">
