@@ -1005,6 +1005,20 @@ input[type='date'].citas-input::-webkit-calendar-picker-indicator {
   margin-top: 4px;
 }
 
+/* Técnico ya elegido: mostrar solo su ficha + acción para cambiarlo */
+.citas-tecnico-seleccionado {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  justify-items: start;
+}
+
+.citas-tecnico-seleccionado .citas-tecnico-item {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+}
+
 .citas-tecnicos-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
@@ -1365,6 +1379,89 @@ input[type='date'].citas-input::-webkit-calendar-picker-indicator {
 .citas-cancel-montos span { color: #9f9f9f; }
 .citas-cancel-montos strong.ok { color: #46d06f; }
 .citas-cancel-montos strong.ret { color: #ff8b96; }
+
+.citas-modal-cancelar {
+  max-width: 480px;
+  border-color: rgba(255, 107, 111, 0.38);
+  background: linear-gradient(160deg, #211715, #181512 58%);
+}
+.citas-modal-cancelar .citas-cancelar-titulo {
+  align-items: flex-start;
+  padding-right: 28px;
+  margin-bottom: 18px;
+  color: #fff4f1;
+  font-size: 1.12rem;
+  line-height: 1.4;
+}
+.citas-cancelar-icono {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(229, 72, 77, 0.16);
+  color: #ff8589;
+}
+.citas-cancelar-aviso {
+  display: grid;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 179, 71, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 179, 71, 0.07);
+  color: #e7d8c9;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.citas-cancelar-aviso p { margin: 0; }
+.citas-cancelar-aviso strong { color: #ffd58e; }
+.citas-modal-cancelar .citas-cancel-montos {
+  gap: 0;
+  margin-top: 12px;
+  padding: 4px 14px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+}
+.citas-modal-cancelar .citas-cancel-montos div {
+  min-height: 40px;
+  gap: 14px;
+  font-size: 0.88rem;
+}
+.citas-modal-cancelar .citas-cancel-montos div + div { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.citas-modal-cancelar .citas-cancel-montos span { color: #c8c0b9; }
+.citas-modal-cancelar .citas-cancel-montos strong { color: #f5eee8; white-space: nowrap; }
+.citas-modal-cancelar .citas-cancel-montos strong.ok { color: #70e19a; }
+.citas-modal-cancelar .citas-cancel-montos strong.ret { color: #ff9b9f; }
+.citas-modal-cancelar .citas-modal-actions { margin-top: 18px; }
+.citas-btn-confirmar-cancelacion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  min-width: 190px;
+  padding: 11px 18px;
+  border: 1px solid #ff777b;
+  border-radius: 10px;
+  background: #c9363d;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 5px 16px rgba(201, 54, 61, 0.25);
+}
+.citas-btn-confirmar-cancelacion:hover:not(:disabled) {
+  background: #ab282f;
+  border-color: #ff9b9f;
+}
+.citas-btn-confirmar-cancelacion svg { flex: 0 0 auto; color: #fff; }
+.citas-btn-confirmar-cancelacion:disabled { opacity: 0.65; cursor: wait; }
+
+@media (max-width: 520px) {
+  .citas-modal-cancelar { padding: 20px 16px; }
+  .citas-modal-cancelar .citas-modal-actions,
+  .citas-btn-confirmar-cancelacion { width: 100%; }
+}
 
 .citas-modal-foto {
   width: 84px;

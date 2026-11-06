@@ -18,6 +18,7 @@ import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import type { CitaAdmin, TecnicoAdmin, TarifaServicio } from '../../types';
 import { nombreCompleto } from '@utils/formatoNombre';
+import { esDomingo } from '@utils/fechas';
 import { useIdioma } from '@i18n/IdiomaContext';
 
 interface TecnicoDisp {
@@ -918,7 +919,13 @@ const AdminInstalaciones = () => {
                         className="ap-form-input"
                         value={aplazarFecha}
                         min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setAplazarFecha(e.target.value)}
+                        onChange={(e) => {
+                          if (esDomingo(e.target.value)) {
+                            notify('Los domingos no están disponibles. Elige un día de lunes a sábado.', 'err');
+                            return;
+                          }
+                          setAplazarFecha(e.target.value);
+                        }}
                       />
                       {aplazarCargandoHoras ? (
                         <span style={{ fontSize: '0.8rem', color: '#9a8f78' }}>Cargando horarios...</span>
@@ -940,7 +947,13 @@ const AdminInstalaciones = () => {
                           className="ap-form-input"
                           value={aplazarFecha2}
                           min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => setAplazarFecha2(e.target.value)}
+                          onChange={(e) => {
+                            if (esDomingo(e.target.value)) {
+                              notify('Los domingos no están disponibles. Elige un día de lunes a sábado.', 'err');
+                              return;
+                            }
+                            setAplazarFecha2(e.target.value);
+                          }}
                         />
                         {aplazarCargandoHoras2 ? (
                           <span style={{ fontSize: '0.8rem', color: '#9a8f78' }}>Cargando...</span>
@@ -963,7 +976,13 @@ const AdminInstalaciones = () => {
                           className="ap-form-input"
                           value={aplazarFecha3}
                           min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => setAplazarFecha3(e.target.value)}
+                          onChange={(e) => {
+                            if (esDomingo(e.target.value)) {
+                              notify('Los domingos no están disponibles. Elige un día de lunes a sábado.', 'err');
+                              return;
+                            }
+                            setAplazarFecha3(e.target.value);
+                          }}
                         />
                         {aplazarCargandoHoras3 ? (
                           <span style={{ fontSize: '0.8rem', color: '#9a8f78' }}>Cargando...</span>

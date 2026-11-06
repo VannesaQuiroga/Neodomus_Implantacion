@@ -25,6 +25,7 @@ import { useCart } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
 import { subtotalLinea } from '@utils/productoPrecio';
+import { esDomingo } from '@utils/fechas';
 import '@styles/checkout.css';
 import '@styles/citas.css';
 
@@ -419,6 +420,10 @@ const CheckoutPage = () => {
     for (const s of servicios) {
       if (!s.fecha) {
         setError('Selecciona la fecha en que deseas el servicio técnico.');
+        return;
+      }
+      if (esDomingo(s.fecha)) {
+        setError('Los domingos no están disponibles. Elige un día de lunes a sábado.');
         return;
       }
       const fechaHora = new Date(`${s.fecha}T${s.hora || '08:00'}:00`);
@@ -916,7 +921,14 @@ const CheckoutPage = () => {
                             type="date"
                             value={s.fecha || ''}
                             min={hoyISO}
-                            onChange={(e) => actualizarServicio(s.id, 'fecha', e.target.value)}
+                            onChange={(e) => {
+                              const valor = e.target.value;
+                              if (esDomingo(valor)) {
+                                setError('Los domingos no están disponibles. Elige un día de lunes a sábado.');
+                                return;
+                              }
+                              actualizarServicio(s.id, 'fecha', valor);
+                            }}
                           />
                           {!s.fecha ? (
                             <span className="checkout-hora-placeholder">Selecciona una fecha</span>

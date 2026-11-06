@@ -1883,14 +1883,25 @@ def cancelar_cita(
     client: Cliente = Depends(get_current_client),
     db: Session = Depends(get_db),
 ):
-    """Cancela una cita propia. Si estaba pagada, procesa automáticamente
-    el reembolso del 85% del servicio (se retiene el 15%) y notifica al
-    administrador como comprobante."""
+    """Cancela una cita propia con al menos 3 horas de anticipación. Si estaba
+    pagada, procesa automáticamente el reembolso del 85% del servicio (se
+    retiene el 15%) y notifica al administrador como comprobante."""
     cita = _get_own_cita(cita_id, client, db)
     if cita.estado == "Finalizada":
         raise HTTPException(status_code=400, detail="No se puede cancelar una cita ya finalizada")
     if cita.estado == "Cancelada":
         raise HTTPException(status_code=400, detail="La cita ya está cancelada")
+
+    hora_cita = (
+        datetime.strptime(cita.hora, "%H:%M").time()
+        if ":" in cita.hora
+        else time(int(cita.hora), 0)
+    )
+    if datetime.combine(cita.fecha, hora_cita) < _ahora_bogota() + timedelta(hours=3):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo puedes cancelar la cita con al menos 3 horas de anticipación",
+        )
 
     estado_anterior = cita.estado
     nombre_cliente = f"{client.first_name} {client.last_name}".strip() or "Cliente"
