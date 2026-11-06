@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   FaBoxOpen,
+  FaCamera,
   FaChevronDown,
   FaChevronUp,
   FaCircleCheck,
@@ -63,6 +64,15 @@ interface NovedadPedido {
   fecha_reporte: string | null;
   mensaje_cliente: string | null;
   solucion_cliente: string | null;
+  cupon?: {
+    codigo: string;
+    tipo_descuento: string;
+    valor_descuento: number;
+    fecha_vencimiento: string | null;
+    usos_maximos: number;
+    usos_realizados: number;
+    activo: boolean;
+  } | null;
 }
 
 interface Pedido {
@@ -103,6 +113,7 @@ interface CalificacionProducto {
   id_producto: number;
   calificacion: number;
   comentario?: string | null;
+  foto_url?: string | null;
 }
 
 interface ItemDevolucion {
@@ -227,6 +238,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [ratingSel, setRatingSel] = useState<Record<number, number>>({});
   const [comentarioSel, setComentarioSel] = useState<Record<number, string>>({});
   const [guardandoCalif, setGuardandoCalif] = useState<number | null>(null);
+  const [fotosSeleccionadas, setFotosSeleccionadas] = useState<Record<number, string>>({});
 
   // ── Wizard de devolución (paso 1: productos · paso 2: motivo · paso 3: resumen) ──
   const [wizardPedido, setWizardPedido] = useState<Pedido | null>(null);
@@ -483,6 +495,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
           /* la foto es opcional; si falla no bloquea la calificación */
         }
         delete fotosCalif.current[item.id_producto_d];
+        setFotosSeleccionadas((prev) => {
+          const next = { ...prev };
+          delete next[item.id_producto_d!];
+          return next;
+        });
       }
       notify('¡Gracias por tu calificación!', 'success');
       await cargarResenas(pedido);
@@ -584,6 +601,24 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                   <p>{n.solucion_cliente}</p>
                                 </div>
                               )}
+                              {n.cupon && (
+                                <div className="pf-order-novedad-answer pf-order-novedad-cupon">
+                                  <strong>Cupón de compensación</strong>
+                                  <p>
+                                    <b>{n.cupon.codigo}</b> · {n.cupon.tipo_descuento === 'porcentaje'
+                                      ? `${n.cupon.valor_descuento}% de descuento`
+                                      : `${Number(n.cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
+                                  </p>
+                                  <small style={{ color: '#fff' }}>
+                                    {n.cupon.activo && n.cupon.usos_realizados < n.cupon.usos_maximos
+                                      ? 'Disponible para usar en tu próxima compra'
+                                      : 'Este cupón ya no está disponible'}
+                                    {n.cupon.fecha_vencimiento
+                                      ? ` · Vence ${new Date(`${n.cupon.fecha_vencimiento}T00:00:00`).toLocaleDateString('es-CO')}`
+                                      : ''}
+                                  </small>
+                                </div>
+                              )}
                             </article>
                           ))}
                       </div>
@@ -617,6 +652,9 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                       </span>
                                       Tu calificación
                                       {calif.comentario ? <em>“{calif.comentario}”</em> : null}
+                                      {calif.foto_url && (
+                                        <img className="pf-resena-foto-guardada" src={calif.foto_url} alt={`Foto de ${item.nombre}`} />
+                                      )}
                                     </div>
                                   ) : (
                                     <div className="pf-resena-form">
@@ -629,6 +667,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                               type="button"
                                               aria-label={`${s} estrellas`}
                                               className={(ratingSel[item.id_producto_d!] ?? 0) >= s ? 'on' : ''}
+                                              aria-pressed={(ratingSel[item.id_producto_d!] ?? 0) >= s}
                                               onClick={() =>
                                                 setRatingSel((prev) => ({ ...prev, [item.id_producto_d!]: s }))
                                               }
@@ -669,18 +708,27 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                           onChange={(ev) => {
                                             if (ev.target.files?.[0]) {
                                               fotosCalif.current[item.id_producto_d!] = ev.target.files[0];
+                                              setFotosSeleccionadas((prev) => ({
+                                                ...prev,
+                                                [item.id_producto_d!]: ev.target.files![0].name,
+                                              }));
                                             }
                                             ev.target.value = '';
                                           }}
                                         />
                                         <button
                                           type="button"
-                                          className="pf-btn pf-btn-ghost"
+                                          className={`pf-resena-foto ${fotosSeleccionadas[item.id_producto_d!] ? 'seleccionada' : ''}`}
                                           title="Adjuntar foto del producto"
                                           onClick={() => fotoCalifRefs.current[item.id_producto_d!]?.click()}
                                         >
-                                          📷
+                                          <FaCamera /> <span>{fotosSeleccionadas[item.id_producto_d!] ? 'Cambiar foto' : 'Adjuntar foto'}</span>
                                         </button>
+                                        {fotosSeleccionadas[item.id_producto_d!] && (
+                                          <span className="pf-resena-foto-nombre" title={fotosSeleccionadas[item.id_producto_d!]}>
+                                            {fotosSeleccionadas[item.id_producto_d!]}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   )}

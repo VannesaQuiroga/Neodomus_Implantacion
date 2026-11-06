@@ -13,7 +13,7 @@ from datetime import date
 from typing import Iterable, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.cita import Cita
@@ -155,7 +155,12 @@ def _tecnicos_activos(db: Session) -> list:
     return (
         db.query(Tecnico)
         .join(User, User.id_usuario == Tecnico.id_usuario_t)
-        .filter(User.is_active == True, User.id_rol_u == 2)  # noqa: E712
+        .filter(
+            User.is_active == True,  # noqa: E712
+            User.id_rol_u == 2,
+            ~func.lower(User.email).like("demo%@example.com"),
+            func.lower(User.email) != "tecnico@neodomus.com",
+        )
         .all()
     )
 

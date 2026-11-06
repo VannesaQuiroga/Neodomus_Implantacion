@@ -466,8 +466,41 @@ def calificaciones_de_mi_pedido(
                 "id_producto": f.id_producto_cp,
                 "calificacion": f.calificacion,
                 "comentario": f.comentario,
+                "foto_url": f.foto_url,
                 "created_at": f.created_at.isoformat() if f.created_at else None,
             }
             for f in filas
         ],
     }
+
+
+@router.get("/producto/mis-dadas")
+def mis_calificaciones_productos(
+    client: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Calificaciones de productos enviadas por el cliente desde sus pedidos."""
+    from app.models.calificacion_producto import CalificacionProducto
+    from app.models.producto import Producto
+
+    filas = (
+        db.query(CalificacionProducto, Producto)
+        .join(Producto, Producto.id_producto == CalificacionProducto.id_producto_cp)
+        .filter(CalificacionProducto.id_cliente_cp == client.id_cliente)
+        .order_by(CalificacionProducto.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id_calificacion_producto": calificacion.id_calificacion_producto,
+            "id_pedido": calificacion.id_pedido_cp,
+            "id_producto": producto.id_producto,
+            "nombre_producto": producto.nombre_producto,
+            "producto_imagen": producto.imagen_url,
+            "calificacion": calificacion.calificacion,
+            "comentario": calificacion.comentario,
+            "foto_url": calificacion.foto_url,
+            "created_at": calificacion.created_at.isoformat() if calificacion.created_at else None,
+        }
+        for calificacion, producto in filas
+    ]

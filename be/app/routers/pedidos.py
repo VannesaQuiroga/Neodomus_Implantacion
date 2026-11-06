@@ -26,7 +26,7 @@ router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 
 def _url_evidencia_entrega(pedido_id: int, evidencia_id: int) -> str:
-    return f"/api/v1/pedidos/{pedido_id}/evidencias-entrega/{evidencia_id}/archivo"
+    return f"/pedidos/{pedido_id}/evidencias-entrega/{evidencia_id}/archivo"
 
 
 def _pedido_propio(pedido_id: int, cliente: Cliente, db: Session) -> Pedido:

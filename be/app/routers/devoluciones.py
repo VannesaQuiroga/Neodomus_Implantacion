@@ -49,7 +49,7 @@ router = APIRouter(prefix="/devoluciones", tags=["Devoluciones"])
 
 
 def _url_evidencia_devolucion(id_devolucion: int, tipo: str) -> str:
-    return f"/api/v1/devoluciones/{id_devolucion}/evidencia-{tipo}/archivo"
+    return f"/devoluciones/{id_devolucion}/evidencia-{tipo}/archivo"
 
 
 def _servir_evidencia_devolucion(db: Session, id_devolucion: int, tipo: str, current_user) -> Response:

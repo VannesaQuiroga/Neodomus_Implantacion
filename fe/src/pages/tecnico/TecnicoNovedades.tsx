@@ -188,6 +188,7 @@ const TecnicoNovedades = () => {
 
   // Formulario — paso
   const [paso, setPaso] = useState<PasoFormulario>('cliente');
+  const [sinVinculo, setSinVinculo] = useState(false);
 
   // Paso 1: Cliente
   const [clientesBusqueda, setClientesBusqueda] = useState<ClienteBusqueda[]>([]);
@@ -268,6 +269,7 @@ const TecnicoNovedades = () => {
 
   // Comunica con el backend mediante GET `/novedades/clientes/${c.id_cliente}/pedidos`, GET `/novedades/clientes/${c.id_cliente}/citas`.
   const seleccionarCliente = async (c: ClienteBusqueda) => {
+    setSinVinculo(false);
     setClienteSeleccion(c);
     setTextoCliente(c.nombre);
     setClientesBusqueda([]);
@@ -333,11 +335,6 @@ const TecnicoNovedades = () => {
       setToast({ msg: 'Completa el tipo y la descripcion', tipo: 'err' });
       return;
     }
-    if (!pedidoSeleccion && !citaSeleccion) {
-      setToast({ msg: 'Selecciona al menos un pedido o cita', tipo: 'err' });
-      return;
-    }
-
     setEnviando(true);
     try {
       const res = await api.post<{ id_novedad: number; mensaje: string }>('/novedades', {
@@ -376,6 +373,7 @@ const TecnicoNovedades = () => {
   const resetForm = () => {
     setMostrarForm(false);
     setPaso('cliente');
+    setSinVinculo(false);
     setClienteSeleccion(null);
     setTextoCliente('');
     setPedidoSeleccion(null);
@@ -439,7 +437,10 @@ const TecnicoNovedades = () => {
     return counts;
   }, [novedades]);
 
-  const canSubmit = tipoSeleccion && descripcion.trim() && (pedidoSeleccion || citaSeleccion);
+  const canSubmit = tipoSeleccion && descripcion.trim();
+  const pasosFormulario: PasoFormulario[] = sinVinculo
+    ? ['detalle', 'evidencia']
+    : ['cliente', 'origen', 'detalle', 'evidencia'];
 
   return (
     <motion.section
@@ -568,9 +569,8 @@ const TecnicoNovedades = () => {
 
               {/* Step indicators */}
               <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '14px 0' }}>
-                {(['cliente', 'origen', 'detalle', 'evidencia'] as PasoFormulario[]).map((p, i) => {
-                  const pasos: PasoFormulario[] = ['cliente', 'origen', 'detalle', 'evidencia'];
-                  const currentIdx = pasos.indexOf(paso);
+                {pasosFormulario.map((p, i) => {
+                  const currentIdx = pasosFormulario.indexOf(paso);
                   const isActive = p === paso;
                   const isDone = i < currentIdx;
                   return (
@@ -677,7 +677,20 @@ const TecnicoNovedades = () => {
                       <p style={{ fontSize: '0.82rem', color: '#6b7280', textAlign: 'center', marginTop: 16 }}>No se encontraron clientes</p>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="ap-btn ap-btn-ghost"
+                        onClick={() => {
+                          setClienteSeleccion(null);
+                          setPedidoSeleccion(null);
+                          setCitaSeleccion(null);
+                          setSinVinculo(true);
+                          setPaso('detalle');
+                        }}
+                      >
+                        <FaCircleInfo /> Novedad general, sin pedido ni cita
+                      </button>
                       <button
                         type="button"
                         className="ap-btn ap-btn-primary"
@@ -828,6 +841,11 @@ const TecnicoNovedades = () => {
                           <FaUser style={{ fontSize: '0.7rem' }} /> {clienteSeleccion.nombre}
                         </span>
                       )}
+                      {sinVinculo && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#d4a54b' }}>
+                          <FaCircleInfo style={{ fontSize: '0.75rem' }} /> Novedad general · sin pedido ni cita
+                        </span>
+                      )}
                     </div>
 
                     <div className="ap-form-grid" style={{ marginBottom: 14 }}>
@@ -904,7 +922,18 @@ const TecnicoNovedades = () => {
                     )}
 
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                      <button type="button" className="ap-btn ap-btn-ghost" onClick={() => setPaso('origen')}>
+                      <button
+                        type="button"
+                        className="ap-btn ap-btn-ghost"
+                        onClick={() => {
+                          if (sinVinculo) {
+                            setSinVinculo(false);
+                            setPaso('cliente');
+                          } else {
+                            setPaso('origen');
+                          }
+                        }}
+                      >
                         <FaArrowLeft /> Atras
                       </button>
                       <button

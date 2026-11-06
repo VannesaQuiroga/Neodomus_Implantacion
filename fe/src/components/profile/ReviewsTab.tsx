@@ -1,6 +1,6 @@
 // Presenta las valoraciones disponibles en el perfil del cliente.
 import { useEffect, useState } from 'react';
-import { FaRegStar, FaStar, FaPlus, FaTrashCan, FaUserTie } from 'react-icons/fa6';
+import { FaRegStar, FaStar, FaUserTie, FaBoxOpen, FaPlus, FaTrashCan } from 'react-icons/fa6';
 import api from '@services/api';
 import { getResenas, saveItem, PF_RESENAS_KEY, Resena } from '@utils/profileStorage';
 import SectionHeader from './SectionHeader';
@@ -31,6 +31,18 @@ interface CitaPendiente {
   hora?: string | null;
 }
 
+interface ResenaProducto {
+  id_calificacion_producto: number;
+  id_pedido: number;
+  id_producto: number;
+  nombre_producto: string;
+  producto_imagen?: string | null;
+  calificacion: number;
+  comentario?: string | null;
+  foto_url?: string | null;
+  created_at?: string | null;
+}
+
 const productosSugeridos = [
   'Kit domótica Neodomus Smart Home',
   'Cámara IP 4K exterior',
@@ -47,16 +59,18 @@ const formatearFecha = (fecha?: string | null) => {
   }
 };
 
-// Comunica con el backend mediante GET '/calificaciones/mis-dadas', POST '/calificaciones'.
-const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
+// Comunica con el backend mediante GET '/calificaciones/mis-dadas' y GET '/calificaciones/producto/mis-dadas'.
+const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () => void }) => {
   const [seccion, setSeccion] = useState<'tecnicos' | 'productos'>('tecnicos');
-  const [resenas, setResenas] = useState<Resena[]>(getResenas());
+  const [resenasProductos, setResenasProductos] = useState<ResenaProducto[]>([]);
   const [resenasTecnicos, setResenasTecnicos] = useState<ResenaTecnico[]>([]);
   const [loadingTecnicos, setLoadingTecnicos] = useState(true);
-  const [mostrarForm, setMostrarForm] = useState(false);
-  const [producto, setProducto] = useState(productosSugeridos[0]);
-  const [calificacion, setCalificacion] = useState(5);
-  const [comentario, setComentario] = useState('');
+  const [loadingProductos, setLoadingProductos] = useState(true);
+  const [resenasLocales, setResenasLocales] = useState<Resena[]>(getResenas());
+  const [mostrarFormLocal, setMostrarFormLocal] = useState(false);
+  const [productoLocal, setProductoLocal] = useState(productosSugeridos[0]);
+  const [ratingLocal, setRatingLocal] = useState(5);
+  const [comentarioLocal, setComentarioLocal] = useState('');
 
   // Técnicos pendientes de calificar (citas finalizadas sin reseña).
   const [pendientes, setPendientes] = useState<CitaPendiente[]>([]);
@@ -86,6 +100,14 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
         );
       })
       .catch((err) => console.error(err));
+
+    api.get<ResenaProducto[]>('/calificaciones/producto/mis-dadas')
+      .then((res) => setResenasProductos(res.data || []))
+      .catch((err) => {
+        console.error(err);
+        notify('No se pudieron cargar tus reseñas de productos.', 'error');
+      })
+      .finally(() => setLoadingProductos(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -124,35 +146,33 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
     }
   };
 
-  const eliminar = (id: string) => {
-    const next = resenas.filter((r) => r.id !== id);
-    setResenas(next);
-    saveItem(PF_RESENAS_KEY, next);
-    notify('Reseña eliminada', 'info');
-  };
-
-  const agregar = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!comentario.trim()) {
+  const guardarResenaLocal = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!comentarioLocal.trim()) {
       notify('Escribe un comentario para tu reseña', 'error');
       return;
     }
     const nueva: Resena = {
       id: `r-${Date.now()}`,
-      producto,
+      producto: productoLocal,
       productoImg: '/productos/1.jpg',
-      calificacion,
-      comentario: comentario.trim(),
+      calificacion: ratingLocal,
+      comentario: comentarioLocal.trim(),
       fecha: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
     };
-    const next = [nueva, ...resenas];
-    setResenas(next);
-    saveItem(PF_RESENAS_KEY, next);
-    setComentario('');
-    setProducto(productosSugeridos[0]);
-    setCalificacion(5);
-    setMostrarForm(false);
-    notify('Reseña publicada correctamente', 'success');
+    const siguiente = [nueva, ...resenasLocales];
+    setResenasLocales(siguiente);
+    saveItem(PF_RESENAS_KEY, siguiente);
+    setComentarioLocal('');
+    setMostrarFormLocal(false);
+    notify('Reseña guardada en este perfil.', 'success');
+  };
+
+  const eliminarResenaLocal = (id: string) => {
+    const siguiente = resenasLocales.filter((resena) => resena.id !== id);
+    setResenasLocales(siguiente);
+    saveItem(PF_RESENAS_KEY, siguiente);
+    notify('Reseña eliminada', 'info');
   };
 
   return (
@@ -316,86 +336,59 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
         <div className="pf-resenas-seccion">
           <div className="pf-resenas-cabecera">
             <h3 className="pf-resenas-subtitulo">Productos</h3>
-            <button
-              type="button"
-              className="pf-btn pf-btn-primary"
-              onClick={() => setMostrarForm((v) => !v)}
-            >
-              {mostrarForm ? (
-                'Cancelar'
-              ) : (
-                <>
-                  <FaPlus /> Escribir reseña
-                </>
-              )}
-            </button>
+            <div className="pf-resenas-acciones">
+              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setMostrarFormLocal((actual) => !actual)}>
+                <FaPlus /> {mostrarFormLocal ? 'Cerrar reseña' : 'Escribir reseña'}
+              </button>
+              <button type="button" className="pf-btn pf-btn-primary" onClick={onGoOrders}>
+                <FaBoxOpen /> Calificar desde mis pedidos
+              </button>
+            </div>
           </div>
-
-          {mostrarForm && (
-            <form className="pf-review-form" onSubmit={agregar}>
+          {mostrarFormLocal && (
+            <form className="pf-review-form" onSubmit={guardarResenaLocal}>
               <div className="pf-form-grid">
                 <div className="pf-form-group">
                   <label className="pf-form-label" htmlFor="pf-res-producto">Producto</label>
-                  <select
-                    id="pf-res-producto"
-                    className="pf-form-input"
-                    value={producto}
-                    onChange={(e) => setProducto(e.target.value)}
-                  >
-                    {productosSugeridos.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
+                  <select id="pf-res-producto" className="pf-form-input" value={productoLocal} onChange={(e) => setProductoLocal(e.target.value)}>
+                    {productosSugeridos.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
                   </select>
                 </div>
                 <div className="pf-form-group">
                   <label className="pf-form-label">Calificación</label>
                   <div className="pf-rating-input">
-                    {[...Array(5)].map((_, i) => (
-                      <button
-                        type="button"
-                        key={i}
-                        className={i < calificacion ? 'on' : ''}
-                        onClick={() => setCalificacion(i + 1)}
-                        aria-label={`${i + 1} estrellas`}
-                      >
-                        <FaStar />
-                      </button>
+                    {[1, 2, 3, 4, 5].map((nota) => (
+                      <button key={nota} type="button" className={nota <= ratingLocal ? 'on' : ''} aria-label={`${nota} estrellas`} onClick={() => setRatingLocal(nota)}><FaStar /></button>
                     ))}
                   </div>
                 </div>
                 <div className="pf-form-group pf-form-span">
                   <label className="pf-form-label" htmlFor="pf-res-comentario">Tu experiencia</label>
-                  <textarea
-                    id="pf-res-comentario"
-                    className="pf-form-input pf-textarea"
-                    rows={3}
-                    value={comentario}
-                    onChange={(e) => setComentario(e.target.value)}
-                    placeholder="Cuéntanos qué te pareció el producto…"
-                  />
+                  <textarea id="pf-res-comentario" className="pf-form-input pf-textarea" rows={3} value={comentarioLocal} onChange={(e) => setComentarioLocal(e.target.value)} placeholder="Cuéntanos qué te pareció el producto…" />
                 </div>
               </div>
-              <div className="pf-form-actions">
-                <button type="submit" className="pf-btn pf-btn-primary">Publicar reseña</button>
-              </div>
+              <div className="pf-form-actions"><button type="submit" className="pf-btn pf-btn-primary">Guardar reseña</button></div>
             </form>
           )}
-
-          {resenas.length === 0 ? (
+          {resenasProductos.length > 0 && <h4 className="pf-resenas-subtitulo">Calificaciones de tus pedidos</h4>}
+          {loadingProductos ? (
+            <div className="pf-empty"><p>Cargando tus reseñas de productos...</p></div>
+          ) : resenasProductos.length === 0 ? (
             <div className="pf-empty">
               <span className="pf-empty-icon"><FaRegStar /></span>
-              <p>Aún no has publicado reseñas de productos.</p>
+              <p>Aún no has calificado productos de tus pedidos.</p>
+              <p className="pf-empty-hint">Cuando un pedido sea entregado, podrás calificar sus productos desde Mis pedidos.</p>
             </div>
           ) : (
             <div className="pf-review-list">
-              {resenas.map((resena) => (
-                <div className="pf-review-item" key={resena.id}>
+              {resenasProductos.map((resena) => (
+                <div className="pf-review-item" key={resena.id_calificacion_producto}>
                   <div className="pf-review-main">
-                    <span className="pf-review-img">
+                    <span className="pf-review-img pf-product-review-img">
                       <img
-                        src={resena.productoImg}
-                        alt={resena.producto}
-                        onError={(e) => { e.currentTarget.style.opacity = '0.12'; }}
+                        src={resena.foto_url || resena.producto_imagen || ''}
+                        alt={resena.nombre_producto}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                       <span className="pf-stars pf-stars-overlay">
                         {[...Array(5)].map((_, i) => (
@@ -405,25 +398,38 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
                     </span>
                     <div className="pf-review-body">
                       <div className="pf-review-top">
-                        <strong className="pf-review-producto">{resena.producto}</strong>
-                        <span className="pf-review-fecha">{resena.fecha}</span>
+                        <strong className="pf-review-producto">{resena.nombre_producto}</strong>
+                        <span className="pf-review-fecha">{formatearFecha(resena.created_at)}</span>
                       </div>
-                      <p className="pf-review-comentario">{resena.comentario}</p>
+                      <span className="pf-review-fecha">Pedido #{resena.id_pedido}</span>
+                      {resena.comentario && <p className="pf-review-comentario">{resena.comentario}</p>}
                     </div>
-                  </div>
-                  <div className="pf-review-actions">
-                    <button
-                      type="button"
-                      className="pf-icon-btn danger"
-                      onClick={() => eliminar(resena.id)}
-                      title="Eliminar reseña"
-                    >
-                      <FaTrashCan />
-                    </button>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+          {resenasLocales.length > 0 && (
+            <>
+              <h4 className="pf-resenas-subtitulo pf-resenas-locales-titulo">Reseñas guardadas en este perfil</h4>
+              <div className="pf-review-list pf-review-list-locales" aria-label="Reseñas guardadas en este perfil">
+                {resenasLocales.map((resena) => (
+                  <div className="pf-review-item" key={resena.id}>
+                    <div className="pf-review-main">
+                      <span className="pf-review-img">
+                        <img src={resena.productoImg} alt={resena.producto} onError={(e) => { e.currentTarget.style.opacity = '0.12'; }} />
+                      </span>
+                      <div className="pf-review-body">
+                        <div className="pf-review-top"><strong className="pf-review-producto">{resena.producto}</strong><span className="pf-review-fecha">{resena.fecha}</span></div>
+                        <div className="pf-stars">{[1, 2, 3, 4, 5].map((nota) => <FaStar key={nota} className={nota <= resena.calificacion ? 'on' : 'off'} />)}</div>
+                        <p className="pf-review-comentario">{resena.comentario}</p>
+                      </div>
+                    </div>
+                    <div className="pf-review-actions"><button type="button" className="pf-icon-btn danger" onClick={() => eliminarResenaLocal(resena.id)} title="Eliminar reseña local"><FaTrashCan /></button></div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

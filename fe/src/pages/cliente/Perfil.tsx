@@ -629,7 +629,7 @@ const Perfil = () => {
               {activo === 'contrasena' && <PasswordTab notify={notify} />}
               {activo === 'pedidos' && <OrdersTab notify={notify} />}
               {activo === 'servicios' && <ServiciosTab />}
-              {activo === 'resenas' && <ReviewsTab notify={notify} />}
+              {activo === 'resenas' && <ReviewsTab notify={notify} onGoOrders={() => setActivo('pedidos')} />}
               {activo === 'reembolsos' && <ReembolsosCliente />}
               {activo === 'tecnicos' && <TechniciansTab />}
               {activo === 'facturas' && <FacturasTab />}

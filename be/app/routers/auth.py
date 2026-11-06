@@ -22,6 +22,8 @@ from app.services.auth_service import (
     reset_password,
     solicitar_habilitacion,
     google_login,
+    link_google_employee,
+    normalizar_rol_empleado,
     request_email_change,
     verify_email_change,
 )
@@ -34,6 +36,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     VerifyCodeRequest,
     GoogleLoginRequest,
+    GoogleEmployeeLinkRequest,
     RequestEmailChangeRequest,
     VerifyEmailChangeRequest,
 )
@@ -108,7 +111,20 @@ def oauth2_token_endpoint(
 
 @router.post("/google", response_model=TokenResponse)
 def google_login_endpoint(response: Response, req: GoogleLoginRequest, db: Session = Depends(get_db)):
-    result = google_login(db, req.credential)
+    result = google_login(db, req.credential, create_client=req.create_client)
+    set_auth_cookies(response, result.access_token, result.refresh_token)
+    return result
+
+
+@router.post("/google/link-employee", response_model=TokenResponse)
+@limiter.limit("5/minute")
+def google_link_employee_endpoint(
+    request: Request,
+    response: Response,
+    req: GoogleEmployeeLinkRequest,
+    db: Session = Depends(get_db),
+):
+    result = link_google_employee(db, req.credential, req.email, req.password)
     set_auth_cookies(response, result.access_token, result.refresh_token)
     return result
 
@@ -167,6 +183,9 @@ def session_actual(current_user = Depends(get_current_user), db: Session = Depen
         rol = db.execute(
             select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
         ).scalar_one_or_none()
+        rol = normalizar_rol_empleado(rol)
+        if not rol:
+            raise HTTPException(status_code=403, detail="Tu cuenta no tiene un rol válido asignado. Contacta al administrador.")
     else:
         user_type = "client"
         uid = current_user.id_cliente

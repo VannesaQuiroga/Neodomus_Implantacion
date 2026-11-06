@@ -86,7 +86,7 @@ const Register = () => {
   }, [error]);
 
   // Permite explícitamente copiar, pegar y cortar en los campos del formulario
-  const allowClipboard = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  const allowClipboard = (_e: React.ClipboardEvent<HTMLInputElement>) => {
     // No se llama e.preventDefault(), por lo que el navegador ejecuta la acción por defecto
   };
 

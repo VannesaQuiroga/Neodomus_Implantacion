@@ -15,6 +15,7 @@ class User(Base):
     documento_usuario: Mapped[int] = mapped_column(Integer, unique=True, nullable=True)
     telefono_usuario: Mapped[int] = mapped_column(BigInteger, nullable=True)
     email: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    google_id: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     id_rol_u: Mapped[int] = mapped_column(Integer, ForeignKey("roles_usuario.id_rol"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

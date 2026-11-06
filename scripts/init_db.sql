@@ -1,3 +1,4 @@
+
 -- =====================================================
 -- NEODOMUS - Base de datos (no destructiva e idempotente)
 -- NO borra datos existentes. Los registros (clientes,
@@ -1257,4 +1258,3 @@ INSERT IGNORE INTO tecnicos (id_tecnico, id_usuario_t, certificacion_t) VALUES
 (8, 8, 'Automatización de hogares'),
 (9, 9, 'Automatización de hogares'),
 (10, 10, 'Automatización de hogares');
-

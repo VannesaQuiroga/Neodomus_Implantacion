@@ -33,6 +33,24 @@
   isolation: isolate;
 }
 
+.complete-data-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+}
+
+.complete-data-field > label {
+  color: #d4a54b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.complete-data-field .login-input-wrapper {
+  margin-bottom: 0;
+}
+
 /* Las tarjetas internas NO deben ser semitransparentes: el contenedor del modal
    ya aporta el backdrop. Se fuerza opacidad total para que no se vea el formulario
    anterior detrás (requisito 17). */

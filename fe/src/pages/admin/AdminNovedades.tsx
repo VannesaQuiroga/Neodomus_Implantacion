@@ -58,6 +58,14 @@ interface Novedad {
   cliente_visible: boolean;
   fecha_resolucion: string | null;
   evidencias: EvidenciaNovedad[];
+  cupon?: {
+    codigo: string;
+    tipo_descuento: string;
+    valor_descuento: number;
+    activo: boolean;
+    usos_maximos: number;
+    usos_realizados: number;
+  } | null;
 }
 
 interface NovedadDetalle extends Novedad {
@@ -142,6 +150,7 @@ const AdminNovedades = () => {
   const [cuponValor, setCuponValor] = useState('');
   const [cuponVence, setCuponVence] = useState('');
   const [cuponUsos, setCuponUsos] = useState('1');
+  const [generandoCupon, setGenerandoCupon] = useState(false);
 
   // Responder novedad
   const [respuestaAdmin, setRespuestaAdmin] = useState('');
@@ -281,13 +290,14 @@ const AdminNovedades = () => {
 
   // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/cupon`.
   const generarCupon = async () => {
-    if (!detalle || !cuponCodigo || !cuponValor) {
+    if (!detalle || !cuponCodigo.trim() || !cuponValor || generandoCupon) {
       setToast({ msg: 'Completa código y valor del cupón', tipo: 'err' });
       return;
     }
+    setGenerandoCupon(true);
     try {
       await api.post(`/novedades/${detalle.id_novedad}/cupon`, {
-        codigo: cuponCodigo,
+        codigo: cuponCodigo.trim().toUpperCase(),
         tipo_descuento: cuponTipo,
         valor_descuento: parseFloat(cuponValor),
         fecha_vencimiento: cuponVence || undefined,
@@ -299,8 +309,11 @@ const AdminNovedades = () => {
       setCuponValor('');
       setCuponVence('');
       await cargar();
+      await abrirDetalle(detalle.id_novedad);
     } catch (err: any) {
       setToast({ msg: err?.response?.data?.detail || 'Error al crear cupón', tipo: 'err' });
+    } finally {
+      setGenerandoCupon(false);
     }
   };
 
@@ -807,6 +820,18 @@ const AdminNovedades = () => {
                   </div>
                 )}
 
+                {detalle.cupon && (
+                  <div style={{ padding: '12px 14px', background: 'rgba(212,165,75,.1)', border: '1px dashed rgba(212,165,75,.55)', borderRadius: 10, marginBottom: 18 }}>
+                    <strong style={{ color: '#f1d27b' }}>Cupón creado: {detalle.cupon.codigo}</strong>
+                    <p style={{ margin: '5px 0 0', color: '#ddd' }}>
+                      {detalle.cupon.tipo_descuento === 'porcentaje'
+                        ? `${detalle.cupon.valor_descuento}% de descuento`
+                        : `${Number(detalle.cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
+                      {' · '}{detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos ? 'Disponible' : 'No disponible'}
+                    </p>
+                  </div>
+                )}
+
                 {/* Cambiar estado */}
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1028,8 +1053,8 @@ const AdminNovedades = () => {
                               min={1}
                               style={{ height: 40 }}
                             />
-                            <button type="button" className="ap-btn ap-btn-primary" onClick={generarCupon} style={{ height: 40 }}>
-                              <FaTicket /> Crear cupon
+                            <button type="button" className="ap-btn ap-btn-primary" onClick={generarCupon} disabled={generandoCupon} style={{ height: 40 }}>
+                              <FaTicket /> {generandoCupon ? 'Creando…' : 'Crear cupón'}
                             </button>
                           </div>
                         </motion.div>

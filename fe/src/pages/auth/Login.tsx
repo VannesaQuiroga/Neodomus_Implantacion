@@ -262,10 +262,11 @@ const Login = () => {
                 <GoogleLogin
                   onSuccess={(credentialResponse) => {
                     if (credentialResponse.credential) {
+                      setError('');
                       googleLogin(credentialResponse.credential)
                         .then(() => setSesionIniciadaAqui(true))
                         .catch((err) => {
-                          setError(err.response?.data?.detail || 'Error al iniciar sesión con Google');
+                          setError(err.response?.data?.detail || 'No encontramos una cuenta vinculada a ese correo de Google');
                         });
                     }
                   }}
