@@ -682,7 +682,7 @@
   }
 
   .carrito-sugeridos-carousel-inner {
-    scroll-snap-type: mandatory;
+    scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
   }
 }
