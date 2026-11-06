@@ -90,7 +90,7 @@ El backend usa autenticación y controles por rol, pero los detalles de implemen
 
 ## 6. Estructura del software
 
-NeoDomus se presenta al usuario mediante dos clientes: una aplicación web (`fe/`) y una app móvil (`movil/`). Ambas se comunican con una API (`be/`) que administra operaciones y datos. El usuario no necesita instalar Python, Node.js, MySQL ni Docker para acceder a una instalación ya publicada. En una instalación local, el responsable del equipo debe iniciar primero esos servicios; consulta el [manual técnico](MANUAL_TECNICO.md).
+NeoDomus se presenta al usuario mediante dos clientes: una aplicación web (`fe/`) y una app móvil (`movil/`). Ambas se comunican con una API (`be/`) que administra operaciones y datos. El usuario no necesita instalar Python, Node.js, MySQL ni Docker para acceder a una instalación ya publicada. En una instalación local, el responsable del equipo debe iniciar primero esos servicios; consulta el [manual técnico](../tecnico/MANUAL_TECNICO.md).
 
 La navegación cambia según el perfil. En la web hay rutas públicas y áreas de cliente, técnico y administrador. En móvil el código dispone de una experiencia pública/cliente y otra de técnico; no se identificó un panel de administración móvil equivalente.
 
@@ -245,4 +245,4 @@ Los mensajes exactos y códigos técnicos deben consultarse en la respuesta del 
 **Elaboró:** documentación del proyecto NeoDomus.  
 **Aprobación institucional:** pendiente.  
 
-Consulta el [manual técnico](MANUAL_TECNICO.md) y el [índice de documentación](docs/README.md).
+Consulta el [manual técnico](../tecnico/MANUAL_TECNICO.md) y el [índice de documentación](../../README.md).

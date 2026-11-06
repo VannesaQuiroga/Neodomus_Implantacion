@@ -143,7 +143,7 @@ describe('CarritoPage', () => {
     });
     const antes = llamadasA(rutaProducto);
     fireEvent.change(combo, { target: { value: '2.5' } });
-    await screen.findByText((_, nodo) => nodo?.className === 'carrito-item-subtotal' && nodo.textContent === '$2500 COP');
+    await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(2500).toLocaleString()} COP`);
     await act(async () => {
       await Promise.resolve();
     });
@@ -223,7 +223,7 @@ describe('CarritoPage', () => {
     });
     const antes = llamadasA(rutaProducto);
     fireEvent.change(combo, { target: { value: '2' } });
-    await screen.findByText((_, nodo) => nodo?.className === 'carrito-item-subtotal' && nodo.textContent === '$2000 COP');
+    await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(2000).toLocaleString()} COP`);
     await act(async () => {
       await Promise.resolve();
     });
@@ -309,7 +309,7 @@ describe('CarritoPage', () => {
     const combo = (await screen.findByRole('combobox', { name: 'Metros por unidad' })) as HTMLSelectElement;
     await screen.findByText(/20 m disp\./);
     fireEvent.change(combo, { target: { value: '1.5' } });
-    await screen.findByText((_, nodo) => nodo?.className === 'carrito-item-subtotal' && nodo.textContent === '$1500 COP');
+    await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(1500).toLocaleString()} COP`);
     const linea = guardarLinea();
     expect(linea.metros).toBe(1.5);
   });
@@ -370,8 +370,8 @@ describe('CarritoPage', () => {
       }),
     );
     await screen.findByRole('combobox', { name: 'Metros por unidad' });
-    await screen.findByText((_, nodo) => nodo?.className === 'carrito-item-precio-unit' && nodo.textContent === '$2000 COP / metro');
-    const subtotales = await screen.findAllByText((_, nodo) => nodo?.className === 'carrito-item-subtotal' && nodo.textContent === '$6000 COP');
+    await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-precio-unit' && contenido === `$${(2000).toLocaleString()} COP / metro`);
+    const subtotales = await screen.findAllByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(6000).toLocaleString()} COP`);
     expect(subtotales.length).toBeGreaterThan(0);
   });
 });

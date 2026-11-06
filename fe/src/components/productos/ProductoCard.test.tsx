@@ -45,15 +45,22 @@ describe('ProductoCard con variantes', () => {
 
   it('muestra el precio de la variante disponible y permite cambiar cantidad', () => {
     renderCard();
-    expect(screen.getByText('Precio unitario: $750 COP')).toBeTruthy();
+    expect(screen.getByText('Precio unitario')).toBeTruthy();
+    expect(
+      screen.getByText(
+        (contenido, nodo) =>
+          nodo?.className === 'precio-monto' && contenido === `$${(750).toLocaleString()}`,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('COP')).toBeTruthy();
     expect(
       (screen.getByRole('button', { name: /Azul/i }) as HTMLButtonElement).disabled,
     ).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: 'Aumentar cantidad' }));
     expect(
-      document.querySelector('.precio-seleccion-detalle')?.textContent,
-    ).toBe('Subtotal: 2 u. x $750 = $1500 COP');
+      document.querySelector('.subtotal-detalle')?.textContent,
+    ).toBe(`Subtotal: 2 u. = $${(1500).toLocaleString()} COP`);
   });
 
   it('agrega al carrito la variante activa con su precio y stock', () => {

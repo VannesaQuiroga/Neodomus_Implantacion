@@ -27,4 +27,4 @@ Las variables `EXPO_PUBLIC_*` quedan incluidas en el bundle: nunca pongas secret
 
 `app/_layout.tsx` monta proveedores de autenticación, carrito, favoritos, idioma y consentimiento de cookies. `(tabs)` aloja experiencia pública/cliente; `(tecnico)` es el área técnica, seleccionada según el rol. No se encontró una sección administrativa móvil.
 
-Para uso de la aplicación, consulta el [manual de usuario del repositorio](../MANUAL_DE_USUARIO.md). Para instalación completa, consulta [docs/setup/sin-docker.md](../docs/setup/sin-docker.md) o la [guía Docker](../docs/setup/con-docker.md).
+Para uso de la aplicación, consulta el [manual de usuario del repositorio](../docs/manuales/usuario/MANUAL_DE_USUARIO.md). Para instalación completa, consulta [docs/setup/sin-docker.md](../docs/setup/sin-docker.md) o la [guía Docker](../docs/setup/con-docker.md).

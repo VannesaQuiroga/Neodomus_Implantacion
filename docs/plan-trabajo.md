@@ -1,6 +1,6 @@
 # Plan de Trabajo — Proyecto Neodomus
 
-> **Nota de vigencia (30/10/2026):** este plan conserva un corte de seguimiento fechado 29/08/2026 y referencias/estados que no se volvieron a certificar en esta actualización. En particular, el manifiesto actual de `movil/package.json` declara Expo 57 y la API tiene migración `0060`. Trata las fechas, porcentajes, Jira, cobertura y estados como registro histórico hasta que el equipo los confirme. Consulta `docs/auditoria-documental.md`.
+> **Nota de vigencia (30/10/2026):** este plan conserva un corte de seguimiento fechado 29/08/2026 y referencias/estados que no se volvieron a certificar en esta actualización. En particular, el manifiesto actual de `movil/package.json` declara Expo 57 y la API tiene migración `0060`. Trata las fechas, porcentajes, Jira, cobertura y estados como registro histórico hasta que el equipo los confirme. Consulta `docs/gestion/auditoria-documental.md`.
 
 <!--
   ¿Qué? Documento que define fases, actividades, responsables y seguimiento del proyecto.
