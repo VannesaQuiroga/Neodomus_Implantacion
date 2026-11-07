@@ -60,22 +60,13 @@ const AyudaPage = () => {
   }, [activeTab, chatEscribiendo]);
 
   useEffect(() => {
-    // Comunica con el backend mediante GET '/faq'.
-    const fetchFAQs = async () => {
-      try {
-        const res = await api.get('/faq');
-        setFaqs(res.data.data || res.data || []);
-      } catch (err) {
-        console.error(err);
-        setFaqs(faqsMock);
-      } finally {
-        setLoadingFAQs(false);
-      }
-    };
-    fetchFAQs();
+    // Las FAQ son el contenido local del proyecto (no existe un endpoint /faq
+    // en el backend); se cargan directo para no generar 404 en consola.
+    setFaqs(faqsBase);
+    setLoadingFAQs(false);
   }, []);
 
-  const faqsMock: FAQ[] = [
+  const faqsBase: FAQ[] = [
     { id: 1, pregunta: '¿Cómo realizo un pedido?', respuesta: 'Navega a la sección Productos, selecciona los items que deseas, ajusta cantidades y haz clic en "Agregar al carrito". Luego ve a tu carrito y completa el checkout.', categoria: 'Pedidos' },
     { id: 2, pregunta: '¿Cuáles son los métodos de pago?', respuesta: 'Aceptamos tarjetas de crédito/débito (Visa, Mastercard), PSE, Nequi y Daviplata. Todos los pagos son procesados de forma segura.', categoria: 'Pagos' },
     { id: 3, pregunta: '¿Cómo agendo una cita con un técnico?', respuesta: 'Ve a la sección "Citas" en el menú, selecciona el tipo de servicio, fecha, hora y describe tu necesidad. Opcionalmente elige un técnico preferido.', categoria: 'Citas' },

@@ -110,7 +110,6 @@ const Navbar = () => {
             {!rol ? (
               <>
                 <Link to="/productos">{t('nav.productos')}</Link>
-                <Link to="/recomendaciones">{t('nav.recomendaciones')}</Link>
                 <Link to="/info">{t('nav.sobreNosotros')}</Link>
 
                 <Link to="/ayuda" className="icon-link">
@@ -123,7 +122,6 @@ const Navbar = () => {
                 {rol === "cliente" && (
                   <>
                     <Link to="/productos">{t('nav.productos')}</Link>
-                    <Link to="/recomendaciones">{t('nav.recomendaciones')}</Link>
                     <Link to="/cliente/tecnicos">{t('nav.tecnicos')}</Link>
                     <Link to="/cliente/citas">{t('nav.citas')}</Link>
                     <Link to="/cliente/ayuda">{t('nav.ayuda')}</Link>

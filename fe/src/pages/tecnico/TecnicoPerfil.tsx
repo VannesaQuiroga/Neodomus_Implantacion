@@ -33,6 +33,7 @@ interface PerfilTecnico {
   telefono_usuario?: number | null;
   documento_usuario?: number | null;
   certificacion_t?: string | null;
+  foto_url?: string | null;
   especializaciones?: { id_especializacion: number; nombre: string; descripcion?: string | null }[];
   created_at?: string;
 }
@@ -77,6 +78,14 @@ const TechnicalPerfil = () => {
         setDocumento(res.data.documento_usuario ? String(res.data.documento_usuario) : '');
         setCertificacion(res.data.certificacion_t || '');
         setEspecializaciones(res.data.especializaciones || []);
+        // La foto vive en el perfil del backend: se adopta al iniciar sesión,
+        // no solo desde la caché local (mismo dato que muestra la navbar).
+        const urlFoto = res.data.foto_url;
+        if (urlFoto) {
+          setAvatar(urlFoto);
+          setAvatarRoto(false);
+          if (getTechnicalAvatar() !== urlFoto) setTechnicalAvatar(urlFoto);
+        }
       } catch (err) {
         console.error('Error cargando perfil del técnico:', err);
         const partes = (user?.nombre || t('tec.tecnico')).trim().split(' ');

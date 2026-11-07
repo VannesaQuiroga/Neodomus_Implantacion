@@ -1,10 +1,13 @@
 /* ==========================================================
    NAVBAR NEODOMUS
+   Sticky: permanece visible durante el scroll sin cubrir contenido
+   (ocupa su propio espacio; no hace falta compensar con padding).
 ========================================================== */
 
 .neodomus-header {
-  position: relative;
-  z-index: 10;
+  position: sticky;
+  top: 0;
+  z-index: 90;
   width: 100%;
 }
 

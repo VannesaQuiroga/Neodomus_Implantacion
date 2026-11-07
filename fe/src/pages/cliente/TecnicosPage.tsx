@@ -7,6 +7,8 @@ import { useIdioma } from '@i18n/IdiomaContext';
 import { FaUserTie, FaCheck, FaArrowLeft, FaHeart } from 'react-icons/fa6';
 import '@styles/perfil-cliente.css';
 import api from '@services/api';
+import { AvatarFoto } from '@components/common/AvatarFoto';
+import { getIniciales } from '@utils/profileStorage';
 import { tituloNombre } from '@utils/formatoNombre';
 import { suscribirCambiosTecnicos } from '@utils/tecnicosSync';
 import { useTecnicosFavoritos } from '@utils/tecnicosFavoritos';
@@ -28,6 +30,7 @@ interface TecnicoPublico {
   id_tecnico: number;
   first_name: string;
   last_name: string;
+  foto_url?: string | null;
   certificacion_t?: string | null;
   is_active: boolean;
   calificacion?: number | null;
@@ -57,7 +60,7 @@ const TecnicosPage = () => {
           id: t.id_tecnico,
           nombre: tituloNombre(t.first_name),
           apellido: tituloNombre(t.last_name),
-          foto_url: null,
+          foto_url: t.foto_url,
           especialidad: t.certificacion_t || '',
           anios_experiencia: 0,
           calificacion: t.calificacion ?? 0,
@@ -127,11 +130,11 @@ const TecnicosPage = () => {
             <article key={tecnico.id} className="tecnico-card">
               <div className="tecnico-card-header">
                 <div className="tecnico-avatar-wrap">
-                  <img
-                    src={tecnico.foto_url || '/assets/images/perfil.png'}
+                  <AvatarFoto
+                    src={tecnico.foto_url}
+                    iniciales={getIniciales(`${tecnico.nombre} ${tecnico.apellido}`)}
                     alt={`${tecnico.nombre} ${tecnico.apellido}`}
                     className="tecnico-avatar"
-                    onError={(e) => (e.currentTarget.src = '/assets/images/perfil.png')}
                   />
                   {tecnico.disponible && <span className="tecnico-badge disponible">{t('citas.tecnicoDisponible')}</span>}
                   {!tecnico.disponible && <span className="tecnico-badge ocupado">{t('citas.tecnicoOcupado')}</span>}

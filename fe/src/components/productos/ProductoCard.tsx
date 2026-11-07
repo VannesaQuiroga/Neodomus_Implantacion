@@ -316,7 +316,8 @@ const ProductoCard = ({ producto }: Props) => {
 
           {/* Subtotal calculado */}
           <span className="subtotal-detalle">
-            Subtotal: {esPorMetros ? `${metros} m × ${unidades}` : `${cantidad} u.`} = ${totalLinea.toLocaleString()} COP
+            Subtotal: {esPorMetros ? `${metros} m × ${unidades}` : `${cantidad} u.`} ={' '}
+            <span className="subtotal-detalle-valor">${totalLinea.toLocaleString()} COP</span>
           </span>
 
           {/* Disponibilidad con punto verde */}

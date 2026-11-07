@@ -410,12 +410,23 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
     if (actual.leida) return true;
 
     const cuentaAlIniciar = cuentaRef.current;
+    // Marcado optimista: el punto deja de contar al instante; si el PATCH
+    // falla, se restituye el estado previo de esa notificación.
     marcandoRef.current.add(id);
+
+    setNotificaciones((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, leida: true } : n)),
+    );
 
     try {
       if (actual.backendId != null) {
         await api.patch(`/notificaciones/${actual.backendId}/leida`);
-        if (cuentaRef.current !== cuentaAlIniciar) return false;
+        if (cuentaRef.current !== cuentaAlIniciar) {
+          setNotificaciones((prev) =>
+            prev.map((n) => (n.id === id ? { ...n, leida: false } : n)),
+          );
+          return false;
+        }
       }
 
       if (actual.backendId == null && !leidasRef.current[id]) {
@@ -424,15 +435,14 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
         guardarLeidasStorage(storageKey, next);
       }
 
-      setNotificaciones((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, leida: true } : n)),
-      );
-
       setError(null);
       window.dispatchEvent(new Event('notificaciones-refresh'));
       return true;
     } catch {
       if (cuentaRef.current === cuentaAlIniciar) {
+        setNotificaciones((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, leida: false } : n)),
+        );
         setError('No se pudo marcar la notificación como leída.');
       }
       return false;
@@ -447,9 +457,15 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
     if (actuales.length === 0 || actuales.every((n) => n.leida)) return true;
 
     const cuentaAlIniciar = cuentaRef.current;
+    // Escala del marcado: el contador debe irse a cero de inmediato; si el
+    // PATCH falla, se restituye el estado previo en lugar de engañar al usuario.
+    const idsPrevioSinLeer = actuales.filter((n) => !n.leida).map((n) => n.id);
+    const debeParcharServidor = actuales.some((n) => n.backendId != null && !n.leida);
+
+    setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
 
     try {
-      if (actuales.some((n) => n.backendId != null && !n.leida)) {
+      if (debeParcharServidor) {
         await api.patch('/notificaciones/leer-todas');
         if (cuentaRef.current !== cuentaAlIniciar) return false;
       }
@@ -465,13 +481,15 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
         guardarLeidasStorage(storageKey, next);
       }
 
-      setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
-
       setError(null);
       window.dispatchEvent(new Event('notificaciones-refresh'));
       return true;
     } catch {
       if (cuentaRef.current === cuentaAlIniciar) {
+        // Reversión exacta: solo vuelven a "sin leer" las que antes lo estaban.
+        setNotificaciones((prev) =>
+          prev.map((n) => (idsPrevioSinLeer.includes(n.id) ? { ...n, leida: false } : n)),
+        );
         setError('No se pudieron marcar las notificaciones como leídas.');
       }
       return false;

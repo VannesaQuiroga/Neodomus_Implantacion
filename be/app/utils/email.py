@@ -19,6 +19,42 @@ def _from_email() -> str:
     return settings.SMTP_USERNAME
 
 
+def _avisar_smtp_sin_credenciales() -> None:
+    """Diagnóstico visible sin exponer secretos: con EMAIL_PROVIDER=smtp y
+    credenciales vacías el envío fallará siempre; el orden queda registrado
+    (factura creada) pero el correo nunca sale."""
+    if not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
+        print(
+            "[email] SMTP sin credenciales: define SMTP_USERNAME y "
+            "SMTP_PASSWORD en el .env del backend; el correo no puede enviarse."
+        )
+
+
+def _causa_fallo_smtp(error: Exception) -> str:
+    """Traduce el error SMTP a una causa accionable, sin exponer credenciales.
+    Gmail corta la conexión justo al autenticar cuando falta la contraseña
+    (SMTPServerDisconnected), por eso hay que distinguirlo de credenciales
+    inválidas (SMTPAuthenticationError) y de fallos de red."""
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return (
+            "credenciales rechazadas por el servidor: SMTP_PASSWORD debe ser una "
+            "CONTRASEÑA DE APLICACIÓN de Gmail (no la de la cuenta) y la "
+            "verificación en dos pasos debe estar activada"
+        )
+    if isinstance(error, smtplib.SMTPServerDisconnected):
+        mensaje = str(error)
+        if "closed" in mensaje.lower():
+            return (
+                "el servidor cerró la conexión (Connection unexpectedly closed): "
+                "revisa que SMTP_PASSWORD esté en el .env que recibe el "
+                "contenedor y recrea el servicio (docker compose up -d api)"
+            )
+        return f"el servidor cerró la conexión: {mensaje}"
+    if isinstance(error, TimeoutError):
+        return "tiempo de espera agotado con el servidor SMTP"
+    return f"{type(error).__name__}: {error}"
+
+
 def _send_email_resend(to_email: str, subject: str, body: str) -> bool:
     """Envía email usando la API de Resend (REST, sin SMTP)."""
     import json
@@ -68,6 +104,7 @@ def _send_email_sync(to_email: str, subject: str, body: str) -> bool:
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
 
+    _avisar_smtp_sin_credenciales()
     server = None
     try:
         server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10)
@@ -77,7 +114,7 @@ def _send_email_sync(to_email: str, subject: str, body: str) -> bool:
         print(f"[email] SMTP enviado correctamente a {to_email} | asunto: {subject}")
         return True
     except Exception as smtp_err:
-        print(f"[email] SMTP fallo para {to_email}: {smtp_err}")
+        print(f"[email] SMTP fallo para {to_email}: {_causa_fallo_smtp(smtp_err)}")
         raise
     finally:
         if server is not None:
@@ -192,17 +229,15 @@ async def send_email_with_attachment(
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
 
-        try:
-            adjunto = MIMEApplication(pdf_bytes, _subtype='pdf')
-            adjunto.add_header(
-                'Content-Disposition',
-                'attachment',
-                filename=filename,
-            )
-            msg.attach(adjunto)
-        except Exception:
-            raise HTTPException(status_code=500, detail="No se pudo adjuntar el PDF de la factura")
+        adjunto = MIMEApplication(pdf_bytes, _subtype='pdf')
+        adjunto.add_header(
+            'Content-Disposition',
+            'attachment',
+            filename=filename,
+        )
+        msg.attach(adjunto)
 
+        _avisar_smtp_sin_credenciales()
         server = None
         try:
             server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10)
@@ -212,7 +247,7 @@ async def send_email_with_attachment(
             print(f"[email] SMTP con adjunto enviado a {to_email}")
             return True
         except Exception as smtp_err:
-            print(f"[email] SMTP adjunto fallo para {to_email}: {smtp_err}")
+            print(f"[email] SMTP adjunto fallo para {to_email}: {_causa_fallo_smtp(smtp_err)}")
             raise
         finally:
             if server is not None:

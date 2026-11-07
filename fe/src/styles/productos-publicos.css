@@ -432,13 +432,19 @@
 }
 
 /* --- Subtotal calculado --- */
-
+/* Segundo nivel de jerarquía después del precio unitario: blanco y en
+   negrita para que el cliente lea de un vistazo cuánto pagará. Los montos
+   siguen calculándose igual (sin cambio de lógica). */
 .subtotal-detalle {
-  color: #c9c9c9;
-  font-size: 12px;
-  font-weight: 500;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
   letter-spacing: 0.3px;
-  margin-top: 2px;
+  margin-top: 4px;
+}
+
+.subtotal-detalle-valor {
+  color: #ffd700;
 }
 
 /* --- Disponibilidad (punto verde) --- */
@@ -457,7 +463,10 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   padding: 4px 10px;
-  white-space: nowrap;
+  /* Sin nowrap: en tarjetas angostas el chip envuelve en lugar de salirse. */
+  flex-wrap: wrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .stock-disponible__dot {
@@ -560,13 +569,16 @@
 /* --- Selectores de cantidad --- */
 
 .selectores-bloque {
+  /* Zona de controles anclada a la base de la tarjeta: la reserva de una fila
+     completa de metraje (79px) mantiene la fila de cantidad y el botón
+     "Agregar" a la misma altura en productos con y sin metraje. */
   display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   width: 100%;
-  min-height: 38px;
-  justify-content: flex-start;
-  align-items: center;
+  min-height: 79px;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: auto;
 }
 
 .cantidad-row {
@@ -689,6 +701,66 @@
 
 .metros-select:hover {
   border-color: rgba(211, 172, 77, 0.6);
+}
+
+/* ── Desplegable compacto de metraje (portal) ──────────────── */
+/* El control nativo dejaba que el navegador estirara su popup; este menú fue
+   altura tope (240 px) con scroll interno, se posiciona bajo el disparador
+   (o encima si falta espacio) y no modifica el layout de la tarjeta. */
+.metros-select-wrap {
+  display: inline-flex;
+}
+
+.metros-menu {
+  z-index: 60;
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(211, 172, 77, 0.45);
+  background: #131313;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(211, 172, 77, 0.45) rgba(255, 255, 255, 0.04);
+}
+
+.metros-menu-aviso {
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: #ff8f93;
+  background: rgba(229, 72, 77, 0.08);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.metros-menu-opcion {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #e6e6e6;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.metros-menu-opcion:hover {
+  background: rgba(211, 172, 77, 0.14);
+  color: #ffffff;
+}
+
+.metros-menu-opcion.seleccionada {
+  background: rgba(211, 172, 77, 0.22);
+  color: #ffd98a;
 }
 
 .metros-select:focus {
@@ -1120,10 +1192,11 @@
   height: 200px;
 }
 
-/* Productos con metraje: los controles deben caber dentro de la tarjeta */
+/* Las tarjetas de los carrusel conservan la reserva base de metraje
+   (.selectores-bloque min-height 79px): sin ella la fila de cantidad y el
+   botón "Agregar" quedaban a alturas distintas entre productos. */
 .detalle-recomendados-grid .selectores-bloque {
   width: 100%;
-  min-height: 0;
 }
 
 .detalle-recomendados-grid .metros-control-grid {

@@ -10,6 +10,7 @@ from app.models.solicitud_cuenta import SolicitudCuenta
 from app.models.user import User
 from app.schemas.cliente import ClientResponse, ClientUpdate
 from app.schemas.solicitud import SolicitudCreate, SolicitudResponse
+from app.utils.imagenes import validar_imagen_perfil
 from app.utils.security import get_current_client, get_current_employee
 from app.models.cita import Cita
 from app.models.pedido import Pedido
@@ -74,20 +75,22 @@ def listar_clientes(
 def get_my_profile(current_client: Cliente = Depends(get_current_client)):
     return current_client
 
-@router.get("/me/cuenta-solicitud", response_model=SolicitudResponse)
+@router.get("/me/cuenta-solicitud", response_model=SolicitudResponse | None)
 def get_mi_solicitud(
     current_client: Cliente = Depends(get_current_client),
     db: Session = Depends(get_db),
 ):
-    """Devuelve la solicitud más reciente del cliente (inhabilitar/habilitar)"""
+    """Devuelve la solicitud más reciente del cliente (inhabilitar/habilitar).
+
+    Sin solicitudes responde 200 con cuerpo vacío: "no hay solicitud" no es un
+    recurso inexistente (evita 404 repetidos en la consola del navegador en
+    cada carga del perfil; el cliente solo pregunta por SU propia solicitud)."""
     solicitud = (
         db.query(SolicitudCuenta)
         .filter(SolicitudCuenta.id_cliente == current_client.id_cliente)
         .order_by(SolicitudCuenta.created_at.desc())
         .first()
     )
-    if not solicitud:
-        raise HTTPException(status_code=404, detail="No hay solicitudes")
     return solicitud
 
 @router.post("/me/cuenta-solicitud", response_model=SolicitudResponse)
@@ -343,21 +346,43 @@ async def subir_foto_perfil(
     current_client: Cliente = Depends(get_current_client),
     db: Session = Depends(get_db),
 ):
-    """Sube una foto de perfil del cliente a MinIO y la asocia a su cuenta."""
-    if not archivo.content_type or not archivo.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
-    contenido = await archivo.read()
-    if len(contenido) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB")
-    ext = archivo.filename.rsplit(".", 1)[-1] if archivo.filename and "." in archivo.filename else "jpg"
-    nombre = f"perfil_cliente_{current_client.id_cliente}.{ext}"
-    from app.services.minio_service import subir_imagen, eliminar_objeto
-    if current_client.foto_url:
-        prefijo = f"{current_client.foto_url.split('/minio/')[-1]}" if "/minio/" in current_client.foto_url else None
-        if prefijo:
-            eliminar_objeto(prefijo)
+    """Sube una foto de perfil del cliente a MinIO y la asocia a su cuenta.
+
+    Valida el CONTENIDO real con Pillow (mismo criterio que los empleados) y
+    usa un nombre de objeto único: reemplazar la foto genera una URL nueva,
+    de modo que el navegador la muestre inmediatamente sin caché obsoleta.
+    """
+    import uuid
+
+    contenido, ext = await validar_imagen_perfil(archivo)
+    nombre = f"perfil_cliente_{current_client.id_cliente}_{uuid.uuid4().hex}{ext}"
+
+    from app.services.minio_service import eliminar_imagen_perfil, subir_imagen
+
     url = subir_imagen("perfiles", nombre, contenido)
+    anterior = current_client.foto_url
     current_client.foto_url = url
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        try:
+            eliminar_imagen_perfil(url)
+        except Exception:
+            pass
+        raise
     db.refresh(current_client)
+    # La foto anterior se conserva hasta confirmar la nueva; su eliminación
+    # es best-effort y se registra sin interrumpir la respuesta.
+    if anterior:
+        try:
+            eliminar_imagen_perfil(anterior)
+        except Exception as e:
+            import logging
+
+            logging.getLogger("neodomus").warning(
+                "No se pudo eliminar la foto de perfil anterior (cliente %s): %s",
+                current_client.id_cliente,
+                e,
+            )
     return current_client

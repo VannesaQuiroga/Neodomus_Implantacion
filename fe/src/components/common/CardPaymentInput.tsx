@@ -12,6 +12,9 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' |
 export function CardPaymentInput({ field, value, onValueChange, ...props }: Props) {
   const maxLength = field === 'number' ? 19 : field === 'expiry' ? 5 : 4;
   return <input {...props} type={field === 'cvv' ? 'password' : 'text'}
+    // Sin autoguardado/autocompletado del navegador: al tratar estos campos
+    // como datos de tarjeta, Chrome los pinta con fondo claro (autofill).
+    autoComplete="off"
     inputMode={field === 'expiry' ? 'text' : 'numeric'} maxLength={maxLength}
     value={value} onChange={(event) => {
       const clean = event.target.value.replace(field === 'expiry' ? /[^\d/]/g : /\D/g, '');

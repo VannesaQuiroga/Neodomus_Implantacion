@@ -27,6 +27,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
 import { subtotalLinea } from '@utils/productoPrecio';
 import { esDomingo } from '@utils/fechas';
+import SelectorBanco from '@components/common/SelectorBanco';
 import '@styles/checkout.css';
 import '@styles/citas.css';
 
@@ -195,6 +196,7 @@ const CheckoutPage = () => {
   // Credenciales del último intento rechazado (para reintentar sin reescribir
   // todo). El número completo y el CVV nunca se guardan.
   const [bancos, setBancos] = useState<string[]>([]);
+  const listaBancos = bancos.length ? bancos : ['Bancolombia', 'Banco de Bogotá', 'Banco Davivienda'];
   const [metodosDisponibles, setMetodosDisponibles] = useState<Metodo[] | null>(null);
   const [servicios, setServicios] = useState<LineaServicio[]>([]);
   const [procesando, setProcesando] = useState(false);
@@ -406,6 +408,7 @@ const CheckoutPage = () => {
     if (nuevo === metodo) return;
     setMetodo(nuevo);
     setError('');
+    // Al salir de PSE la selección de banco ya no aplica: se limpia con el método.
     setPago((prev) => {
       const siguiente = { ...prev, resultado_simulacion: '' };
       if (!METODOS_TARJETA.includes(nuevo)) {
@@ -1203,12 +1206,15 @@ const CheckoutPage = () => {
                   <>
                     <div className="checkout-field">
                       <label>Banco</label>
-                      <select value={pago.banco} onChange={(e) => setPago({ ...pago, banco: e.target.value })}>
-                        <option value="">Selecciona tu banco</option>
-                        {(bancos.length ? bancos : ['Bancolombia', 'Banco de Bogotá', 'Banco Davivienda']).map((b) => (
-                          <option key={b} value={b}>{b}</option>
-                        ))}
-                      </select>
+                      <SelectorBanco
+                        bancos={listaBancos}
+                        value={pago.banco}
+                        onChange={(banco) => setPago((prev) => ({ ...prev, banco }))}
+                        classNameTrigger="checkout-banco-trigger"
+                        classNameMenu=""
+                        placeholder="Selecciona tu banco"
+                        ariaLabel="Banco"
+                      />
                     </div>
                     <div className="checkout-field">
                       <label>Titular de la cuenta</label>

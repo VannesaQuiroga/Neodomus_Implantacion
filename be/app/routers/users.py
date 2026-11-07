@@ -13,6 +13,7 @@ from app.models.roles_usuario import RolesUsuario
 from app.models.tecnico import Tecnico
 from app.schemas.user import EmployeeResponse, PerfilEmpleadoResponse, UserUpdate
 from app.utils.respaldo_usuarios import respaldar_usuarios
+from app.utils.imagenes import validar_imagen_perfil
 from app.utils.security import get_current_employee, hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -432,44 +433,10 @@ async def subir_foto_perfil(
     HTML/SVG disfrazados de imagen. El nombre del objeto es único, de modo que
     reemplazar la foto genera una URL nueva (sin caché del navegador).
     """
-    import io
     import uuid
     from pathlib import Path
 
-    from PIL import Image
-
-    if not archivo or not archivo.filename:
-        raise HTTPException(status_code=400, detail="Selecciona un archivo de imagen")
-
-    FORMATOS_PERMITIDOS = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}
-    ext = Path(archivo.filename or "").suffix.lower()
-    if ext not in FORMATOS_PERMITIDOS:
-        raise HTTPException(status_code=400, detail="Formato no permitido (usa JPG, PNG o WEBP)")
-
-    contenido = await archivo.read()
-    if not contenido:
-        raise HTTPException(status_code=400, detail="El archivo está vacío")
-    if len(contenido) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB")
-
-    # Verificación real del contenido: integridad y formato raster.
-    try:
-        with Image.open(io.BytesIO(contenido)) as img:
-            img.verify()
-    except Exception:
-        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
-
-    try:
-        with Image.open(io.BytesIO(contenido)) as img:
-            formato = (img.format or "").upper()
-            ancho, alto = img.size
-    except Exception:
-        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
-
-    if formato != FORMATOS_PERMITIDOS[ext]:
-        raise HTTPException(status_code=400, detail="La extensión no coincide con el contenido real")
-    if ancho <= 0 or alto <= 0 or ancho > 8000 or alto > 8000:
-        raise HTTPException(status_code=400, detail="Dimensiones de imagen no permitidas")
+    contenido, ext = await validar_imagen_perfil(archivo)
 
     from app.services.minio_service import eliminar_imagen_perfil, subir_imagen
 

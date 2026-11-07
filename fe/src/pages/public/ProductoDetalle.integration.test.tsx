@@ -193,8 +193,8 @@ describe('ProductoDetalle -> carrito -> checkout', () => {
 
   it('conserva metros y unidades hasta el pedido', async () => {
     renderFlujo('/producto/1');
-    const metros = (await screen.findByRole('combobox', { name: 'Metros por unidad' })) as HTMLSelectElement;
-    fireEvent.change(metros, { target: { value: '1.5' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Metros por unidad' }));
+    fireEvent.click(screen.getByRole('option', { name: '1.5 m' }));
 
     const unidades = screen.getByRole('textbox', { name: 'Unidades' });
     fireEvent.change(unidades, { target: { value: '2' } });

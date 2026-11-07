@@ -1,5 +1,5 @@
 // Pantalla CitasPage de Neodomus. Reúne el estado y las acciones de su vista.
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useIdioma } from '@i18n/IdiomaContext';
@@ -13,6 +13,9 @@ import {
 } from 'react-icons/fa6';
 import '@styles/citas.css';
 import api from '@services/api';
+import SelectorBanco from '@components/common/SelectorBanco';
+import { AvatarFoto } from '@components/common/AvatarFoto';
+import { getIniciales } from '@utils/profileStorage';
 import { useTecnicosFavoritos } from '@utils/tecnicosFavoritos';
 import { tituloNombre } from '@utils/formatoNombre';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
@@ -146,6 +149,10 @@ const CitasPage = () => {
   const [tecnicoSel, setTecnicoSel] = useState<{ id: number; nombre: string } | null>(null);
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [tecnicosLoading, setTecnicosLoading] = useState(false);
+  // Selector compacto: la lista completa de técnicos vive en un menú desplegable
+  // ("Seleccionar técnico") en lugar de ocupar la tarjeta con todas las fichas.
+  const [menuTecnicosAbierto, setMenuTecnicosAbierto] = useState(false);
+  const menuTecnicosRef = useRef<HTMLDivElement>(null);
 
   const [tarifas, setTarifas] = useState<Record<string, number>>({});
   const [bancos, setBancos] = useState<string[]>([]);
@@ -156,6 +163,25 @@ const CitasPage = () => {
 
   const [deTecnicosPage, setDeTecnicosPage] = useState(false);
   const [direccionPerfil, setDireccionPerfil] = useState('');
+
+  // Cierre del desplegable de técnicos al hacer clic fuera o pulsar Escape.
+  useEffect(() => {
+    if (!menuTecnicosAbierto) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (menuTecnicosRef.current && !menuTecnicosRef.current.contains(e.target as Node)) {
+        setMenuTecnicosAbierto(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuTecnicosAbierto(false);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuTecnicosAbierto]);
 
   const [aplazandoId, setAplazandoId] = useState<number | null>(null);
   const [aplazandoFecha, setAplazandoFecha] = useState('');
@@ -697,11 +723,11 @@ const CitasPage = () => {
       className={`citas-tecnico-item ${seleccionado ? 'selected' : ''} ${tec.disponible ? '' : 'no-disponible'}`}
     >
       <div className="citas-tecnico-top">
-        <img
-          src={tec.foto_url || '/assets/images/perfil.png'}
+        <AvatarFoto
+          src={tec.foto_url}
+          iniciales={getIniciales(`${tec.nombre} ${tec.apellido}`)}
           alt={`${tec.nombre} ${tec.apellido}`}
           className="citas-tecnico-avatar"
-          onError={(e) => (e.currentTarget.src = '/assets/images/perfil.png')}
         />
         <div className="citas-tecnico-info">
           <strong>{tec.nombre} {tec.apellido}</strong>
@@ -722,6 +748,8 @@ const CitasPage = () => {
               setTecnicoSel(seleccionado ? null : { id: tec.id, nombre: `${tec.nombre} ${tec.apellido}` });
               // La disponibilidad cambia con el técnico: se invalida la hora.
               setForm((prev) => (prev.hora ? { ...prev, hora: '' } : prev));
+              // Al confirmar el técnico, el selector vuelve a su estado compacto.
+              setMenuTecnicosAbierto(false);
             }}
             disabled={!tec.disponible}
           >
@@ -747,18 +775,34 @@ const CitasPage = () => {
           <p>{t('citas.subSeleccionTecnico')}</p>
         </div>
       </div>
-      {tecnicosLoading ? (
-        <p className="citas-hint">{t('citas.cargandoTecnicos')}</p>
-      ) : tecnicos.length === 0 ? (
-        <div className="citas-tecnicos-vacio">
-          <FaExclamation />
-          <p>No hay técnicos disponibles para el servicio y horario seleccionados. Prueba con otro tipo de servicio, fecha u hora.</p>
-        </div>
-      ) : (
-        <div className="citas-tecnicos-list">
-          {tecnicos.map((tec) => renderTecnicoCard(tec, tecnicoSel?.id === tec.id))}
-        </div>
-      )}
+      <div className="citas-tecnico-select-wrap" ref={menuTecnicosRef}>
+        <button
+          type="button"
+          className="citas-tecnico-trigger"
+          onClick={() => setMenuTecnicosAbierto((abierto) => !abierto)}
+          aria-haspopup="listbox"
+          aria-expanded={menuTecnicosAbierto}
+        >
+          <span className="citas-tecnico-trigger-placeholder">{t('citas.seleccionarTecnicoPlaceholder')}</span>
+          <FaChevronDown className={`citas-tecnico-chevron ${menuTecnicosAbierto ? 'arriba' : ''}`} />
+        </button>
+        {menuTecnicosAbierto && (
+          <div className="citas-tecnicos-menu" role="listbox" aria-label={t('citas.tituloSeleccionTecnico')}>
+            {tecnicosLoading ? (
+              <p className="citas-hint">{t('citas.cargandoTecnicos')}</p>
+            ) : tecnicos.length === 0 ? (
+              <div className="citas-tecnicos-vacio">
+                <FaExclamation />
+                <p>No hay técnicos disponibles para el servicio y horario seleccionados. Prueba con otro tipo de servicio, fecha u hora.</p>
+              </div>
+            ) : (
+              <div className="citas-tecnicos-list">
+                {tecnicos.map((tec) => renderTecnicoCard(tec, tecnicoSel?.id === tec.id))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -766,6 +810,7 @@ const CitasPage = () => {
   // acción para cambiarlo, sin listar de nuevo a todos los profesionales.
   const renderTecnicoSeleccionado = () => {
     const tec = tecnicoSel ? tecnicos.find((x) => x.id === tecnicoSel.id) : null;
+    const fotoSeleccionado = tecnicoSel ? tec?.foto_url ?? null : null;
     return (
       <div className="citas-tecnico-seleccionado">
         {tec ? (
@@ -773,8 +818,9 @@ const CitasPage = () => {
         ) : (
           <div className="citas-tecnico-item selected">
             <div className="citas-tecnico-top">
-              <img
-                src="/assets/images/perfil.png"
+              <AvatarFoto
+                src={fotoSeleccionado}
+                iniciales={getIniciales(tecnicoSel?.nombre || t('citas.tecnicoAsignado'))}
                 alt={tecnicoSel?.nombre || t('citas.tecnicoAsignado')}
                 className="citas-tecnico-avatar"
               />
@@ -1413,16 +1459,14 @@ const CitasPage = () => {
                     <>
                       <div className="citas-field">
                         <label className="citas-label">{t('citas.banco')}</label>
-                        <select
-                          className="citas-select"
+                        <SelectorBanco
+                          bancos={bancos.length ? bancos : ['Bancolombia', 'Banco de Bogotá', 'Banco Davivienda']}
                           value={pago.banco}
-                          onChange={(e) => setPago({ ...pago, banco: e.target.value })}
-                        >
-                          <option value="">{t('citas.seleccionaBanco')}</option>
-                          {(bancos.length ? bancos : ['Bancolombia', 'Banco de Bogotá', 'Banco Davivienda']).map((b) => (
-                            <option key={b} value={b}>{b}</option>
-                          ))}
-                        </select>
+                          onChange={(banco) => setPago((prev) => ({ ...prev, banco }))}
+                          classNameTrigger="citas-banco-trigger"
+                          placeholder={t('citas.seleccionaBanco')}
+                          ariaLabel={t('citas.banco')}
+                        />
                       </div>
                       <div className="citas-field">
                         <label className="citas-label">{t('citas.titularCuenta')}</label>

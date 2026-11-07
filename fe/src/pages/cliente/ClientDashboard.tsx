@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import api from '@services/api';
 import { useCart } from '@contexts/CartContext';
+import SinResultados from '@components/productos/SinResultados';
 import '@styles/client-dashboard.css';
 import carritoIcon from '@assets/images/Carrito.png';
 import buscadorIcon from '@assets/images/buscador.png';
@@ -206,7 +207,14 @@ const ClientDashboard = () => {
           </div>
 
           {currentProductos.length === 0 ? (
-            <div className="loading">No hay productos que coincidan con la búsqueda.</div>
+            <SinResultados
+              titulo={searchTerm || categoriaSeleccionada ? 'Producto no encontrado' : 'Sin productos disponibles'}
+              mensaje={
+                searchTerm || categoriaSeleccionada
+                  ? 'No encontramos ningún producto que coincida con tu búsqueda.'
+                  : 'Ahora mismo no hay productos disponibles.'
+              }
+            />
           ) : (
             <>
               <div className="productos-grid">

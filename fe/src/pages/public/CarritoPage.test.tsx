@@ -113,7 +113,7 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
     const linea = guardarLinea();
     expect(linea.metros).toBe(1.5);
@@ -136,13 +136,14 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    const combo = (await screen.findByRole('combobox', { name: 'Metros por unidad' })) as HTMLSelectElement;
+    const disparador = await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
     await waitFor(() => {
       expect(llamadasA(rutaProducto)).toBe(1);
     });
     const antes = llamadasA(rutaProducto);
-    fireEvent.change(combo, { target: { value: '2.5' } });
+    fireEvent.click(disparador);
+    fireEvent.click(screen.getByRole('option', { name: '2.5 m' }));
     await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(2500).toLocaleString()} COP`);
     await act(async () => {
       await Promise.resolve();
@@ -166,7 +167,7 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
     const linea = guardarLinea();
     expect(linea.stock_maximo).toBe(20);
@@ -215,14 +216,15 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    const combo = (await screen.findByRole('combobox', { name: 'Metros por unidad' })) as HTMLSelectElement;
+    const disparador = await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
     await waitFor(() => {
       expect(llamadasA(rutaProducto)).toBe(1);
       expect(llamadasA(rutaLista)).toBe(1);
     });
     const antes = llamadasA(rutaProducto);
-    fireEvent.change(combo, { target: { value: '2' } });
+    fireEvent.click(disparador);
+    fireEvent.click(screen.getByRole('option', { name: '2 m' }));
     await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(2000).toLocaleString()} COP`);
     await act(async () => {
       await Promise.resolve();
@@ -242,7 +244,7 @@ describe('CarritoPage', () => {
         metros: 1,
       }),
     );
-    await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
     const linea = guardarLinea();
     expect(linea.metros).toBe(1);
@@ -266,9 +268,9 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    const combo = await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    const disparador = await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/Excede stock \(0 m/);
-    expect((combo as HTMLSelectElement).disabled).toBe(true);
+    expect((disparador as HTMLButtonElement).disabled).toBe(true);
     expect(boton('Finalizar compra').disabled).toBe(true);
     const linea = guardarLinea();
     expect(linea.stock_maximo).toBe(0);
@@ -287,7 +289,7 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
     await waitFor(() => {
       expect(llamadasA(rutaProducto)).toBe(1);
@@ -306,9 +308,10 @@ describe('CarritoPage', () => {
         metros: 0.5,
       }),
     );
-    const combo = (await screen.findByRole('combobox', { name: 'Metros por unidad' })) as HTMLSelectElement;
+    const disparador = await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/20 m disp\./);
-    fireEvent.change(combo, { target: { value: '1.5' } });
+    fireEvent.click(disparador);
+    fireEvent.click(screen.getByRole('option', { name: '1.5 m' }));
     await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(1500).toLocaleString()} COP`);
     const linea = guardarLinea();
     expect(linea.metros).toBe(1.5);
@@ -326,9 +329,9 @@ describe('CarritoPage', () => {
         metros: 2.5,
       }),
     );
-    const combo = await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    const disparador = await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText(/Excede stock \(20 m/);
-    expect((combo as HTMLSelectElement).disabled).toBe(false);
+    expect((disparador as HTMLButtonElement).disabled).toBe(false);
     await waitFor(() => {
       expect(boton('Aumentar unidades').disabled).toBe(true);
     expect(boton('Finalizar compra').disabled).toBe(true);
@@ -347,7 +350,7 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    await screen.findByRole('button', { name: 'Metros por unidad' });
     const sugeridos = await screen.findAllByTestId('sugerido');
     expect(sugeridos.map(n => n.textContent)).toEqual(['2:Lámina']);
   });
@@ -369,7 +372,7 @@ describe('CarritoPage', () => {
         metros: 1.5,
       }),
     );
-    await screen.findByRole('combobox', { name: 'Metros por unidad' });
+    await screen.findByRole('button', { name: 'Metros por unidad' });
     await screen.findByText((contenido, nodo) => nodo?.className === 'carrito-item-precio-unit' && contenido === `$${(2000).toLocaleString()} COP / metro`);
     const subtotales = await screen.findAllByText((contenido, nodo) => nodo?.className === 'carrito-item-subtotal' && contenido === `$${(6000).toLocaleString()} COP`);
     expect(subtotales.length).toBeGreaterThan(0);

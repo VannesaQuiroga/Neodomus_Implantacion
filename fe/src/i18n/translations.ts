@@ -27,12 +27,6 @@ export const TRADUCCIONES_BASE: Record<string, Record<string, string>> = {
   'nav.bienvenido': { es: 'Bienvenido', en: 'Welcome' },
   'nav.verNotificaciones': { es: 'Ver notificaciones', en: 'View notifications' },
   'nav.verCarrito': { es: 'Ver carrito', en: 'View cart' },
-  'nav.recomendaciones': { es: 'Recomendaciones', en: 'Recommendations' },
-
-  // ─── Recomendaciones ──────────────────────────────────────
-  'recomendaciones.subtitulo': { es: 'Productos recomendados para ti', en: 'Recommended products for you' },
-  'recomendaciones.buscarProducto': { es: 'Buscar producto recomendado', en: 'Search recommended products' },
-  'recomendaciones.sinResultados': { es: 'No se encontraron productos recomendados', en: 'No recommended products found' },
 
   // ─── Footer ───────────────────────────────────────────────
   'footer.pagina': { es: 'Página', en: 'Page' },
@@ -75,6 +69,11 @@ export const TRADUCCIONES_BASE: Record<string, Record<string, string>> = {
   'productos.agregarCarrito': { es: 'Agregar al carrito', en: 'Add to cart' },
   'productos.agregado': { es: 'Agregado', en: 'Added' },
   'productos.sinResultados': { es: 'No encontramos productos con esa búsqueda.', en: 'We could not find any products for that search.' },
+  'productos.sinResultadosTitulo': { es: 'Producto no encontrado', en: 'Product not found' },
+  'productos.sinResultadosSugerencias': { es: 'No encontramos ningún producto que coincida con tu búsqueda.', en: 'We could not find any product that matches your search.' },
+  'productos.limpiarBusqueda': { es: 'Limpiar búsqueda', en: 'Clear search' },
+  'productos.catalogoVacio': { es: 'Ahora mismo no hay productos disponibles.', en: 'There are no products available right now.' },
+  'productos.sinProductosTitulo': { es: 'Sin productos disponibles', en: 'No products available' },
   'productos.detalle': { es: 'Ver detalle', en: 'View details' },
   'productos.descripcion': { es: 'Descripción', en: 'Description' },
   'productos.stock': { es: 'Stock disponible', en: 'Available stock' },
@@ -208,6 +207,7 @@ export const TRADUCCIONES_BASE: Record<string, Record<string, string>> = {
   'citas.exitoCancelada': { es: 'Cita cancelada correctamente', en: 'Appointment cancelled successfully' },
   'citas.errorGenerico': { es: 'Error al procesar la cita', en: 'Error processing the appointment' },
   'citas.seleccionarTecnico': { es: 'Seleccionar', en: 'Select' },
+  'citas.seleccionarTecnicoPlaceholder': { es: 'Seleccionar técnico', en: 'Select technician' },
   'citas.tecnicoSeleccionado': { es: 'Seleccionado', en: 'Selected' },
   'citas.tecnicoNoDisponible': { es: 'No disponible', en: 'Not available' },
   'citas.tecnicoDisponible': { es: 'Disponible', en: 'Available' },

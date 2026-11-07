@@ -105,7 +105,11 @@ class Settings(BaseSettings):
         return self
     
     model_config = ConfigDict(
-        env_file=".env",
+        # Se carga `.env` del directorio de ejecución y, como respaldo para
+        # arranques locales desde `be/` (sin Docker), el `.env` de la raíz del
+        # repositorio. Los archivos ausentes se ignoran; el primero que defina
+        # una variable tiene precedencia.
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore"

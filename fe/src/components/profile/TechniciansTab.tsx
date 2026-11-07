@@ -85,7 +85,7 @@ const TechniciansTab = () => {
                         src={t.foto_url}
                         alt={nombre}
                         style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                        onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                        onError={(e) => (e.currentTarget.src = '/assets/images/perfil.png')}
                       />
                     ) : (
                       initials(nombre)

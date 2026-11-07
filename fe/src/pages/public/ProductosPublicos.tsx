@@ -4,6 +4,7 @@ import { FaMagnifyingGlass } from 'react-icons/fa6';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import ProductoCard from '@components/productos/ProductoCard';
+import SinResultados from '@components/productos/SinResultados';
 import '@styles/productos-publicos.css';
 
 interface Producto {
@@ -186,7 +187,16 @@ const ProductosPublicos = () => {
         </div>
 
         {currentProductos.length === 0 ? (
-          <div className="loading">{t('productos.sinResultados')}</div>
+          <SinResultados
+            titulo={t(searchTerm || categoriaSeleccionada ? 'productos.sinResultadosTitulo' : 'productos.sinProductosTitulo')}
+            mensaje={
+              searchTerm || categoriaSeleccionada
+                ? t('productos.sinResultadosSugerencias')
+                : t('productos.catalogoVacio')
+            }
+            icono={<FaMagnifyingGlass />}
+            accion={searchTerm ? { etiqueta: t('productos.limpiarBusqueda'), alHacerClic: () => setSearchTerm('') } : undefined}
+          />
         ) : (
           <>
             <div className="productos-grid">

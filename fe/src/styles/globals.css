@@ -51,6 +51,79 @@ img {
   color: #ff6b6b;
 }
 
+/* Estado vacío compartido por las vistas de productos (buscador destacado,
+   sugerencias y acción opcional). Blanco sobre el fondo oscuro, como el resto
+   de la identidad NeoDomus. */
+.productos-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 20px;
+  margin: 8px 0;
+  text-align: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(211, 172, 77, 0.2);
+}
+
+.productos-vacio-icono {
+  width: 66px;
+  height: 66px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: #d3ac4d;
+  background: rgba(212, 165, 75, 0.09);
+  border: 1px solid rgba(212, 165, 75, 0.28);
+}
+
+.productos-vacio-titulo {
+  color: #ffffff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.productos-vacio-mensaje {
+  color: #c9c9c9;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 420px;
+  margin: 0;
+}
+
+.productos-vacio-accion {
+  margin-top: 4px;
+  padding: 10px 20px;
+  border: 1px solid rgba(211, 172, 77, 0.5);
+  border-radius: 12px;
+  background: transparent;
+  color: #d3ac4d;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s;
+}
+
+.productos-vacio-accion:hover {
+  background: #d3ac4d;
+  color: #111111;
+}
+
+@media (max-width: 600px) {
+  .productos-vacio {
+    padding: 48px 16px;
+  }
+
+  .productos-vacio-titulo {
+    font-size: 1.35rem;
+  }
+}
+
 /* Toasts */
 .cart-toast {
   position: fixed;
