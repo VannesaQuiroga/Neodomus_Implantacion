@@ -5,10 +5,11 @@ Lógica de negocio para autenticación en Neodomus.
 
 import json
 import random
+import unicodedata
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -51,15 +52,34 @@ from app.utils.security import (
 # Roles válidos para empleados (provenientes de roles_usuario)
 ROLES_EMPLEADOS_VALIDOS = {"admin", "administrador", "tecnico"}
 
+
+def normalizar_rol_empleado(role_name: str | None) -> str | None:
+    """Devuelve el rol de empleado en forma canónica, tolerando tildes y mayúsculas."""
+    if not role_name:
+        return None
+    normalized = unicodedata.normalize("NFKD", role_name.strip().lower())
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    return normalized if normalized in ROLES_EMPLEADOS_VALIDOS else None
+
 # ──────────────────────────────────────────────────────────────────
 # 🔍 Funciones auxiliares
 # ──────────────────────────────────────────────────────────────────
 
 def _get_user_by_email(db: Session, email: str) -> User | None:
-    return db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    normalized_email = (email or "").strip().lower()
+    return db.execute(
+        select(User)
+        .where(func.lower(func.trim(User.email)) == normalized_email)
+        .limit(1)
+    ).scalars().first()
 
 def _get_client_by_email(db: Session, email: str) -> Cliente | None:
-    return db.execute(select(Cliente).where(Cliente.email == email)).scalar_one_or_none()
+    normalized_email = (email or "").strip().lower()
+    return db.execute(
+        select(Cliente)
+        .where(func.lower(func.trim(Cliente.email)) == normalized_email)
+        .limit(1)
+    ).scalars().first()
 
 
 def _cliente_perfil_incompleto(cliente: Cliente | None) -> bool:
@@ -266,7 +286,8 @@ def login(db: Session, login_data: UserLogin) -> TokenResponse:
         if user.id_rol_u:
             rol = db.execute(select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == user.id_rol_u)).scalar_one_or_none()
             role_name = rol
-        if not role_name or role_name.lower() not in ROLES_EMPLEADOS_VALIDOS:
+        role_name = normalizar_rol_empleado(role_name)
+        if not role_name:
             log_login_failed(email, "invalid_role", "employee")
             raise HTTPException(403, "Tu cuenta no tiene un rol válido asignado. Contacta al administrador.")
         log_login_success(email, "employee")
@@ -605,7 +626,7 @@ def verify_email_change(
 # 🌐 Login con Google (OAuth 2.0)
 # ──────────────────────────────────────────────────────────────────
 
-def google_login(db: Session, credential: str) -> TokenResponse:
+def google_login(db: Session, credential: str, create_client: bool = True) -> TokenResponse:
     """Verifica un ID token de Google y crea/inicia sesión como cliente."""
     import google.auth.transport.requests
     import google.oauth2.id_token
@@ -620,12 +641,27 @@ def google_login(db: Session, credential: str) -> TokenResponse:
         raise HTTPException(status_code=401, detail="Token de Google inválido o expirado")
 
     google_uid = idinfo.get("sub")
-    email = idinfo.get("email")
+    email = (idinfo.get("email") or "").strip().lower()
     given_name = idinfo.get("given_name", "")
     family_name = idinfo.get("family_name", "")
 
     if not email or not google_uid:
         raise HTTPException(status_code=401, detail="Token de Google incompleto")
+
+    # Una identidad Google ya vinculada prevalece sobre el correo actual.
+    linked_user = db.execute(select(User).where(User.google_id == google_uid)).scalar_one_or_none()
+    if linked_user:
+        if not linked_user.is_active:
+            raise HTTPException(status_code=403, detail="Tu cuenta está inhabilitada")
+        role_name = None
+        if linked_user.id_rol_u:
+            role_name = db.execute(select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == linked_user.id_rol_u)).scalar_one_or_none()
+        role_name = normalizar_rol_empleado(role_name)
+        if not role_name:
+            raise HTTPException(status_code=403, detail="Tu cuenta no tiene un rol válido asignado. Contacta al administrador.")
+        log_login_success(email, "employee")
+        return _create_tokens(linked_user.id_usuario, linked_user.email, "employee", rol=role_name,
+                              password_reset_required=bool(linked_user.password_reset_required))
 
     # Si el correo pertenece a un empleado (administrador/técnico), se autentica
     # como empleado en lugar de crear/usar una cuenta de cliente.
@@ -637,7 +673,8 @@ def google_login(db: Session, credential: str) -> TokenResponse:
         role_name = None
         if user.id_rol_u:
             role_name = db.execute(select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == user.id_rol_u)).scalar_one_or_none()
-        if not role_name or role_name.lower() not in ROLES_EMPLEADOS_VALIDOS:
+        role_name = normalizar_rol_empleado(role_name)
+        if not role_name:
             log_login_failed(email, "invalid_role", "employee")
             raise HTTPException(403, "Tu cuenta no tiene un rol válido asignado. Contacta al administrador.")
         log_login_success(email, "employee")
@@ -671,6 +708,12 @@ def google_login(db: Session, credential: str) -> TokenResponse:
         respuesta.perfil_incompleto = _cliente_perfil_incompleto(client)
         return respuesta
 
+    if not create_client:
+        raise HTTPException(
+            status_code=409,
+            detail="La cuenta Google no está vinculada. Vincula tu cuenta de empleado o continúa como cliente.",
+        )
+
     # Cliente nuevo — crear directamente (email ya verificado por Google)
     new_client = Cliente(
         first_name=given_name.upper() if given_name else "USUARIO",
@@ -688,3 +731,45 @@ def google_login(db: Session, credential: str) -> TokenResponse:
     respuesta = _create_tokens(new_client.id_cliente, email, "client", rol="cliente")
     respuesta.perfil_incompleto = True
     return respuesta
+
+
+def link_google_employee(db: Session, credential: str, email: str, password: str) -> TokenResponse:
+    """Vincula Google a una cuenta de empleado tras verificar sus credenciales actuales."""
+    import google.auth.transport.requests
+    import google.oauth2.id_token
+
+    try:
+        idinfo = google.oauth2.id_token.verify_oauth2_token(
+            credential, google.auth.transport.requests.Request(), settings.GOOGLE_SIGNIN_CLIENT_ID
+        )
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token de Google inválido o expirado")
+
+    if not idinfo.get("email_verified"):
+        raise HTTPException(status_code=401, detail="Google debe confirmar el correo de la cuenta")
+    google_uid = idinfo.get("sub")
+    google_email = (idinfo.get("email") or "").strip().lower()
+    user_email = (email or "").strip().lower()
+    if not google_uid or not google_email:
+        raise HTTPException(status_code=401, detail="Token de Google incompleto")
+
+    user = _get_user_by_email(db, user_email)
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Correo o contraseña de empleado incorrectos")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Tu cuenta está inhabilitada")
+    role_name = None
+    if user.id_rol_u:
+        role_name = db.execute(select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == user.id_rol_u)).scalar_one_or_none()
+    role_name = normalizar_rol_empleado(role_name)
+    if not role_name:
+        raise HTTPException(status_code=403, detail="La cuenta no tiene un rol de administrador o técnico válido")
+
+    linked_to_other = db.execute(select(User).where(User.google_id == google_uid, User.id_usuario != user.id_usuario)).scalars().first()
+    if linked_to_other:
+        raise HTTPException(status_code=409, detail="Esta cuenta de Google ya está vinculada a otro empleado")
+    user.google_id = google_uid
+    db.commit()
+    log_login_success(user.email, "employee")
+    return _create_tokens(user.id_usuario, user.email, "employee", rol=role_name,
+                          password_reset_required=bool(user.password_reset_required))

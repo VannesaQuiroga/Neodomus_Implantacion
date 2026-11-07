@@ -1,8 +1,10 @@
+
 # Análisis estático de calidad con SonarQube Cloud (SonarCloud).
 # Disparadores: push a 'development' y Pull Requests hacia 'main'.
 # La configuración del proyecto vive en sonar-project.properties
 # (projectKey, organization, sources, exclusions).
 # Cobertura de pruebas: NO integrada en esta etapa (solo análisis estático).
+
 name: SonarCloud Analysis
 
 on:
@@ -29,14 +31,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          # Historial completo: mejora la relevancia de métricas y git blame.
           fetch-depth: 0
 
       - name: SonarCloud Scan
-        # Acción oficial mantenida por SonarSource. Reemplaza a
-        # SonarSource/sonarcloud-github-action (deprecada y archivada).
-        # Lee sonar-project.properties; requiere SONAR_TOKEN.
         uses: sonarsource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.NEODOMUS }}
+

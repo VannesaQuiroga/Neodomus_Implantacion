@@ -113,3 +113,10 @@ class MessageResponse(BaseModel):
 # Agrupa los campos de GoogleLoginRequest: credential.
 class GoogleLoginRequest(BaseModel):
     credential: str
+    create_client: bool = True
+
+
+class GoogleEmployeeLinkRequest(BaseModel):
+    credential: str
+    email: EmailStr
+    password: str

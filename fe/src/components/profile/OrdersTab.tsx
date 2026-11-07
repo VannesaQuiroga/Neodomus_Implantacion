@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   FaBoxOpen,
+  FaCamera,
   FaChevronDown,
   FaChevronUp,
   FaCircleCheck,
@@ -54,6 +55,26 @@ interface CitaPedido {
   tipo_servicio?: string | null;
 }
 
+interface NovedadPedido {
+  id_novedad: number;
+  id_pedido: number | null;
+  tipo_novedad: string;
+  descripcion_novedad: string;
+  estado_novedad: string;
+  fecha_reporte: string | null;
+  mensaje_cliente: string | null;
+  solucion_cliente: string | null;
+  cupon?: {
+    codigo: string;
+    tipo_descuento: string;
+    valor_descuento: number;
+    fecha_vencimiento: string | null;
+    usos_maximos: number;
+    usos_realizados: number;
+    activo: boolean;
+  } | null;
+}
+
 interface Pedido {
   id_pedido: number;
   fecha?: string | null;
@@ -92,6 +113,7 @@ interface CalificacionProducto {
   id_producto: number;
   calificacion: number;
   comentario?: string | null;
+  foto_url?: string | null;
 }
 
 interface ItemDevolucion {
@@ -204,6 +226,7 @@ const pedidoCompletado = (pedido: Pedido): boolean =>
 // Comunica con el backend mediante GET '/pedidos/mis-pedidos', POST `/pedidos/${pedidoId}/confirmar-pago`, GET `/pedidos/${pedidoId}/seguimiento` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [novedadesPedido, setNovedadesPedido] = useState<NovedadPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -215,6 +238,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [ratingSel, setRatingSel] = useState<Record<number, number>>({});
   const [comentarioSel, setComentarioSel] = useState<Record<number, string>>({});
   const [guardandoCalif, setGuardandoCalif] = useState<number | null>(null);
+  const [fotosSeleccionadas, setFotosSeleccionadas] = useState<Record<number, string>>({});
 
   // ── Wizard de devolución (paso 1: productos · paso 2: motivo · paso 3: resumen) ──
   const [wizardPedido, setWizardPedido] = useState<Pedido | null>(null);
@@ -232,12 +256,25 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const fotosCalif = useRef<Record<number, File>>({});
   const pollRef = useRef<number | null>(null);
 
+  const cargarNovedadesPedido = async () => {
+    try {
+      const res = await api.get<NovedadPedido[]>('/novedades/cliente/novedades');
+      setNovedadesPedido(res.data || []);
+    } catch (err) {
+      console.error('No se pudieron cargar las novedades de pedidos:', err);
+    }
+  };
+
   // Comunica con el backend mediante GET '/pedidos/mis-pedidos'.
   const cargarPedidos = async () => {
     setLoading(true);
     try {
-      const res = await api.get<Pedido[]>('/pedidos/mis-pedidos');
+      const [res, novedadesRes] = await Promise.all([
+        api.get<Pedido[]>('/pedidos/mis-pedidos'),
+        api.get<NovedadPedido[]>('/novedades/cliente/novedades').catch(() => ({ data: [] as NovedadPedido[] })),
+      ]);
       setPedidos(res.data || []);
+      setNovedadesPedido(novedadesRes.data || []);
       setError('');
     } catch (err: any) {
       console.error(err);
@@ -458,6 +495,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
           /* la foto es opcional; si falla no bloquea la calificación */
         }
         delete fotosCalif.current[item.id_producto_d];
+        setFotosSeleccionadas((prev) => {
+          const next = { ...prev };
+          delete next[item.id_producto_d!];
+          return next;
+        });
       }
       notify('¡Gracias por tu calificación!', 'success');
       await cargarResenas(pedido);
@@ -491,6 +533,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
           {pedidos.map((pedido) => {
             const abierto = expanded === pedido.id_pedido;
             const colorEstado = estadoColor[pedido.estado] || '#d3ac4d';
+            const novedadesDelPedido = novedadesPedido.filter((n) => n.id_pedido === pedido.id_pedido);
             return (
               <div className="pf-order" key={pedido.id_pedido}>
                 <div className="pf-order-top">
@@ -500,6 +543,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                       {pedido.factura?.numero_factura || `Pedido ${pedido.id_pedido}`}
                       {pedido.fecha ? ` · ${formatearFecha(pedido.fecha)}` : ''}
                     </span>
+                    {novedadesDelPedido.length > 0 && (
+                      <span className="pf-order-novedad-badge">
+                        <FaCircleExclamation /> {novedadesDelPedido.length} {novedadesDelPedido.length === 1 ? 'novedad' : 'novedades'}
+                      </span>
+                    )}
                   </div>
                   <div className="pf-order-stats">
                     <span className="pf-status-badge" style={{ background: colorEstado }}>
@@ -515,6 +563,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                   onClick={() => {
                     const nuevo = !abierto;
                     setExpanded(nuevo ? pedido.id_pedido : null);
+                    if (nuevo) cargarNovedadesPedido();
                     if (nuevo && pedidoCompletado(pedido)) {
                       cargarResenas(pedido);
                       setSeguimientoDe(null);
@@ -529,6 +578,51 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
                 {abierto && (
                   <div className="pf-order-details">
+                    {novedadesDelPedido.length > 0 && (
+                      <div className="pf-detail-block pf-order-novedades">
+                        <h4 className="pf-detail-title"><FaCircleExclamation /> Novedades de este pedido</h4>
+                        {novedadesDelPedido.map((n) => (
+                            <article className="pf-order-novedad" key={n.id_novedad}>
+                              <div className="pf-order-novedad-head">
+                                <strong>{n.tipo_novedad}</strong>
+                                <span className="pf-order-novedad-status">{n.estado_novedad}</span>
+                              </div>
+                              {n.fecha_reporte && <time>{formatearFecha(n.fecha_reporte)}</time>}
+                              <p>{n.descripcion_novedad}</p>
+                              {n.mensaje_cliente && (
+                                <div className="pf-order-novedad-answer">
+                                  <strong>Actualización del equipo</strong>
+                                  <p>{n.mensaje_cliente}</p>
+                                </div>
+                              )}
+                              {n.solucion_cliente && (
+                                <div className="pf-order-novedad-answer">
+                                  <strong>Solución</strong>
+                                  <p>{n.solucion_cliente}</p>
+                                </div>
+                              )}
+                              {n.cupon && (
+                                <div className="pf-order-novedad-answer pf-order-novedad-cupon">
+                                  <strong>Cupón de compensación</strong>
+                                  <p>
+                                    <b>{n.cupon.codigo}</b> · {n.cupon.tipo_descuento === 'porcentaje'
+                                      ? `${n.cupon.valor_descuento}% de descuento`
+                                      : `${Number(n.cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
+                                  </p>
+                                  <small style={{ color: '#fff' }}>
+                                    {n.cupon.activo && n.cupon.usos_realizados < n.cupon.usos_maximos
+                                      ? 'Disponible para usar en tu próxima compra'
+                                      : 'Este cupón ya no está disponible'}
+                                    {n.cupon.fecha_vencimiento
+                                      ? ` · Vence ${new Date(`${n.cupon.fecha_vencimiento}T00:00:00`).toLocaleDateString('es-CO')}`
+                                      : ''}
+                                  </small>
+                                </div>
+                              )}
+                            </article>
+                          ))}
+                      </div>
+                    )}
                     <div className="pf-detail-block">
                       <h4 className="pf-detail-title">Productos</h4>
                       <div className="pf-order-items">
@@ -558,6 +652,9 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                       </span>
                                       Tu calificación
                                       {calif.comentario ? <em>“{calif.comentario}”</em> : null}
+                                      {calif.foto_url && (
+                                        <img className="pf-resena-foto-guardada" src={calif.foto_url} alt={`Foto de ${item.nombre}`} />
+                                      )}
                                     </div>
                                   ) : (
                                     <div className="pf-resena-form">
@@ -570,6 +667,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                               type="button"
                                               aria-label={`${s} estrellas`}
                                               className={(ratingSel[item.id_producto_d!] ?? 0) >= s ? 'on' : ''}
+                                              aria-pressed={(ratingSel[item.id_producto_d!] ?? 0) >= s}
                                               onClick={() =>
                                                 setRatingSel((prev) => ({ ...prev, [item.id_producto_d!]: s }))
                                               }
@@ -610,18 +708,27 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                           onChange={(ev) => {
                                             if (ev.target.files?.[0]) {
                                               fotosCalif.current[item.id_producto_d!] = ev.target.files[0];
+                                              setFotosSeleccionadas((prev) => ({
+                                                ...prev,
+                                                [item.id_producto_d!]: ev.target.files![0].name,
+                                              }));
                                             }
                                             ev.target.value = '';
                                           }}
                                         />
                                         <button
                                           type="button"
-                                          className="pf-btn pf-btn-ghost"
+                                          className={`pf-resena-foto ${fotosSeleccionadas[item.id_producto_d!] ? 'seleccionada' : ''}`}
                                           title="Adjuntar foto del producto"
                                           onClick={() => fotoCalifRefs.current[item.id_producto_d!]?.click()}
                                         >
-                                          📷
+                                          <FaCamera /> <span>{fotosSeleccionadas[item.id_producto_d!] ? 'Cambiar foto' : 'Adjuntar foto'}</span>
                                         </button>
+                                        {fotosSeleccionadas[item.id_producto_d!] && (
+                                          <span className="pf-resena-foto-nombre" title={fotosSeleccionadas[item.id_producto_d!]}>
+                                            {fotosSeleccionadas[item.id_producto_d!]}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   )}

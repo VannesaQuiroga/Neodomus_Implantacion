@@ -14,17 +14,18 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import String, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models.novedad import Novedad, EvidenciaNovedad
+from app.models.novedad import Novedad, EvidenciaNovedad, CuponDescuento
 from app.models.pedido import Pedido, DetallePedido
 from app.models.cita import Cita
 from app.models.cliente import Cliente
 from app.models.roles_usuario import RolesUsuario
 from app.models.tecnico import Tecnico
 from app.models.user import User
-from app.utils.security import get_current_client, get_current_employee
+from app.utils.security import get_current_client, get_current_employee, get_current_user
 from app.services import novedades_service, minio_service
 
 router = APIRouter(prefix="/novedades", tags=["Novedades"])
@@ -32,26 +33,30 @@ router = APIRouter(prefix="/novedades", tags=["Novedades"])
 
 def _url_evidencia_novedad(evidencia_id: int) -> str:
     """URL autorizada (no pública) de una evidencia de novedad."""
-    return f"/api/v1/novedades/evidencias/{evidencia_id}/archivo"
+    return f"/novedades/evidencias/{evidencia_id}/archivo"
 
 
 @router.get("/evidencias/{evidencia_id}/archivo")
 def descargar_evidencia_novedad(
     evidencia_id: int,
-    current_user: User = Depends(get_current_employee),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Sirve una evidencia de novedad previa comprobación de asignación/rol."""
-    role = db.execute(
-        select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
-    ).scalar_one_or_none()
     evidencia = db.query(EvidenciaNovedad).filter(EvidenciaNovedad.id_evidencia_n == evidencia_id).first()
     if not evidencia:
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
-    if role not in ("admin", "administrador"):
-        tecnico = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
-        if not tecnico or evidencia.novedad.id_tecnico_n != tecnico.id_tecnico:
+    if isinstance(current_user, Cliente):
+        if evidencia.novedad.id_cliente_n != current_user.id_cliente or not evidencia.novedad.cliente_visible:
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
+    else:
+        role = db.execute(
+            select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
+        ).scalar_one_or_none()
+        if role not in ("admin", "administrador"):
+            tecnico = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
+            if not tecnico or evidencia.novedad.id_tecnico_n != tecnico.id_tecnico:
+                raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
     try:
         contenido, media = minio_service.leer_archivo(evidencia.url_archivo)
     except FileNotFoundError:
@@ -701,27 +706,51 @@ def cupones_cliente(
     ]
 
 
+@router.get("/cliente/mis-cupones")
+def mis_cupones_cliente(
+    cliente: Cliente = Depends(get_current_client),
+    db: Session = Depends(get_db),
+):
+    """Lista los cupones disponibles para el cliente autenticado."""
+    return [
+        {
+            "id_cupon": c.id_cupon,
+            "codigo": c.codigo,
+            "tipo_descuento": c.tipo_descuento,
+            "valor_descuento": c.valor_descuento,
+            "fecha_vencimiento": c.fecha_vencimiento.isoformat() if c.fecha_vencimiento else None,
+            "compra_minima": c.compra_minima,
+            "usos_maximos": c.usos_maximos,
+            "usos_realizados": c.usos_realizados,
+        }
+        for c in novedades_service.listar_cupones_cliente(db, cliente.id_cliente)
+    ]
+
+
 # Consulta Tecnico.
 @router.get("/{novedad_id}")
 def obtener_novedad(
     novedad_id: int,
-    current_user: User = Depends(get_current_employee),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    role = db.execute(
-        select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
-    ).scalar_one_or_none()
-
     novedad = novedades_service.obtener_novedad(db, novedad_id)
     if not novedad:
         raise HTTPException(404, "Novedad no encontrada")
 
-    if role == "tecnico":
-        tecnico = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
-        if not tecnico or novedad.id_tecnico_n != tecnico.id_tecnico:
-            raise HTTPException(403, "No tienes acceso a esta novedad")
-    elif role not in ("admin", "administrador"):
-        raise HTTPException(403, "Sin permisos")
+    if isinstance(current_user, Cliente):
+        if novedad.id_cliente != current_user.id_cliente or not novedad.cliente_visible:
+            raise HTTPException(404, "Novedad no encontrada")
+    else:
+        role = db.execute(
+            select(RolesUsuario.nombre_rol).where(RolesUsuario.id_rol == current_user.id_rol_u)
+        ).scalar_one_or_none()
+        if role == "tecnico":
+            tecnico = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
+            if not tecnico or novedad.id_tecnico_n != tecnico.id_tecnico:
+                raise HTTPException(403, "No tienes acceso a esta novedad")
+        elif role not in ("admin", "administrador"):
+            raise HTTPException(403, "Sin permisos")
 
     return _serializar_novedad_detalle(novedad, db)
 
@@ -911,6 +940,7 @@ def validar_cupon_endpoint(
         "codigo": cupon.codigo,
         "tipo_descuento": cupon.tipo_descuento,
         "valor_descuento": cupon.valor_descuento,
+        "compra_minima": cupon.compra_minima,
         "fecha_vencimiento": cupon.fecha_vencimiento.isoformat() if cupon.fecha_vencimiento else None,
     }
 
@@ -926,7 +956,14 @@ def crear_cupon_novedad(
     novedad = novedades_service.obtener_novedad(db, novedad_id)
     if not novedad:
         raise HTTPException(404, "Novedad no encontrada")
-    if not novedad.id_cliente:
+    id_cliente = novedad.id_cliente
+    if not id_cliente and novedad.pedido:
+        id_cliente = novedad.pedido.id_cliente_pe
+    if not id_cliente and novedad.cita:
+        id_cliente = novedad.cita.id_cliente
+    if not id_cliente and novedad.devolucion:
+        id_cliente = novedad.devolucion.id_cliente_d
+    if not id_cliente:
         raise HTTPException(400, "La novedad no tiene un cliente asociado")
 
     try:
@@ -935,7 +972,7 @@ def crear_cupon_novedad(
             codigo=data.codigo,
             tipo_descuento=data.tipo_descuento,
             valor_descuento=data.valor_descuento,
-            id_cliente=novedad.id_cliente,
+            id_cliente=id_cliente,
             id_novedad=novedad_id,
             id_admin=admin_user.id_usuario,
             fecha_vencimiento=data.fecha_vencimiento,
@@ -945,13 +982,17 @@ def crear_cupon_novedad(
             categorias_aplicables=data.categorias_aplicables,
         )
     except ValueError as e:
+        db.rollback()
         raise HTTPException(400, str(e))
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Ya existe un cupón con ese código. Elige otro código.")
 
     from app.services.notificaciones import crear_notificacion
     crear_notificacion(
         db,
         id_usuario=None,
-        id_cliente=novedad.id_cliente,
+        id_cliente=id_cliente,
         tipo="cupon",
         titulo="Cupón de descuento generado",
         mensaje=(
@@ -1026,6 +1067,26 @@ def _serializar_novedades(novedades, db):
                 "motivo": n.devolucion.motivo,
             }
 
+        cupon = (
+            db.query(CuponDescuento)
+            .filter(CuponDescuento.id_novedad == n.id_novedad)
+            .order_by(CuponDescuento.created_at.desc())
+            .first()
+        )
+        cupon_info = None
+        if cupon:
+            cupon_info = {
+                "id_cupon": cupon.id_cupon,
+                "codigo": cupon.codigo,
+                "tipo_descuento": cupon.tipo_descuento,
+                "valor_descuento": cupon.valor_descuento,
+                "fecha_vencimiento": cupon.fecha_vencimiento.isoformat() if cupon.fecha_vencimiento else None,
+                "compra_minima": cupon.compra_minima,
+                "usos_maximos": cupon.usos_maximos,
+                "usos_realizados": cupon.usos_realizados,
+                "activo": cupon.activo,
+            }
+
         result.append({
             "id_novedad": n.id_novedad,
             "tipo_novedad": n.tipo_novedad,
@@ -1037,7 +1098,12 @@ def _serializar_novedades(novedades, db):
             "evidencia_url": n.evidencia_url,
             "id_pedido": n.id_pedido,
             "id_cita": n.id_cita,
-            "id_cliente": n.id_cliente,
+            "id_cliente": (
+                n.id_cliente
+                or (n.pedido.id_cliente_pe if n.pedido else None)
+                or (n.cita.id_cliente if n.cita else None)
+                or (n.devolucion.id_cliente_d if n.devolucion else None)
+            ),
             "id_devolucion": n.id_devolucion,
             "id_tecnico": n.id_tecnico_n,
             "tecnico_nombre": tecnico_nombre,
@@ -1051,6 +1117,7 @@ def _serializar_novedades(novedades, db):
             "pedido_info": pedido_info,
             "cita_info": cita_info,
             "devolucion_info": devolucion_info,
+            "cupon": cupon_info,
         })
     return result
 

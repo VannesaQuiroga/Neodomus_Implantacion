@@ -1,5 +1,6 @@
 // Pantalla ClienteNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaShieldHalved,
@@ -16,6 +17,7 @@ import {
   FaPaperPlane,
   FaBoxOpen,
   FaClockRotateLeft,
+  FaTicket,
 } from 'react-icons/fa6';
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
@@ -51,6 +53,7 @@ interface Novedad {
   cliente_visible: boolean;
   fecha_resolucion: string | null;
   evidencias: EvidenciaNovedad[];
+  cupon?: CuponCliente | null;
 }
 
 interface NovedadDetalle extends Novedad {
@@ -61,6 +64,18 @@ interface NovedadDetalle extends Novedad {
     fecha: string | null;
     usuario_nombre: string | null;
   }[];
+}
+
+interface CuponCliente {
+  id_cupon: number;
+  codigo: string;
+  tipo_descuento: string;
+  valor_descuento: number;
+  fecha_vencimiento: string | null;
+  compra_minima: number;
+  usos_maximos: number;
+  usos_realizados: number;
+  activo?: boolean;
 }
 
 const ESTADOS = ['Pendiente', 'En revisión', 'Aprobada', 'Rechazada', 'Resuelta', 'Cerrada'];
@@ -91,6 +106,7 @@ const ClienteNovedades = () => {
   const [detalle, setDetalle] = useState<NovedadDetalle | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
+  const [cupones, setCupones] = useState<CuponCliente[]>([]);
 
   // Comunica con el backend mediante GET '/novedades/cliente/novedades'.
   const cargar = async (silencioso = false) => {
@@ -107,8 +123,20 @@ const ClienteNovedades = () => {
 
   useEffect(() => {
     cargar();
-    const i = window.setInterval(() => cargar(true), 30000);
-    return () => window.clearInterval(i);
+    const cargarCupones = () => api.get<CuponCliente[]>('/novedades/cliente/mis-cupones')
+      .then((res) => setCupones(res.data || []))
+      .catch(() => setCupones([]));
+    void cargarCupones();
+    const actualizar = () => {
+      void cargar(true);
+      void cargarCupones();
+    };
+    const i = window.setInterval(actualizar, 30000);
+    window.addEventListener('focus', actualizar);
+    return () => {
+      window.clearInterval(i);
+      window.removeEventListener('focus', actualizar);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -179,6 +207,47 @@ const ClienteNovedades = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <section
+        aria-labelledby="mis-cupones-titulo"
+        style={{
+          marginBottom: 22,
+          padding: 20,
+          borderRadius: 16,
+          border: '1px solid rgba(212,165,75,.3)',
+          background: 'linear-gradient(135deg, rgba(212,165,75,.11), rgba(20,20,20,.72))',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <h2 id="mis-cupones-titulo" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 9 }}>
+              <FaTicket style={{ color: '#d4a54b' }} /> Mis cupones disponibles
+            </h2>
+            <p style={{ margin: '6px 0 0', color: '#aaa', fontSize: 13 }}>
+              Los cupones que recibes por tus novedades aparecen aquí y puedes usarlos al pagar.
+            </p>
+          </div>
+          {cupones.length > 0 && <Link to="/checkout" className="ap-btn ap-btn-primary">Usar en mi compra</Link>}
+        </div>
+        {cupones.length === 0 ? (
+          <p style={{ margin: '14px 0 0', color: '#999', fontSize: 13 }}>Todavía no tienes cupones disponibles.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 16 }}>
+            {cupones.map((cupon) => (
+              <article key={cupon.id_cupon} style={{ padding: 14, borderRadius: 12, background: 'rgba(0,0,0,.3)', border: '1px dashed rgba(212,165,75,.5)' }}>
+                <strong style={{ display: 'block', color: '#f1d27b', fontSize: 16, letterSpacing: '.06em' }}>{cupon.codigo}</strong>
+                <span style={{ display: 'block', color: '#fff', marginTop: 5, fontWeight: 700 }}>
+                  {cupon.tipo_descuento === 'porcentaje' ? `${cupon.valor_descuento}% de descuento` : `${Number(cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
+                </span>
+                <span style={{ display: 'block', color: '#aaa', fontSize: 12, marginTop: 5 }}>
+                  {cupon.fecha_vencimiento ? `Vence el ${formatFechaCorta(cupon.fecha_vencimiento)}` : 'Sin fecha de vencimiento'}
+                  {' · '}{Math.max(0, cupon.usos_maximos - cupon.usos_realizados)} uso(s) disponible(s)
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="ap-pills" style={{ marginBottom: 20 }}>
         {ESTADOS.map((e) => (
@@ -411,6 +480,22 @@ const ClienteNovedades = () => {
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9', lineHeight: 1.5 }}>{detalle.solucion_cliente}</p>
+                  </div>
+                )}
+
+                {detalle.cupon && (
+                  <div style={{ padding: '12px 14px', background: 'rgba(212,165,75,.1)', border: '1px dashed rgba(212,165,75,.55)', borderRadius: 10, marginBottom: 18 }}>
+                    <strong style={{ color: '#f1d27b' }}>Cupón de compensación: {detalle.cupon.codigo}</strong>
+                    <p style={{ margin: '5px 0', color: '#fff' }}>
+                      {detalle.cupon.tipo_descuento === 'porcentaje'
+                        ? `${detalle.cupon.valor_descuento}% de descuento`
+                        : `${Number(detalle.cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
+                    </p>
+                    <small style={{ color: '#fff' }}>
+                      {detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos
+                        ? 'Disponible para usar al pagar'
+                        : 'Este cupón ya no está disponible'}
+                    </small>
                   </div>
                 )}
 

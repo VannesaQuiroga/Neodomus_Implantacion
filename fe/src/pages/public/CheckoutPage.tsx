@@ -19,12 +19,14 @@ import {
   FaXmark,
   FaFilePdf,
   FaUsers,
+  FaTag,
 } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
 import { subtotalLinea } from '@utils/productoPrecio';
+import { esDomingo } from '@utils/fechas';
 import '@styles/checkout.css';
 import '@styles/citas.css';
 
@@ -107,6 +109,17 @@ interface ResultadoCheckout {
   mensaje?: string;
   ordenes_instalacion?: OrdenInstalacion[];
   entrega?: any;
+}
+
+interface CuponDisponible {
+  id_cupon: number;
+  codigo: string;
+  tipo_descuento: string;
+  valor_descuento: number;
+  fecha_vencimiento: string | null;
+  compra_minima: number;
+  usos_maximos: number;
+  usos_realizados: number;
 }
 
 const formatoPeso = (value: number) =>
@@ -195,10 +208,20 @@ const CheckoutPage = () => {
   const [horasPorServicio, setHorasPorServicio] = useState<Record<number, string[]>>({});
   const [cargandoHorasServicio, setCargandoHorasServicio] = useState<Record<number, boolean>>({});
   const [recomendacion, setRecomendacion] = useState<Recomendacion | null>(null);
+  const [cuponesDisponibles, setCuponesDisponibles] = useState<CuponDisponible[]>([]);
+  const [codigoCupon, setCodigoCupon] = useState('');
+  const [cuponAplicado, setCuponAplicado] = useState<CuponDisponible | null>(null);
+  const [mensajeCupon, setMensajeCupon] = useState('');
+  const [validandoCupon, setValidandoCupon] = useState(false);
   const hoyISO = new Date().toISOString().split('T')[0];
 
   const totalServicios = servicios.reduce((acc, s) => acc + s.precio, 0);
   const total = totalPrice + totalServicios;
+  const descuentoCupon = cuponAplicado
+    ? Math.min(total, cuponAplicado.tipo_descuento === 'porcentaje'
+      ? Math.round(total * Number(cuponAplicado.valor_descuento) / 100)
+      : Number(cuponAplicado.valor_descuento))
+    : 0;
   const maxTecnicos = Math.max(1, ...items.map((i) => Number(i.tecnicos_requeridos) || 1));
   const tecnicosNecesarios = recomendacion?.tecnicos_necesarios ?? maxTecnicos;
 
@@ -212,7 +235,43 @@ const CheckoutPage = () => {
     api.get('/clients/me').then((res) => {
       setDireccionCliente(res.data?.address || '');
     }).catch(() => undefined);
+    api.get<CuponDisponible[]>('/novedades/cliente/mis-cupones')
+      .then((res) => setCuponesDisponibles(res.data || []))
+      .catch(() => setCuponesDisponibles([]));
   }, []);
+
+  const aplicarCupon = async (codigo = codigoCupon) => {
+    const normalizado = codigo.trim().toUpperCase();
+    if (!normalizado) {
+      setMensajeCupon('Escribe o selecciona un cupón.');
+      return;
+    }
+    setValidandoCupon(true);
+    setMensajeCupon('');
+    try {
+      const res = await api.get<CuponDisponible>('/novedades/cupones/validar', { params: { codigo: normalizado } });
+      const cupon = res.data;
+      if (total < Number(cupon.compra_minima || 0)) {
+        setCuponAplicado(null);
+        setMensajeCupon(`Este cupón requiere una compra mínima de ${formatoPeso(Number(cupon.compra_minima))}.`);
+        return;
+      }
+      setCuponAplicado(cupon);
+      setCodigoCupon(cupon.codigo);
+      setMensajeCupon('Cupón aplicado a tu compra.');
+    } catch (err: any) {
+      setCuponAplicado(null);
+      setMensajeCupon(err.response?.data?.detail || 'No se pudo validar el cupón.');
+    } finally {
+      setValidandoCupon(false);
+    }
+  };
+
+  const quitarCupon = () => {
+    setCuponAplicado(null);
+    setCodigoCupon('');
+    setMensajeCupon('');
+  };
 
   const firmaServicios = servicios.map((s) => `${s.id}-${s.tipo}-${s.fecha || ''}-${s.hora || ''}`).join('|');
   useEffect(() => {
@@ -421,6 +480,10 @@ const CheckoutPage = () => {
         setError('Selecciona la fecha en que deseas el servicio técnico.');
         return;
       }
+      if (esDomingo(s.fecha)) {
+        setError('Los domingos no están disponibles. Elige un día de lunes a sábado.');
+        return;
+      }
       const fechaHora = new Date(`${s.fecha}T${s.hora || '08:00'}:00`);
       const limite = new Date(Date.now() + 3 * 60 * 60 * 1000);
       if (isNaN(fechaHora.getTime()) || fechaHora < limite) {
@@ -469,6 +532,7 @@ const CheckoutPage = () => {
               : undefined,
         })),
         pago: payloadPago,
+        codigo_cupon: cuponAplicado?.codigo,
       });
       const data = res.data;
       if (data.redirect_url) {
@@ -916,7 +980,14 @@ const CheckoutPage = () => {
                             type="date"
                             value={s.fecha || ''}
                             min={hoyISO}
-                            onChange={(e) => actualizarServicio(s.id, 'fecha', e.target.value)}
+                            onChange={(e) => {
+                              const valor = e.target.value;
+                              if (esDomingo(valor)) {
+                                setError('Los domingos no están disponibles. Elige un día de lunes a sábado.');
+                                return;
+                              }
+                              actualizarServicio(s.id, 'fecha', valor);
+                            }}
                           />
                           {!s.fecha ? (
                             <span className="checkout-hora-placeholder">Selecciona una fecha</span>
@@ -1229,13 +1300,58 @@ const CheckoutPage = () => {
               <span>Subtotal</span>
               <span>{formatoPeso(total)}</span>
             </div>
+            <section className="checkout-cupon" aria-label="Cupón de descuento">
+              <label htmlFor="checkout-cupon-codigo"><FaTag /> ¿Tienes un cupón?</label>
+              {cuponesDisponibles.length > 0 && (
+                <select
+                  aria-label="Cupones disponibles"
+                  value={cuponesDisponibles.some((c) => c.codigo === codigoCupon) ? codigoCupon : ''}
+                  onChange={(e) => {
+                    setCodigoCupon(e.target.value);
+                    if (e.target.value) void aplicarCupon(e.target.value);
+                  }}
+                  disabled={Boolean(cuponAplicado)}
+                >
+                  <option value="">Elegir cupón disponible</option>
+                  {cuponesDisponibles.map((cupon) => (
+                    <option key={cupon.id_cupon} value={cupon.codigo}>
+                      {cupon.codigo} · {cupon.tipo_descuento === 'porcentaje' ? `${cupon.valor_descuento}%` : formatoPeso(Number(cupon.valor_descuento))}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div className="checkout-cupon-fila">
+                <input
+                  id="checkout-cupon-codigo"
+                  value={codigoCupon}
+                  onChange={(e) => setCodigoCupon(e.target.value.toUpperCase())}
+                  placeholder="Ingresa tu código"
+                  autoComplete="off"
+                  disabled={Boolean(cuponAplicado)}
+                />
+                {cuponAplicado ? (
+                  <button type="button" onClick={quitarCupon}>Quitar</button>
+                ) : (
+                  <button type="button" onClick={() => void aplicarCupon()} disabled={validandoCupon}>
+                    {validandoCupon ? 'Validando…' : 'Aplicar'}
+                  </button>
+                )}
+              </div>
+              {mensajeCupon && <p className={cuponAplicado ? 'checkout-cupon-ok' : 'checkout-cupon-mensaje'} role="status">{mensajeCupon}</p>}
+            </section>
+            {descuentoCupon > 0 && (
+              <div className="checkout-resumen-row checkout-cupon-descuento">
+                <span>Descuento ({cuponAplicado?.codigo})</span>
+                <span>−{formatoPeso(descuentoCupon)}</span>
+              </div>
+            )}
             <div className="checkout-resumen-row">
               <span>Envío</span>
               <span>Calculado al confirmar</span>
             </div>
             <div className="checkout-resumen-total">
               <span>Total a pagar</span>
-              <span>{formatoPeso(total)}</span>
+              <span>{formatoPeso(total - descuentoCupon)}</span>
             </div>
 
             <button

@@ -17,6 +17,7 @@ import { useTecnicosFavoritos } from '@utils/tecnicosFavoritos';
 import { tituloNombre } from '@utils/formatoNombre';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
 import { suscribirCambiosTecnicos } from '@utils/tecnicosSync';
+import { esDomingo } from '@utils/fechas';
 import { useAuthModal } from '@contexts/AuthModalContext';
 
 const formatoPeso = (value: number) =>
@@ -111,7 +112,7 @@ const FORM_VACIO: CitaForm = {
   descripcion: '',
 };
 
-const HORAS_LIMITE = 5 * 60 * 60 * 1000; // bloqueo solo en las últimas 5 horas
+const HORAS_LIMITE = 3 * 60 * 60 * 1000; // bloqueo solo en las últimas 3 horas
 
 const CitasPage = () => {
   const { isAuthenticated } = useAuth();
@@ -120,12 +121,13 @@ const CitasPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [vista, setVista] = useState<'agendar' | 'mis-citas'>('agendar');
+  const [vista, setVista] = useState<'agendar' | 'mis-citas' | 'historial'>('agendar');
   const [form, setForm] = useState<CitaForm>(FORM_VACIO);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: 'success' | 'error' } | null>(null);
   const [horasDisponibles, setHorasDisponibles] = useState<string[]>([]);
+  const [cargandoHoras, setCargandoHoras] = useState(false);
   const [diaCompleto, setDiaCompleto] = useState(false);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [ofertas, setOfertas] = useState<OfertaHorario[]>([]);
@@ -282,9 +284,7 @@ const CitasPage = () => {
           .get<OfertaHorario[]>('/citas/ofertas-pendientes')
           .catch(() => ({ data: [] as OfertaHorario[] })),
       ]);
-      // Las citas canceladas y finalizadas no se muestran al cliente en "Mis citas".
-      // Las finalizadas se ven en Perfil > Mis servicios.
-      setCitas((res.data || []).filter((c) => c.estado !== 'Cancelada' && c.estado !== 'Finalizada'));
+      setCitas(res.data || []);
       setOfertas(resOf.data || []);
     } catch (err) {
       console.error('Error cargando citas:', err);
@@ -313,7 +313,7 @@ const CitasPage = () => {
   };
 
   useEffect(() => {
-    if (vista === 'mis-citas') cargarCitas();
+    if (vista === 'mis-citas' || vista === 'historial') cargarCitas();
   }, [vista, cargarCitas]);
 
   // Pre-cargar las citas al montar para que el contador de la pestaña
@@ -326,15 +326,21 @@ const CitasPage = () => {
   useEffect(() => {
     if (!form.fecha || vista !== 'agendar') {
       setHorasDisponibles([]);
+      setCargandoHoras(false);
       setDiaCompleto(false);
       return;
     }
     setDiaCompleto(false);
+    // Al cambiar de técnico, fecha o servicio la lista anterior ya no es
+    // válida: se oculta hasta recibir la disponibilidad real de ese técnico.
+    setHorasDisponibles([]);
+    setCargandoHoras(true);
     const [año, mes, dia] = (form.fecha || '').split('-').map(Number);
     const diaSemana = año ? new Date(año, mes - 1, dia).getDay() : -1;
     // Solo el domingo está bloqueado: los servicios van de lunes a sábado.
     if (diaSemana === 0) {
       setHorasDisponibles([]);
+      setCargandoHoras(false);
       return;
     }
     let activo = true;
@@ -356,12 +362,19 @@ const CitasPage = () => {
         if (!activo) return;
         setDiaCompleto(libres.length === 0);
         setHorasDisponibles(libres);
+        // Si la hora elegida ya no está libre para este técnico (por ejemplo,
+        // al cambiar de técnico o si otro cliente la reservó), se limpia.
+        setForm((prev) =>
+          prev.hora && !libres.includes(prev.hora) ? { ...prev, hora: '' } : prev,
+        );
       } catch {
         if (!activo) return;
         // Ante un error de red tampoco se ofrecen horas ocupadas.
         setDiaCompleto(false);
         setHorasDisponibles([]);
         setForm((prev) => ({ ...prev, hora: '' }));
+      } finally {
+        if (activo) setCargandoHoras(false);
       }
     };
     cargarHoras();
@@ -415,7 +428,16 @@ const CitasPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'fecha' && esDomingo(value)) {
+      setToast({ msg: t('citas.domingoNoLaborable'), tipo: 'error' });
+      return;
+    }
+    // Cambiar fecha o servicio invalida la hora: se recalcula la disponibilidad.
+    setForm(prev => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'fecha' || name === 'tipo_servicio' ? { hora: '' } : {}),
+    }));
   };
 
   // Comunica con el backend mediante PUT `/citas/${editandoId}`, POST '/citas'; accede a sessionStorage para conservar o recuperar datos locales.
@@ -432,6 +454,12 @@ const CitasPage = () => {
     }
     if (!form.tipo_servicio || !form.fecha || !form.hora || !form.direccion.trim() || !form.descripcion.trim()) {
       setToast({ msg: t('citas.errorCampos'), tipo: 'error' });
+      return;
+    }
+    // La hora debe seguir dentro de la disponibilidad actual del técnico.
+    if (!horasDisponibles.includes(form.hora)) {
+      setForm(prev => ({ ...prev, hora: '' }));
+      setToast({ msg: 'El horario seleccionado ya no está disponible. Elige otro.', tipo: 'error' });
       return;
     }
     const datosPago: any = {};
@@ -611,7 +639,7 @@ const CitasPage = () => {
   const esEditable = (cita: Cita): boolean => {
     if (cita.estado === 'Finalizada' || cita.estado === 'Cancelada') return false;
     const momento = new Date(`${cita.fecha}T${cita.hora}:00`).getTime();
-    // Solo se bloquea cuando faltan MENOS de 5 horas para la cita.
+    // Solo se bloquea cuando faltan MENOS de 3 horas para la cita.
     return momento - Date.now() >= HORAS_LIMITE;
   };
 
@@ -650,21 +678,62 @@ const CitasPage = () => {
     return campos.some((v) => v.toLowerCase().includes(q));
   };
 
-  const renderBarraTecnico = () => (
-    <div className="cita-tecnico-banner">
-      <span className="cita-tecnico-banner-icon"><FaUserTie /></span>
-      <div>
-        <span className="cita-tecnico-banner-label">{t('citas.tecnicoAsociado')}</span>
-        <strong>{tecnicoSel?.nombre || t('citas.tecnicoAsignado')}</strong>
+  const cambiarTecnico = () => {
+    // Si se llegó desde la página de técnicos, volvemos allí para elegir otro.
+    if (deTecnicosPage) {
+      navigate('/cliente/tecnicos');
+      return;
+    }
+    setTecnicoSel(null);
+    // Sin técnico no hay disponibilidad válida: se limpia la hora elegida.
+    setForm((prev) => (prev.hora ? { ...prev, hora: '' } : prev));
+  };
+
+  // Tarjeta de técnico reutilizable: se usa en la lista y en la vista del
+  // técnico ya seleccionado, para no duplicar marcado ni estilos.
+  const renderTecnicoCard = (tec: Tecnico, seleccionado: boolean, mostrarAccion = true) => (
+    <div
+      key={tec.id}
+      className={`citas-tecnico-item ${seleccionado ? 'selected' : ''} ${tec.disponible ? '' : 'no-disponible'}`}
+    >
+      <div className="citas-tecnico-top">
+        <img
+          src={tec.foto_url || '/assets/images/perfil.png'}
+          alt={`${tec.nombre} ${tec.apellido}`}
+          className="citas-tecnico-avatar"
+          onError={(e) => (e.currentTarget.src = '/assets/images/perfil.png')}
+        />
+        <div className="citas-tecnico-info">
+          <strong>{tec.nombre} {tec.apellido}</strong>
+          <span className="citas-tecnico-especialidad">{tec.especialidad}</span>
+        </div>
       </div>
-      {!deTecnicosPage && !editandoId && (
-        <button
-          type="button"
-          className="citas-btn citas-btn-ghost"
-          onClick={() => setTecnicoSel(null)}
-        >
-          <FaXmark /> {t('citas.quitar')}
-        </button>
+      <div className="citas-tecnico-meta">
+        <span className={`citas-tecnico-estado ${tec.disponible ? 'tec-ok' : 'tec-ocu'}`}>
+          {tec.disponible ? t('citas.tecnicoDisponible') : t('citas.tecnicoOcupado')}
+        </span>
+      </div>
+      {mostrarAccion && (
+        <div className="citas-tecnico-actions">
+          <button
+            type="button"
+            className={`citas-btn ${seleccionado ? 'citas-btn-confirmado' : 'citas-btn-ghost'}`}
+            onClick={() => {
+              setTecnicoSel(seleccionado ? null : { id: tec.id, nombre: `${tec.nombre} ${tec.apellido}` });
+              // La disponibilidad cambia con el técnico: se invalida la hora.
+              setForm((prev) => (prev.hora ? { ...prev, hora: '' } : prev));
+            }}
+            disabled={!tec.disponible}
+          >
+            {seleccionado ? (
+              <><FaCircleCheckFilled /> {t('citas.tecnicoSeleccionado')}</>
+            ) : tec.disponible ? (
+              <><FaCheck /> {t('citas.seleccionarTecnico')}</>
+            ) : (
+              t('citas.tecnicoNoDisponible')
+            )}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -687,55 +756,40 @@ const CitasPage = () => {
         </div>
       ) : (
         <div className="citas-tecnicos-list">
-          {tecnicos.map((tec) => {
-            const seleccionado = tecnicoSel?.id === tec.id;
-            return (
-              <div
-                key={tec.id}
-                className={`citas-tecnico-item ${seleccionado ? 'selected' : ''} ${tec.disponible ? '' : 'no-disponible'}`}
-              >
-                <div className="citas-tecnico-top">
-                  <img
-                    src={tec.foto_url || '/assets/images/perfil.png'}
-                    alt={`${tec.nombre} ${tec.apellido}`}
-                    className="citas-tecnico-avatar"
-                    onError={(e) => (e.currentTarget.src = '/assets/images/perfil.png')}
-                  />
-                  <div className="citas-tecnico-info">
-                    <strong>{tec.nombre} {tec.apellido}</strong>
-                    <span className="citas-tecnico-especialidad">{tec.especialidad}</span>
-                  </div>
-                </div>
-                <div className="citas-tecnico-meta">
-                  <span className={`citas-tecnico-estado ${tec.disponible ? 'tec-ok' : 'tec-ocu'}`}>
-                    {tec.disponible ? t('citas.tecnicoDisponible') : t('citas.tecnicoOcupado')}
-                  </span>
-                </div>
-                <div className="citas-tecnico-actions">
-                  <button
-                    type="button"
-                    className={`citas-btn ${seleccionado ? 'citas-btn-confirmado' : 'citas-btn-ghost'}`}
-                    onClick={() =>
-                      setTecnicoSel(seleccionado ? null : { id: tec.id, nombre: `${tec.nombre} ${tec.apellido}` })
-                    }
-                    disabled={!tec.disponible}
-                  >
-                    {seleccionado ? (
-                      <><FaCircleCheckFilled /> {t('citas.tecnicoSeleccionado')}</>
-                    ) : tec.disponible ? (
-                      <><FaCheck /> {t('citas.seleccionarTecnico')}</>
-                    ) : (
-                      t('citas.tecnicoNoDisponible')
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {tecnicos.map((tec) => renderTecnicoCard(tec, tecnicoSel?.id === tec.id))}
         </div>
       )}
     </div>
   );
+
+  // Vista compacta: una vez elegido el técnico solo se muestra su ficha y una
+  // acción para cambiarlo, sin listar de nuevo a todos los profesionales.
+  const renderTecnicoSeleccionado = () => {
+    const tec = tecnicoSel ? tecnicos.find((x) => x.id === tecnicoSel.id) : null;
+    return (
+      <div className="citas-tecnico-seleccionado">
+        {tec ? (
+          renderTecnicoCard(tec, true, false)
+        ) : (
+          <div className="citas-tecnico-item selected">
+            <div className="citas-tecnico-top">
+              <img
+                src="/assets/images/perfil.png"
+                alt={tecnicoSel?.nombre || t('citas.tecnicoAsignado')}
+                className="citas-tecnico-avatar"
+              />
+              <div className="citas-tecnico-info">
+                <strong>{tecnicoSel?.nombre || t('citas.tecnicoAsignado')}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+        <button type="button" className="citas-btn citas-btn-ghost" onClick={cambiarTecnico}>
+          <FaXmark /> Cambiar técnico
+        </button>
+      </div>
+    );
+  };
 
   const renderCitaCard = (cita: Cita) => {
     const editable = esEditable(cita);
@@ -811,7 +865,13 @@ const CitasPage = () => {
                               const h = new Date();
                               return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
                             })()}
-                            onChange={(e) => setAplazandoFecha(e.target.value)}
+                            onChange={(e) => {
+                              if (esDomingo(e.target.value)) {
+                                setToast({ msg: t('citas.domingoNoLaborable'), tipo: 'error' });
+                                return;
+                              }
+                              setAplazandoFecha(e.target.value);
+                            }}
                             aria-label={t('tec.fecha')}
                           />
                           {aplazandoCargandoHoras ? (
@@ -886,8 +946,10 @@ const CitasPage = () => {
   const renderMisCitas = () => {
     const q = busquedaCitas.trim().toLowerCase();
     const hoyLocal = fechaLocalHoy();
-    const citasDelDia = citas.filter((c) => c.fecha === hoyLocal && citaCoincide(c, q));
-    const citasOtras = citas.filter((c) => c.fecha !== hoyLocal && citaCoincide(c, q));
+    const esHistorial = (c: Cita) => c.estado === 'Finalizada' || c.estado === 'Cancelada' || new Date(`${c.fecha}T${c.hora}:00`).getTime() < Date.now();
+    const conjunto = citas.filter((c) => esHistorial(c) === (vista === 'historial') && citaCoincide(c, q));
+    const citasDelDia = conjunto.filter((c) => c.fecha === hoyLocal);
+    const citasOtras = conjunto.filter((c) => c.fecha !== hoyLocal);
     const hayResultados = citasDelDia.length > 0 || citasOtras.length > 0;
     return (
       <div className="citas-list-wrap">
@@ -901,11 +963,11 @@ const CitasPage = () => {
             <FaCalendarDays />
             <p>{t('citas.cargandoCitas')}</p>
           </div>
-        ) : citas.length === 0 ? (
+        ) : conjunto.length === 0 ? (
           <div className="citas-empty">
             <FaCalendarDays />
-            <p>{t('citas.vacias')}</p>
-            <p className="citas-empty-hint">{t('citas.vaciasHint')}</p>
+            <p>{vista === 'historial' ? t('citas.historialVacio') : t('citas.vacias')}</p>
+            {vista !== 'historial' && <p className="citas-empty-hint">{t('citas.vaciasHint')}</p>}
           </div>
         ) : (
           <>
@@ -982,13 +1044,24 @@ const CitasPage = () => {
             onClick={() => setVista('mis-citas')}
           >
             <FaList /> {t('citas.tabMis')}
-            {citas.length > 0 && <span className="citas-tab-count">{citas.length}</span>}
+            {citas.filter((c) => c.estado !== 'Finalizada' && c.estado !== 'Cancelada' && new Date(`${c.fecha}T${c.hora}:00`).getTime() >= Date.now()).length > 0 && (
+              <span className="citas-tab-count">{citas.filter((c) => c.estado !== 'Finalizada' && c.estado !== 'Cancelada' && new Date(`${c.fecha}T${c.hora}:00`).getTime() >= Date.now()).length}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={vista === 'historial'}
+            className={`citas-tab-btn ${vista === 'historial' ? 'active' : ''}`}
+            onClick={() => setVista('historial')}
+          >
+            <FaList /> {t('citas.tabHistorial')}
           </button>
         </div>
 
-        {vista === 'mis-citas' ? (
+        {vista !== 'agendar' ? (
           <>
-            {ofertas.length > 0 && (
+            {vista === 'mis-citas' && ofertas.length > 0 && (
               <div
                 style={{
                   background: 'linear-gradient(135deg,#12211f,#1c3a34)',
@@ -1057,11 +1130,10 @@ const CitasPage = () => {
                   <p>Elige el profesional que realizará el servicio. Los horarios se cargarán para ese técnico.</p>
                 </div>
               </div>
-              {tecnicoSel !== null && renderBarraTecnico()}
-              {tecnicoSel === null && !editandoId ? (
+              {tecnicoSel !== null ? (
+                renderTecnicoSeleccionado()
+              ) : !editandoId ? (
                 renderSeleccionTecnicos()
-              ) : tecnicoSel !== null && !deTecnicosPage && !editandoId ? (
-                <div style={{ marginTop: 12 }}>{renderSeleccionTecnicos()}</div>
               ) : null}
               {!tecnicoSel && <p className="citas-hint" style={{ marginTop: 12 }}><FaExclamation /> Debes seleccionar un técnico para ver sus horarios disponibles.</p>}
             </div>
@@ -1136,28 +1208,35 @@ const CitasPage = () => {
                     <p className="citas-hint">{t('citas.eligeFechaHoras')}</p>
                   ) : (
                     <>
-                      <div className="citas-horas-grid" role="radiogroup" aria-label={t('citas.horaCita')}>
-                        {(['08:00','11:00','14:00','17:00'] as const).map((hora) => {
-                          const isSelected = form.hora === hora;
-                          const disponible = horasDisponibles.includes(hora);
-                          return (
-                            <button
-                              key={hora}
-                              type="button"
-                              className={`citas-hora-btn ${isSelected ? 'selected' : ''} ${!disponible ? 'citas-hora-btn--ocupada' : ''}`}
-                              onClick={() => setForm(prev => ({ ...prev, hora }))}
-                              title={disponible ? `Disponible ${hora}` : `Ocupada ${hora} - se validará al agendar`}
-                              aria-pressed={isSelected}
-                            >
-                              {hora}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {horasDisponibles.length === 0 && (
-                        <div className="citas-no-horas" style={{ marginTop: 8 }}>
-                          <FaExclamation /> {t('citas.noHorarios')}
-                        </div>
+                      {cargandoHoras ? (
+                        <p className="citas-hint">{t('common.cargando')}</p>
+                      ) : (
+                        <>
+                          <div className="citas-horas-grid" role="radiogroup" aria-label={t('citas.horaCita')}>
+                            {/* Solo se muestran las franjas libres del técnico
+                                elegido; las ocupadas por sus citas no aparecen. */}
+                            {horasDisponibles.map((hora) => {
+                              const isSelected = form.hora === hora;
+                              return (
+                                <button
+                                  key={hora}
+                                  type="button"
+                                  className={`citas-hora-btn ${isSelected ? 'selected' : ''}`}
+                                  onClick={() => setForm(prev => ({ ...prev, hora }))}
+                                  title={`Disponible ${hora}`}
+                                  aria-pressed={isSelected}
+                                >
+                                  {hora}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {horasDisponibles.length === 0 && (
+                            <div className="citas-no-horas" style={{ marginTop: 8 }}>
+                              <FaExclamation /> {t('citas.noHorarios')}
+                            </div>
+                          )}
+                        </>
                       )}
                     </>
                   )}
@@ -1498,7 +1577,7 @@ const CitasPage = () => {
 
         {citaACancelar && (
           <div className="citas-modal-overlay">
-            <div className="citas-modal" role="dialog" aria-modal="true">
+            <div className="citas-modal citas-modal-cancelar" role="dialog" aria-modal="true" aria-labelledby="citas-cancelar-titulo">
               <button
                 type="button"
                 className="citas-modal-close-x"
@@ -1507,28 +1586,29 @@ const CitasPage = () => {
               >
                 <FaXmark />
               </button>
-              <h3 style={{ color: '#e5484d' }}>
-                <FaExclamation /> ¿Seguro que deseas cancelar esta cita?
+              <h3 id="citas-cancelar-titulo" className="citas-cancelar-titulo">
+                <span className="citas-cancelar-icono"><FaExclamation /></span>
+                <span>¿Seguro que deseas cancelar esta cita?</span>
               </h3>
-              <p className="citas-hint" style={{ marginTop: 8 }}>
-                Ten en cuenta que <strong>no se devolverá todo el dinero</strong>: nos
-                quedaremos con un <strong>15% del servicio pagado</strong>.
-              </p>
+              <div className="citas-cancelar-aviso">
+                <p>Solo puedes cancelar con al menos <strong>3 horas de anticipación</strong>.</p>
+                <p>Se reembolsa el 85% del servicio pagado y se retiene el 15%.</p>
+              </div>
               {citaACancelar.costo_cita != null && citaACancelar.estado_pago === 'aprobado' && (
                 <div className="citas-cancel-montos">
-                  <div><span>Pagaste:</span><strong>{formatoPeso(citaACancelar.costo_cita)}</strong></div>
-                  <div><span>Te reembolsamos (85%):</span><strong className="ok">{formatoPeso(Math.round(citaACancelar.costo_cita * 0.85))}</strong></div>
-                  <div><span>Retención (15%):</span><strong className="ret">{formatoPeso(citaACancelar.costo_cita - Math.round(citaACancelar.costo_cita * 0.85))}</strong></div>
+                  <div><span>Pagaste</span><strong>{formatoPeso(citaACancelar.costo_cita)}</strong></div>
+                  <div className="citas-cancel-reembolso"><span>Reembolso · 85%</span><strong className="ok">{formatoPeso(Math.round(citaACancelar.costo_cita * 0.85))}</strong></div>
+                  <div className="citas-cancel-retencion"><span>Retención · 15%</span><strong className="ret">{formatoPeso(citaACancelar.costo_cita - Math.round(citaACancelar.costo_cita * 0.85))}</strong></div>
                 </div>
               )}
               <div className="citas-modal-actions">
                 <button
                   type="button"
-                  className="citas-btn citas-btn-danger"
+                  className="citas-btn citas-btn-danger citas-btn-confirmar-cancelacion"
                   disabled={cancelandoId !== null}
                   onClick={() => cancelarCita(citaACancelar.id_cita)}
                 >
-                  <FaXmark /> {cancelandoId === citaACancelar.id_cita ? 'Cancelando...' : 'Sí, cancelar cita'}
+                  <FaXmark aria-hidden="true" /> <span>{cancelandoId === citaACancelar.id_cita ? 'Cancelando...' : 'Sí, cancelar cita'}</span>
                 </button>
               </div>
             </div>

@@ -17,6 +17,7 @@ import {
   FaChartSimple,
 } from 'react-icons/fa6';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { esDomingo } from '@utils/fechas';
 import api from '@services/api';
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
@@ -611,7 +612,13 @@ const TecnicoCitas = () => {
                 type="date"
                 value={nuevaFecha}
                 min={hoyMinimo}
-                onChange={(e) => setNuevaFecha(e.target.value)}
+                onChange={(e) => {
+                  if (esDomingo(e.target.value)) {
+                    setToastReagendar({ msg: 'Los domingos no están disponibles. Elige un día de lunes a sábado.', tipo: 'error' });
+                    return;
+                  }
+                  setNuevaFecha(e.target.value);
+                }}
                 style={{
                   width: '100%', padding: '12px 14px', borderRadius: 12,
                   border: '1px solid rgba(212,165,75,0.4)', background: '#0f0f0f',

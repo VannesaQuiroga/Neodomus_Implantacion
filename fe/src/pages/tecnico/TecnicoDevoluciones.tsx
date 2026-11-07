@@ -22,6 +22,7 @@ import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import NuevaNovedadModal from '@components/tecnico/NuevaNovedadModal';
+import AuthImage from '@components/common/AuthImage';
 
 interface Recogida {
   id_devolucion: number;
@@ -354,22 +355,10 @@ const TecnicoDevoluciones = () => {
                   {(r.evidencia_recogida_url || r.evidencia_cambio_url) && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       {r.evidencia_recogida_url && (
-                        <a href={urlImagen(r.evidencia_recogida_url)} target="_blank" rel="noopener noreferrer" title={t('tec.devEvidenciaRecogida')}>
-                          <img
-                            src={urlImagen(r.evidencia_recogida_url)}
-                            alt={t('tec.devEvidenciaRecogida')}
-                            style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
-                          />
-                        </a>
+                        <AuthImage src={urlImagen(r.evidencia_recogida_url)} alt={t('tec.devEvidenciaRecogida')} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} />
                       )}
                       {r.evidencia_cambio_url && (
-                        <a href={urlImagen(r.evidencia_cambio_url)} target="_blank" rel="noopener noreferrer" title={t('tec.devEvidenciaCambio')}>
-                          <img
-                            src={urlImagen(r.evidencia_cambio_url)}
-                            alt={t('tec.devEvidenciaCambio')}
-                            style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
-                          />
-                        </a>
+                        <AuthImage src={urlImagen(r.evidencia_cambio_url)} alt={t('tec.devEvidenciaCambio')} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} />
                       )}
                     </div>
                   )}
@@ -529,17 +518,13 @@ const TecnicoDevoluciones = () => {
                 <div className="ap-evidencias-grid">
                   {detalle.evidencia_recogida_url && (
                     <div className="ap-evidencia-thumb">
-                      <a href={urlImagen(detalle.evidencia_recogida_url)} target="_blank" rel="noopener noreferrer">
-                        <img src={urlImagen(detalle.evidencia_recogida_url)} alt={t('tec.devEvidenciaRecogida')} />
-                      </a>
+                      <AuthImage src={urlImagen(detalle.evidencia_recogida_url)} alt={t('tec.devEvidenciaRecogida')} style={{ width: '100%', height: 150, objectFit: 'cover' }} />
                       <span className="ap-evidencia-desc">{t('tec.devEvidenciaRecogida')}</span>
                     </div>
                   )}
                   {detalle.evidencia_cambio_url && (
                     <div className="ap-evidencia-thumb">
-                      <a href={urlImagen(detalle.evidencia_cambio_url)} target="_blank" rel="noopener noreferrer">
-                        <img src={urlImagen(detalle.evidencia_cambio_url)} alt={t('tec.devEvidenciaCambio')} />
-                      </a>
+                      <AuthImage src={urlImagen(detalle.evidencia_cambio_url)} alt={t('tec.devEvidenciaCambio')} style={{ width: '100%', height: 150, objectFit: 'cover' }} />
                       <span className="ap-evidencia-desc">{t('tec.devEvidenciaCambio')}</span>
                     </div>
                   )}

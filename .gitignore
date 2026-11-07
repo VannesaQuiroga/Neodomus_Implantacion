@@ -35,7 +35,6 @@ yarn-error.*
 .env*.local
 
 # datos sensibles generados (usuarios + hashes de contraseñas)
-# scripts/init_db.sql
 
 # typescript
 *.tsbuildinfo
@@ -64,11 +63,10 @@ evidencias_backup/
 # MinIO — datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
 
-# artefactos locales de revisi�n visual (PDF/PNG)
+# artefactos locales de revisi�n visual (PDF/PNG)
 artifacts/
 
 # Dump SQL regenerado por export_seed.py (datos locales, no versionar)
-scripts/init_db.sql
 be/.coverage
 coverage.json
 coverage.xml

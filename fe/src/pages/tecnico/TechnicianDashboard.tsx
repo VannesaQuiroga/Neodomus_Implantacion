@@ -40,6 +40,7 @@ import '@styles/dashboard-admin.css';
 
 interface Cita {
   id_cita: number;
+  id_cliente: number;
   fecha: string;
   hora: string;
   estado: string;
@@ -52,6 +53,22 @@ interface Cita {
   documento_numero?: number | null;
   descripcion?: string | null;
   id_tecnico?: number | null;
+  id_tecnico_2?: number | null;
+  nombre_tecnico?: string | null;
+  id_tecnico_3?: number | null;
+  nombre_tecnico_2?: string | null;
+  nombre_tecnico_3?: string | null;
+  costo_cita?: number | null;
+  productos?: {
+    id_producto: number;
+    nombre: string;
+    marca?: string | null;
+    referencia?: string | null;
+    precio_venta?: number | null;
+    cantidad: number;
+    notas?: string | null;
+    variante?: { nombre?: string | null; tamaño?: string | null } | null;
+  }[];
   evidencias?: EvidenciaItem[];
   calificacion?: CalificacionCita | null;
 }
@@ -117,6 +134,11 @@ const ESTADO_BADGE: Record<string, string> = {
 };
 
 const ESTADOS_TECNICO = ['Finalizada'];
+const formatoPeso = (valor: number) => valor.toLocaleString('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  maximumFractionDigits: 0,
+});
 
 const fechaLocal = (): string => {
   const hoy = new Date();
@@ -148,6 +170,10 @@ const TechnicianDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCita, setSelectedCita] = useState<Cita | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [historialCliente, setHistorialCliente] = useState<Cita[]>([]);
+  const [cargandoHistorialCliente, setCargandoHistorialCliente] = useState(false);
+  const [errorHistorialCliente, setErrorHistorialCliente] = useState('');
+  const historialClienteRequest = useRef(0);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [updatingEntrega, setUpdatingEntrega] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast>(null);
@@ -278,8 +304,31 @@ const TechnicianDashboard = () => {
   };
 
   const openModal = (cita: Cita) => {
+    const requestId = ++historialClienteRequest.current;
     setSelectedCita(cita);
+    setHistorialCliente([]);
+    setErrorHistorialCliente('');
+    setCargandoHistorialCliente(true);
     setModalOpen(true);
+    api.get<Cita[]>(`/tecnicos/clientes/${cita.id_cliente}/citas`)
+      .then((res) => {
+        if (requestId !== historialClienteRequest.current) return;
+        setHistorialCliente((res.data || []).filter((anterior) =>
+          anterior.id_cita !== cita.id_cita && anterior.estado === 'Finalizada',
+        ));
+      })
+      .catch((err: any) => {
+        if (requestId !== historialClienteRequest.current) return;
+        setErrorHistorialCliente(err.response?.data?.detail || 'No se pudo cargar el historial de citas de este cliente.');
+      })
+      .finally(() => {
+        if (requestId === historialClienteRequest.current) setCargandoHistorialCliente(false);
+      });
+  };
+
+  const cerrarModalCita = () => {
+    historialClienteRequest.current += 1;
+    setModalOpen(false);
   };
 
   // Comunica con el backend mediante PUT `/tecnicos/entregas/${pedidoId}/estado`.
@@ -988,7 +1037,7 @@ const TechnicianDashboard = () => {
                 <span className={`ap-badge ${ESTADO_BADGE[selectedCita.estado] || 'neutral'}`}>
                   {t(`citas.${selectedCita.estado.toLowerCase()}`)}
                 </span>
-                <button type="button" className="ap-modal-x" onClick={() => setModalOpen(false)} aria-label="Cerrar">
+                <button type="button" className="ap-modal-x" onClick={cerrarModalCita} aria-label="Cerrar">
                   <FaXmark />
                 </button>
               </div>
@@ -1035,6 +1084,86 @@ const TechnicianDashboard = () => {
                 </div>
               )}
             </div>
+
+            <section className="ap-cliente-historial" aria-labelledby="ap-cliente-historial-titulo">
+              <div className="ap-cliente-historial-head">
+                <div>
+                  <h4 id="ap-cliente-historial-titulo"><FaClockRotateLeft /> Historial de citas del cliente</h4>
+                  <p>Visitas finalizadas anteriores, con su información y evidencias.</p>
+                </div>
+                {!cargandoHistorialCliente && !errorHistorialCliente && (
+                  <span className="ap-badge neutral">{historialCliente.length} cita(s)</span>
+                )}
+              </div>
+              {cargandoHistorialCliente ? (
+                <p className="ap-cliente-historial-state">Cargando el historial...</p>
+              ) : errorHistorialCliente ? (
+                <p className="ap-cliente-historial-state error">{errorHistorialCliente}</p>
+              ) : historialCliente.length === 0 ? (
+                <p className="ap-cliente-historial-state">Este cliente no tiene citas finalizadas anteriores contigo.</p>
+              ) : (
+                <div className="ap-cliente-historial-list">
+                  {historialCliente.map((anterior) => (
+                    <article className="ap-cliente-historial-cita" key={anterior.id_cita}>
+                      <div className="ap-cliente-historial-cita-head">
+                        <div>
+                          <strong>{t(TIPO_SERVICIO[anterior.tipo_servicio] || 'citas.servicioGeneral')}</strong>
+                          <span>
+                            {new Date(`${anterior.fecha}T${anterior.hora}`).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                            {' · '}{anterior.hora}
+                          </span>
+                        </div>
+                        <span className={`ap-badge ${ESTADO_BADGE[anterior.estado] || 'neutral'}`}>
+                          {t(`citas.${anterior.estado.toLowerCase()}`)}
+                        </span>
+                      </div>
+                      <div className="ap-cliente-historial-datos">
+                        <div><small>Dirección</small><span>{anterior.direccion || 'Sin dirección registrada'}</span></div>
+                        {anterior.descripcion && <div><small>Detalle</small><span>{anterior.descripcion}</span></div>}
+                        {anterior.costo_cita != null && <div><small>Valor de la cita</small><span>{formatoPeso(anterior.costo_cita)}</span></div>}
+                        {(anterior.nombre_tecnico || anterior.nombre_tecnico_2 || anterior.nombre_tecnico_3) && (
+                          <div><small>Técnicos</small><span>{[anterior.nombre_tecnico, anterior.nombre_tecnico_2, anterior.nombre_tecnico_3].filter(Boolean).join(', ')}</span></div>
+                        )}
+                      </div>
+                      {anterior.productos && anterior.productos.length > 0 && (
+                        <div className="ap-cliente-historial-productos">
+                          <strong>Productos y materiales</strong>
+                          {anterior.productos.map((producto) => (
+                            <div key={`${anterior.id_cita}-${producto.id_producto}`}>
+                              <span>{producto.nombre}{producto.variante?.nombre ? ` · ${producto.variante.nombre}` : ''}{producto.variante?.tamaño ? ` · ${producto.variante.tamaño}` : ''}</span>
+                              <span>× {producto.cantidad}</span>
+                              {producto.notas && <small>{producto.notas}</small>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {anterior.calificacion && (
+                        <div className="ap-cliente-historial-calificacion">
+                          <span aria-label={`${anterior.calificacion.calificacion} de 5 estrellas`}>
+                            {'★'.repeat(Math.min(5, Math.max(0, anterior.calificacion.calificacion)))}
+                          </span>
+                          {anterior.calificacion.comentario || 'El cliente no dejó comentario.'}
+                        </div>
+                      )}
+                      <div className="ap-cliente-historial-evidencias">
+                        <strong><FaCamera /> Evidencias ({anterior.evidencias?.length || 0})</strong>
+                        {anterior.evidencias && anterior.evidencias.length > 0 ? (
+                          <div className="ap-cliente-historial-fotos">
+                            {anterior.evidencias.map((evidencia) => (
+                              <div key={evidencia.id_evidencia}>
+                                <AuthImage src={evidencia.url} alt={evidencia.descripcion || `Evidencia de cita ${anterior.id_cita}`} style={{ width: '100%', height: 96, objectFit: 'cover' }} />
+                                {evidencia.descripcion && <small>{evidencia.descripcion}</small>}
+                                {evidencia.fecha_subida && <small>{new Date(evidencia.fecha_subida).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-ES')}</small>}
+                              </div>
+                            ))}
+                          </div>
+                        ) : <span className="ap-cliente-historial-sin-fotos">Esta cita no tiene evidencias adjuntas.</span>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
 
             {selectedCita.calificacion && (
               <div className="ap-cita-calificacion">
@@ -1151,7 +1280,7 @@ const TechnicianDashboard = () => {
                 </div>
               )}
 
-              <button type="button" className="ap-btn ap-btn-ghost" onClick={() => setModalOpen(false)}>
+              <button type="button" className="ap-btn ap-btn-ghost" onClick={cerrarModalCita}>
                 {t('tec.cerrar')}
               </button>
             </div>

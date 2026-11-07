@@ -58,7 +58,7 @@ def _url_evidencia(url_archivo: str, tipo: str, evidencia_id: int) -> str:
     públicos del almacenamiento. ``url_archivo`` se conserva en el backend para
     resolver el objeto al descargarlo.
     """
-    return f"/api/v1/tecnicos/evidencias/{tipo}/{evidencia_id}/archivo"
+    return f"/tecnicos/evidencias/{tipo}/{evidencia_id}/archivo"
 
 
 def _leer_archivo_evidencia(url_archivo: str) -> tuple[bytes, str]:
@@ -101,7 +101,17 @@ def _servir_evidencia(db: Session, tipo: str, evidencia_id: int, current_user: U
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
     if not es_admin:
         tecnico = _ficha_tecnico_actual(db, current_user)
-        if ev.id_tecnico != tecnico.id_tecnico:
+        autorizado = ev.id_tecnico == tecnico.id_tecnico
+        if tipo == "cita":
+            # Un técnico asignado a la misma cita puede consultar las fotos
+            # subidas por cualquiera de sus compañeros del equipo.
+            cita = db.query(Cita).filter(Cita.id_cita == ev.id_cita).first()
+            autorizado = autorizado or bool(
+                cita
+                and tecnico.id_tecnico
+                in (cita.id_tecnico, cita.id_tecnico_2, cita.id_tecnico_3)
+            )
+        if not autorizado:
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta evidencia")
     contenido, media = _leer_archivo_evidencia(ev.url_archivo)
     return Response(content=contenido, media_type=media)
@@ -159,6 +169,7 @@ class EstadoCitaUpdate(BaseModel):
 # Agrupa los campos de TecnicoCitaResponse: id_cita, fecha, hora, estado, tipo_servicio y los demás declarados abajo.
 class TecnicoCitaResponse(BaseModel):
     id_cita: int
+    id_cliente: int
     fecha: date
     hora: str
     estado: str
@@ -590,6 +601,7 @@ def _serializar_cita_tecnico(
 
     return TecnicoCitaResponse(
         id_cita=cita.id_cita,
+        id_cliente=cita.id_cliente,
         fecha=cita.fecha,
         hora=cita.hora,
         estado=cita.estado,
@@ -1647,13 +1659,13 @@ def historial_tecnico(
         if d.evidencia_recogida:
             evidencias.append({
                 "tipo": "Recogida",
-                "url": f"/api/v1/devoluciones/{d.id_devolucion}/evidencia-recogida/archivo",
+                "url": f"/devoluciones/{d.id_devolucion}/evidencia-recogida/archivo",
                 "fecha": d.fecha_recogida.isoformat() if d.fecha_recogida else None,
             })
         if d.evidencia_cambio:
             evidencias.append({
                 "tipo": "Entrega de cambio",
-                "url": f"/api/v1/devoluciones/{d.id_devolucion}/evidencia-cambio/archivo",
+                "url": f"/devoluciones/{d.id_devolucion}/evidencia-cambio/archivo",
                 "fecha": d.fecha_entrega_cambio.isoformat() if d.fecha_entrega_cambio else None,
             })
 

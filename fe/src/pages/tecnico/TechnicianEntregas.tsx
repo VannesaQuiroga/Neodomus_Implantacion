@@ -490,13 +490,11 @@ const TechnicianEntregas = () => {
                       : t('tec.recogidaPendiente')}
                   </span>
                   {r.recogida_estado === 'Recogida' && r.evidencia_recogida_url && (
-                    <a href={r.evidencia_recogida_url} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={r.evidencia_recogida_url}
-                        alt="Evidencia de recogida"
-                        style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
-                      />
-                    </a>
+                    <AuthImage
+                      src={r.evidencia_recogida_url}
+                      alt="Evidencia de recogida"
+                      style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }}
+                    />
                   )}
                   {r.recogida_estado !== 'Recogida' && (
                     <>

@@ -461,7 +461,12 @@ def _asignar_tecnico(
     candidatos = (
         db.query(Tecnico)
         .join(User, User.id_usuario == Tecnico.id_usuario_t)
-        .filter(User.is_active == True, User.id_rol_u == 2)  # noqa: E712
+        .filter(
+            User.is_active == True,  # noqa: E712
+            User.id_rol_u == 2,
+            ~func.lower(User.email).like("demo%@example.com"),
+            func.lower(User.email) != "tecnico@neodomus.com",
+        )
         .all()
     )
     for t in candidatos:
@@ -535,7 +540,12 @@ def _asignar_tecnico_extra(
     candidatos = (
         db.query(Tecnico)
         .join(User, User.id_usuario == Tecnico.id_usuario_t)
-        .filter(User.is_active == True, User.id_rol_u == 2)  # noqa: E712
+        .filter(
+            User.is_active == True,  # noqa: E712
+            User.id_rol_u == 2,
+            ~func.lower(User.email).like("demo%@example.com"),
+            func.lower(User.email) != "tecnico@neodomus.com",
+        )
         .all()
     )
     for t in candidatos:
@@ -1227,7 +1237,12 @@ def _asignar_entrega(
     candidatos = (
         db.query(Tecnico)
         .join(User, User.id_usuario == Tecnico.id_usuario_t)
-        .filter(User.is_active == True, User.id_rol_u == 2)  # noqa: E712
+        .filter(
+            User.is_active == True,  # noqa: E712
+            User.id_rol_u == 2,
+            ~func.lower(User.email).like("demo%@example.com"),
+            func.lower(User.email) != "tecnico@neodomus.com",
+        )
         .all()
     )
     hoy = date.today()

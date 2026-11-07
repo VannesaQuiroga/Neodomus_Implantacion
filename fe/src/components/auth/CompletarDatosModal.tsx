@@ -100,58 +100,74 @@ const CompletarDatosModal = () => {
           {message && <div className="success"><FaCircleCheck /> {message}</div>}
           {error && <div className="error"><FaCircleExclamation /> {error}</div>}
 
-          <div className="login-input-wrapper">
-            <select
-              value={tipoDocumento}
-              onChange={(e) => setTipoDocumento(e.target.value)}
-              disabled={loading}
-              className="login-select"
-            >
-              <option value="1">CC - Cédula de ciudadanía</option>
-              <option value="2">CE - Cédula de extranjería</option>
-            </select>
+          <div className="complete-data-field">
+            <label htmlFor="complete-data-document-type">Tipo de documento</label>
+            <div className="login-input-wrapper">
+              <select
+                id="complete-data-document-type"
+                value={tipoDocumento}
+                onChange={(e) => setTipoDocumento(e.target.value)}
+                disabled={loading}
+                className="login-select"
+              >
+                <option value="1">CC - Cédula de ciudadanía</option>
+                <option value="2">CE - Cédula de extranjería</option>
+              </select>
+            </div>
           </div>
 
-          <div className="login-input-wrapper">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Número de documento"
-              value={documento}
-              onChange={(e) => setDocumento(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              maxLength={10}
-              required
-              disabled={loading}
-              autoComplete="off"
-            />
+          <div className="complete-data-field">
+            <label htmlFor="complete-data-document">Número de documento</label>
+            <div className="login-input-wrapper">
+              <input
+                id="complete-data-document"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Ingresa tu número de documento"
+                value={documento}
+                onChange={(e) => setDocumento(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                maxLength={10}
+                required
+                disabled={loading}
+                autoComplete="off"
+              />
+            </div>
           </div>
 
-          <div className="login-input-wrapper">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Teléfono (10 dígitos)"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              maxLength={10}
-              required
-              disabled={loading}
-              autoComplete="tel"
-            />
+          <div className="complete-data-field">
+            <label htmlFor="complete-data-phone">Teléfono</label>
+            <div className="login-input-wrapper">
+              <input
+                id="complete-data-phone"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="10 dígitos"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                maxLength={10}
+                required
+                disabled={loading}
+                autoComplete="tel"
+              />
+            </div>
           </div>
 
-          <div className="login-input-wrapper">
-            <input
-              type="text"
-              placeholder="Dirección de residencia"
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              required
-              disabled={loading}
-              autoComplete="street-address"
-            />
+          <div className="complete-data-field">
+            <label htmlFor="complete-data-address">Dirección de residencia</label>
+            <div className="login-input-wrapper">
+              <input
+                id="complete-data-address"
+                type="text"
+                placeholder="Ingresa tu dirección"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="street-address"
+              />
+            </div>
           </div>
 
           <button type="submit" disabled={loading}>

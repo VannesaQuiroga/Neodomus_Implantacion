@@ -6,7 +6,7 @@ El administrador revisa, cambia estado y genera compensaciones (cupones).
 """
 from datetime import date, datetime
 from typing import Optional
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.novedad import CuponDescuento, Novedad, NovedadHistorial
@@ -310,8 +310,20 @@ def crear_cupon(
     categorias_aplicables: Optional[str] = None,
 ) -> CuponDescuento:
     """Crea un cupón de descuento asociado a una novedad y cliente."""
-    # Verificar que el código no exista
-    existente = db.query(CuponDescuento).filter(CuponDescuento.codigo == codigo).first()
+    codigo = (codigo or "").strip().upper()
+    tipo_descuento = (tipo_descuento or "").strip().lower()
+    if not codigo:
+        raise ValueError("Escribe un código para el cupón")
+    if tipo_descuento not in ("porcentaje", "fijo"):
+        raise ValueError("El tipo de descuento no es válido")
+    if valor_descuento <= 0 or (tipo_descuento == "porcentaje" and valor_descuento > 100):
+        raise ValueError("El descuento debe ser mayor que 0 y el porcentaje no puede superar 100")
+    if usos_maximos < 1:
+        raise ValueError("El cupón debe tener al menos un uso disponible")
+
+    # La comparación insensible a mayúsculas evita duplicados que la restricción
+    # única de la base de datos podría reportar como un error interno.
+    existente = db.query(CuponDescuento).filter(func.upper(CuponDescuento.codigo) == codigo).first()
     if existente:
         raise ValueError(f"Ya existe un cupón con el código {codigo}")
 
@@ -337,7 +349,11 @@ def crear_cupon(
             id_novedad=id_novedad,
             id_usuario=id_admin,
             accion="Cupón generado",
-            detalle=f"Cupón {codigo.upper()} — {tipo_descuento} {valor_descuento}%",
+            detalle=(
+                f"Cupón {codigo} — {valor_descuento}%"
+                if tipo_descuento == "porcentaje"
+                else f"Cupón {codigo} — {valor_descuento} COP"
+            ),
         ))
 
     db.commit()
@@ -346,12 +362,14 @@ def crear_cupon(
 
 
 def listar_cupones_cliente(db: Session, id_cliente: int) -> list[CuponDescuento]:
-    """Lista cupones activos de un cliente."""
+    """Lista cupones activos y todavía utilizables de un cliente."""
     return (
         db.query(CuponDescuento)
         .filter(
             CuponDescuento.id_cliente == id_cliente,
             CuponDescuento.activo == True,  # noqa: E712
+            (CuponDescuento.fecha_vencimiento.is_(None)) | (CuponDescuento.fecha_vencimiento >= date.today()),
+            CuponDescuento.usos_realizados < CuponDescuento.usos_maximos,
         )
         .order_by(CuponDescuento.created_at.desc())
         .all()

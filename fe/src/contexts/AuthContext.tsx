@@ -21,7 +21,7 @@ interface AuthContextType {
   perfilIncompleto: boolean;
   marcarPerfilCompleto: () => void;
   login: (email: string, password: string) => Promise<void>;
-  googleLogin: (credential: string) => Promise<void>;
+  googleLogin: (credential: string, createClient?: boolean) => Promise<string>;
   logout: () => void;
   refreshUserProfile: () => Promise<void>;
 }
@@ -356,25 +356,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Comunica con el backend mediante POST '/auth/google'.
-  const googleLogin = async (credential: string) => {
+  const googleLogin = async (credential: string, createClient = true) => {
     try {
-      const response = await api.post<LoginResponse>('/auth/google', { credential });
+      const response = await api.post<LoginResponse>('/auth/google', { credential, create_client: createClient });
       const data = response.data;
-      const userRol = (data.rol || data.role || 'cliente').toLowerCase();
-      if (!userRol || !ROLES_VALIDOS.includes(userRol)) {
-        throw new Error('La cuenta no tiene un rol válido asignado. Contacta al administrador.');
-      }
       rotateTabSessionId();
       // Almacenar tokens por pestaña para soporte multi-pestaña.
       tabSet('access_token', data.access_token);
       tabSet('refresh_token', data.refresh_token);
+
+      // El servidor vuelve a consultar el rol vigente en la BD. No inferimos
+      // "cliente" cuando Google omite el rol, porque podría ocultar un rol empleado.
+      const sessionResponse = await api.get('/auth/session');
+      const session = sessionResponse.data;
+      const userRol = String(session?.rol || '').trim().toLowerCase();
+      const expectedType = userRol === 'cliente' ? 'client' : 'employee';
+      if (!userRol || !ROLES_VALIDOS.includes(userRol) || session?.user_type !== expectedType) {
+        tabRemove('access_token');
+        tabRemove('refresh_token');
+        throw new Error('La cuenta no tiene un rol válido asignado. Contacta al administrador.');
+      }
 
       const firstName = data.first_name || '';
       const lastName = data.last_name || '';
       const fullName = (firstName && lastName) ? `${firstName} ${lastName}` : (data.nombre || 'Usuario Google');
 
       const userData: User = {
-        id: data.id || 0,
+        id: Number(session.uid) || data.id || 0,
         nombre: fullName.trim(),
         correo: '',
         rol: userRol,
@@ -395,6 +403,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       removeTechnicalAvatar();
       removeAdminAvatar();
       await refreshUserProfile();
+      return userRol;
     } catch (error) {
       console.error('Google login error:', error);
       throw error;
