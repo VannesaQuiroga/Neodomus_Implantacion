@@ -22,7 +22,8 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-HASH_ADMIN = "$2b$12$Qqz0cnPdWjfTTHY6zHO3JufPEaAK0RSjNDZkdDMOgT9JCdKUt1CGq"
+
+HASH_ADMIN = "$2b$12$redactedhash"
 
 
 def _seed(bind, table, sql):

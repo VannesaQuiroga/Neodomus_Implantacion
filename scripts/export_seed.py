@@ -35,6 +35,7 @@ INIT_DB = SCRIPT_DIR / "init_db.sql"
 
 MARKER_LINE = "-- REGISTROS GUARDADOS AUTOMÁTICAMENTE"
 SEP_LINE = "-- ====================================================="
+HASH_REDACTADO = "$2b$12$redactedhash"
 
 
 def get_connection():
@@ -69,7 +70,14 @@ def _tuple_sql(row):
 def fetch_all(cursor, table, columns, order_by):
     col_list = ", ".join(columns)
     cursor.execute(f"SELECT {col_list} FROM {table} ORDER BY {order_by}")
-    return [tuple(r) for r in cursor.fetchall()]
+    filas = [tuple(r) for r in cursor.fetchall()]
+    if "password_hash" in columns:
+        idx = columns.index("password_hash")
+        filas = [
+            tuple(HASH_REDACTADO if i == idx else v for i, v in enumerate(fila))
+            for fila in filas
+        ]
+    return filas
 
 
 def build_inserts(cursor):
