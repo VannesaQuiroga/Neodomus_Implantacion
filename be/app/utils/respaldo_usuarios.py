@@ -3,9 +3,9 @@ Respaldo automático de usuarios en scripts/init_db.sql.
 
 Cuando un cliente verifica su correo (registro) o el administrador crea un
 empleado, el sistema regenera la sección "REGISTROS GUARDADOS AUTOMÁTICAMENTE"
-de scripts/init_db.sql con los usuarios actuales (incluyendo el hash bcrypt
-de la contraseña). Así, al pasar el proyecto a otra persona, esa persona puede
-importar init_db.sql y entrar con los mismos usuarios y contraseñas.
+de scripts/init_db.sql con los usuarios actuales. Los hashes de contraseña
+se sustituyen por un valor redactado: nunca se escriben credenciales reales
+en el repositorio.
 
 Es el mismo formato que genera scripts/export_seed.py.
 """
@@ -19,6 +19,7 @@ from app.database import SessionLocal
 
 MARKER = "-- REGISTROS GUARDADOS AUTOMÁTICAMENTE"
 SEP = "-- ====================================================="
+HASH_REDACTADO = "$2b$12$redactedhash"
 
 COLUMNAS_CLIENTES = (
     "id_cliente",
@@ -88,7 +89,14 @@ def _tuple_sql(row) -> str:
 def _fetch(db, tabla: str, columnas) -> list[tuple]:
     cols = ", ".join(columnas)
     filas = db.execute(text(f"SELECT {cols} FROM {tabla} ORDER BY {columnas[0]}")).fetchall()
-    return [tuple(r) for r in filas]
+    rows = [tuple(r) for r in filas]
+    if "password_hash" in columnas:
+        idx = columnas.index("password_hash")
+        rows = [
+            tuple(HASH_REDACTADO if i == idx else v for i, v in enumerate(fila))
+            for fila in rows
+        ]
+    return rows
 
 
 def _build_block(db) -> str:

@@ -19,17 +19,20 @@ branch_labels = None
 depends_on = None
 
 
+HASH_REDACTADO = "$2b$12$redactedhash"
+
+
 EMPLEADOS = [
-    ("CARLOS ANDRÉS", "GÓMEZ RÍOS", "carlos.andres.gomez@gmail.com", "$2b$12$cEkNLc8Js907ywI9KHgYLu/TCD5.Ld35TwAIO7Ev5hSxfeG1LNf0C", "tecnico", "Certificación en Redes y Cableado Estructurado"),
-    ("JORGE DANIEL", "CHARRY PÉREZ", "jorge.charry@gmail.com", "$2b$12$N1Ge6TcZlgNgP85DKhp5quBdrXQkixJV5hB1Th455B1gkKDIbMj96", "tecnico", "Certificación en Instalación de Domótica"),
-    ("JUAN SEBASTIÁN", "MORENO TORRES", "juan.moreno@gmail.com", "$2b$12$vic9BT8xg8NX1SKPnjmGn.yoKQBh88xViJjhrrG.PRWyKbMDWOin2", "tecnico", "Certificación en Seguridad Electrónica"),
-    ("LUIS EDUARDO", "MARTÍNEZ GAITÁN", "luis.martinez@gmail.com", "$2b$12$.zBmllFGXbnL7eAIFAfr6ueCtlwal3yjMxeiPTooqG6tcq8q2Ham2", "administrador", ""),
-    ("ANDRÉS MAURICIO", "LÓPEZ VARGAS", "andres.lopez@gmail.com", "$2b$12$RByXZVO3eUwDQiQeBeZd2.bdFX3uOCkj9omMfE7iqNX1oRbYB7dPO", "tecnico", "Certificación en Programación de PLCs"),
-    ("CAMILA ANDREA", "RODRÍGUEZ PEÑA", "camila.rodriguez@gmail.com", "$2b$12$z4DFKDwZ.jHTfu6.0RT7hOU5JpqgvNtYjzCGp11phcY7iKM9kEKfe", "administrador", ""),
-    ("NICOL ALEJANDRA", "MARIÑO ROMERO", "nicolmarinoromero@gmail.com", "$2b$12$OQdysg.2T0oagVqY5zPeq.07kcmonKB.zwxBSbQHlK0uEnGiyhBv6", "administrador", ""),
-    ("LAURA MARCELA", "PÉREZ DUARTE", "nicolmarino09@gmail.com", "$2b$12$iY/it6NSqzlUkR7IBT1q3eTYKKudhyVIb4Gyf1V.UYX6s548abKpu", "tecnico", "Automatización de hogares"),
-    ("JULIÁN FELIPE", "CARVAJAL CABALLERO", "julian.carvajal@gmail.com", "$2b$12$dork9ZuJsoLuly6HWBQ6WuKiP97jjnGNl.h9Z2oqT/FZJfC/iyGQK", "tecnico", "Automatización de hogares"),
-    ("MARÍA FERNANDA", "RINCÓN SALAZAR", "maria.rincon@gmail.com", "$2b$12$QnuBlookrDuipcigufnlKenl1ufl6Fk8.eQP27nIvz5f/lpgYKEhW", "tecnico", "Automatización de hogares"),
+    ("CARLOS ANDRÉS", "GÓMEZ RÍOS", "carlos.andres.gomez@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Redes y Cableado Estructurado"),
+    ("JORGE DANIEL", "CHARRY PÉREZ", "jorge.charry@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Instalación de Domótica"),
+    ("JUAN SEBASTIÁN", "MORENO TORRES", "juan.moreno@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Seguridad Electrónica"),
+    ("LUIS EDUARDO", "MARTÍNEZ GAITÁN", "luis.martinez@gmail.com", HASH_REDACTADO, "administrador", ""),
+    ("ANDRÉS MAURICIO", "LÓPEZ VARGAS", "andres.lopez@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Programación de PLCs"),
+    ("CAMILA ANDREA", "RODRÍGUEZ PEÑA", "camila.rodriguez@gmail.com", HASH_REDACTADO, "administrador", ""),
+    ("NICOL ALEJANDRA", "MARIÑO ROMERO", "nicolmarinoromero@gmail.com", HASH_REDACTADO, "administrador", ""),
+    ("LAURA MARCELA", "PÉREZ DUARTE", "nicolmarino09@gmail.com", HASH_REDACTADO, "tecnico", "Automatización de hogares"),
+    ("JULIÁN FELIPE", "CARVAJAL CABALLERO", "julian.carvajal@gmail.com", HASH_REDACTADO, "tecnico", "Automatización de hogares"),
+    ("MARÍA FERNANDA", "RINCÓN SALAZAR", "maria.rincon@gmail.com", HASH_REDACTADO, "tecnico", "Automatización de hogares"),
 ]
 
 
@@ -50,8 +53,8 @@ def upgrade() -> None:
                 continue
             result = conn.execute(
                 sa.text(
-                    "INSERT INTO usuarios (first_name, last_name, email, password_hash, id_rol_u, is_active) "
-                    "VALUES (:first_name, :last_name, :email, :password_hash, :role_id, 1)"
+                    "INSERT INTO usuarios (first_name, last_name, email, password_hash, id_rol_u, is_active, password_reset_required) "
+                    "VALUES (:first_name, :last_name, :email, :password_hash, :role_id, 1, 1)"
                 ),
                 {
                     "first_name": first_name,

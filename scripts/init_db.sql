@@ -155,16 +155,16 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 -- Contraseñas de usuarios (patrón: 12345678 + inicial nombre MAYÚS + inicial apellido minús + .)
 INSERT IGNORE INTO usuarios (first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active) VALUES
-('CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2b$12$cEkNLc8Js907ywI9KHgYLu/TCD5.Ld35TwAIO7Ev5hSxfeG1LNf0C', 2, 1),
-('JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2b$12$N1Ge6TcZlgNgP85DKhp5quBdrXQkixJV5hB1Th455B1gkKDIbMj96', 2, 1),
-('JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2b$12$vic9BT8xg8NX1SKPnjmGn.yoKQBh88xViJjhrrG.PRWyKbMDWOin2', 2, 1),
-('LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2b$12$.zBmllFGXbnL7eAIFAfr6ueCtlwal3yjMxeiPTooqG6tcq8q2Ham2', 1, 1),
-('ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2b$12$RByXZVO3eUwDQiQeBeZd2.bdFX3uOCkj9omMfE7iqNX1oRbYB7dPO', 2, 1),
-('CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2b$12$z4DFKDwZ.jHTfu6.0RT7hOU5JpqgvNtYjzCGp11phcY7iKM9kEKfe', 1, 1),
-('NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2b$12$OQdysg.2T0oagVqY5zPeq.07kcmonKB.zwxBSbQHlK0uEnGiyhBv6', 1, 1),
-('LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2b$12$iY/it6NSqzlUkR7IBT1q3eTYKKudhyVIb4Gyf1V.UYX6s548abKpu', 2, 1),
-('JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2b$12$dork9ZuJsoLuly6HWBQ6WuKiP97jjnGNl.h9Z2oqT/FZJfC/iyGQK', 2, 1),
-('MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2b$12$QnuBlookrDuipcigufnlKenl1ufl6Fk8.eQP27nIvz5f/lpgYKEhW', 2, 1);
+('CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2b$12$redactedhash', 2, 1),
+('JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2b$12$redactedhash', 2, 1),
+('JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2b$12$redactedhash', 2, 1),
+('LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2b$12$redactedhash', 1, 1),
+('ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2b$12$redactedhash', 2, 1),
+('CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2b$12$redactedhash', 1, 1),
+('NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2b$12$redactedhash', 1, 1),
+('LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2b$12$redactedhash', 2, 1),
+('JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2b$12$redactedhash', 2, 1),
+('MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2b$12$redactedhash', 2, 1);
 
 CREATE TABLE IF NOT EXISTS clientes (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
@@ -185,21 +185,21 @@ CREATE TABLE IF NOT EXISTS clientes (
     FOREIGN KEY (id_tipo_documento_c) REFERENCES tipos_documento(id_tipo_documento)
 );
 
-SET @hash = '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG';
+SET @hash = '$2b$12$redactedhash';
 
 -- Contraseñas de clientes (patrón: 12345678 + inicial nombre MAYÚS + inicial apellido minús + .)
 INSERT IGNORE INTO clientes (first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token) VALUES
-('LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2b$12$6rroJ8FDswLC2TD7hXAK.uQv1GMyPUVEP8ppw3cIe1X1QOuMsgRoi', 1, NULL),
-('DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2b$12$hE1X0XXMBO3Eb3o9kusSU.EVm19hFTkRC8Ko/ve7SJfwF.zTF/k7O', 1, NULL),
-('ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2b$12$AFJtgh2pVgOtqVSEkjHjyemlyZbGWnQj4q70AibjpNuifayrjrWLe', 1, NULL),
-('MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2b$12$/TbKAqekp0mfyBDohFR7juGHCaz5WkZkkceWSnhS0eesDpPkZZzNC', 1, NULL),
-('NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2b$12$LRHnOBAUGFV2NGOh37Kz0.zDB7UcSkvVTVbKUgOMw/3qxwUoDoJvC', 1, NULL),
-('FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2b$12$7ZAsIDxO63nJAZ/jdtUDf.0vjL2dmnyhaWeVe8td5aswB44kugAb6', 1, NULL),
-('CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2b$12$WP/Uqv.1QQkwLrGYzX2fEOdJGIuYRedRMVpS.vvP4eA6zLs/LMTxC', 1, NULL),
-('SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2b$12$oWsjXpWFUd0aRj87rBTufO3wMs7b7i72ZWpDY7G7QDB1rjzUtv2gS', 1, NULL),
+('LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2b$12$redactedhash', 1, NULL),
+('DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2b$12$redactedhash', 1, NULL),
+('ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2b$12$redactedhash', 1, NULL),
+('MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2b$12$redactedhash', 1, NULL),
+('NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2b$12$redactedhash', 1, NULL),
+('FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2b$12$redactedhash', 1, NULL),
+('CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2b$12$redactedhash', 1, NULL),
+('SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2b$12$redactedhash', 1, NULL),
 ('SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', @hash, 1, NULL),
 ('MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', @hash, 1, NULL),
-('VALENTINA', 'HIDALGO CASTRO', 1, 1134567890, 3123456789, 'valentina.hidalgo@gmail.com', 'Cl 8 #34-56', '$2b$12$K0VCBGB08uRF8BrRN49LhuunCdQflp59lKwqSHFlMjAV6fj.xurqW', 1, NULL);
+('VALENTINA', 'HIDALGO CASTRO', 1, 1134567890, 3123456789, 'valentina.hidalgo@gmail.com', 'Cl 8 #34-56', '$2b$12$redactedhash', 1, NULL);
 
 -- ------------------------------
 -- Tabla de registros pendientes (SIN clave foránea)
@@ -1208,44 +1208,28 @@ UPDATE productos SET precio_compra_producto = 600000.00,  precio_venta_producto 
 -- =====================================================
 
 INSERT IGNORE INTO clientes (id_cliente, first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token, created_at) VALUES
-(1, 'LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(2, 'DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(3, 'ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(4, 'MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(5, 'NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(6, 'FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(7, 'CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(8, 'SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(9, 'SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(10, 'MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, NULL, '2026-11-01 18:15:14'),
-(255, 'Otro', 'Cliente', NULL, NULL, NULL, 'otro.http.1793668843670683@neodomus.com', NULL, NULL, 1, NULL, '2026-11-03 01:20:43'),
-(268, 'Otro', 'Cliente', NULL, NULL, NULL, 'otro.http.1793668885885747@neodomus.com', NULL, NULL, 1, NULL, '2026-11-03 01:21:25'),
-(2286, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793825776397610@neodomus.com', NULL, '$2b$12$bF790oi2z7SA1vejeHaI3.I8Ol7E6TIG0ns7NfRc7i02h20Q1gxge', 1, NULL, '2026-11-04 20:56:16'),
-(2292, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793825971676239@neodomus.com', NULL, '$2b$12$e88Vvzb52uKPhu8kKX3rj.QfB59XUKKgsI4SFlKOgwNKab1afDkG2', 1, NULL, '2026-11-04 20:59:31'),
-(2293, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793825972481861@neodomus.com', NULL, '$2b$12$PzkB1mrveQo/STykISn2p.yh1zbi2k4O2Sw8cZ5uHeQLL4KbSL.Zi', 1, NULL, '2026-11-04 20:59:32'),
-(2294, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793826022704738@neodomus.com', NULL, '$2b$12$eyLbKo1C7bPNKiO8aa4iyOFJ8COPT9G92ZmNOX7IzE5y8xnF2ipPC', 1, NULL, '2026-11-04 21:00:22'),
-(2295, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793826079870423@neodomus.com', NULL, '$2b$12$XkGJ1.f/URdsgS3F94jT1OrO1QUbFBslpoGvXoL9aNI8KJVfabVSG', 1, NULL, '2026-11-04 21:01:20'),
-(2296, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793826080616788@neodomus.com', NULL, '$2b$12$t/iMDJU3QFicURLOA1DaeO982geLXmk3rFkcOb1.H.QLD8WKFDFea', 1, NULL, '2026-11-04 21:01:20'),
-(2297, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793826130818309@neodomus.com', NULL, '$2b$12$gihS3A7JQOymVxpv02iaSOf80O6euYnyoWwM0D.DA4xIV/xScrifO', 1, NULL, '2026-11-04 21:02:10'),
-(2298, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793826181015750@neodomus.com', NULL, '$2b$12$XWEh790Kj76IopOYB2yBSOZl6DXd4ifLLLR.AS.CZJG6/.x11hCbW', 1, NULL, '2026-11-04 21:03:01'),
-(2301, 'Cliente', 'rv', NULL, NULL, NULL, 't1.cli.rv.1793826303401684@neodomus.com', NULL, '$2b$12$uru8hfyzYL87bkxymoJqceY42jldGew4mFE.5npquVaO2tE6vmR5S', 1, NULL, '2026-11-04 21:05:03'),
-(3047, 'NUEVO', 'CLIENTE', NULL, NULL, NULL, 't11.ver.1793829338713822@neodomus.com', NULL, '$2b$12$hXqnZ2SoymBphcgtTYaJOOpCAPao8HY8WMu7eghV70rEGzq48FH6K', 1, NULL, '2026-11-04 21:55:38');
+(1, 'LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(2, 'DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(3, 'ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(4, 'MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(5, 'NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(6, 'FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(7, 'CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(8, 'SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(9, 'SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
+(10, 'MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', '$2b$12$redactedhash', 1, NULL, '2026-11-01 18:15:14'),
 
 INSERT IGNORE INTO usuarios (id_usuario, first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active, created_at) VALUES
-(1, 'CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(2, 'JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(3, 'JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(4, 'LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, 1, '2026-11-01 18:15:14'),
-(5, 'ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(6, 'CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, 1, '2026-11-01 18:15:14'),
-(7, 'NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 1, 1, '2026-11-01 18:15:14'),
-(8, 'LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(9, 'JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(10, 'MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2b$12$KIXpzCv6VxPqCQzO4QH3eO8yYjZqXVNZYbGcYX7tZQ0cZ6sJZy3MG', 2, 1, '2026-11-01 18:15:14'),
-(2325, 'Usuario', 'rv', NULL, NULL, NULL, 't1.usu.rv.1793825776696010@neodomus.com', '$2b$12$RwWnBvSLjXsJc8dzbYkJD.EvacyyaoRqXlTBxI/53LnWEwyveBNde', 1, 1, '2026-11-04 20:56:16'),
-(2332, 'Usuario', 'rv', NULL, NULL, NULL, 't1.usu.rv.1793825972013727@neodomus.com', '$2b$12$NfYXKWabWL/hwuHANsESm.ndMN4gsGeNiohaOHA90BTmgf3k4Ws/O', 1, 1, '2026-11-04 20:59:32'),
-(2333, 'Usuario', 'rv', NULL, NULL, NULL, 't1.usu.rv.1793826080172120@neodomus.com', '$2b$12$52ZF4yGdNU8bYTsyVq8G5.P98q75/tLmZOknMVbyAS5TFsUBHarDu', 1, 1, '2026-11-04 21:01:20'),
-(2336, 'Usuario', 'rv', NULL, NULL, NULL, 't1.usu.rv.1793826303686293@neodomus.com', '$2b$12$YljC1QNGFTmbo6RaOr.DuOyvUmWWfGYVkFjEo5cc9eSNIq4qLx4fK', 1, 1, '2026-11-04 21:05:03');
+(1, 'CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
+(2, 'JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
+(3, 'JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
+(4, 'LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2b$12$redactedhash', 1, 1, '2026-11-01 18:15:14'),
+(5, 'ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
+(6, 'CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2b$12$redactedhash', 1, 1, '2026-11-01 18:15:14'),
+(7, 'NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2b$12$redactedhash', 1, 1, '2026-11-01 18:15:14'),
+(8, 'LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
+(9, 'JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
+(10, 'MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2b$12$redactedhash', 2, 1, '2026-11-01 18:15:14'),
 
 INSERT IGNORE INTO tecnicos (id_tecnico, id_usuario_t, certificacion_t) VALUES
 (1, 1, 'Certificación en Redes y Cableado Estructurado'),
