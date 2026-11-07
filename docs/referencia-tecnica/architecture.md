@@ -67,4 +67,4 @@ La base de datos evoluciona mediante migraciones en `be/alembic/versions/`; los 
 - [Guía con Docker](../setup/con-docker.md) · [sin Docker](../setup/sin-docker.md)
 - [Referencia API](api-endpoints.md)
 - [Esquema de base de datos](database-schema.md)
-- [Auditoría documental](../auditoria-documental.md)
+- [Auditoría documental](../gestion/auditoria-documental.md)

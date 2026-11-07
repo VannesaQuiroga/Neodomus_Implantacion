@@ -23,7 +23,7 @@ Este manual describe la configuración y estructura presente en el repositorio; 
 
 ## Arquitectura
 
-La arquitectura y diagrama están en [referencia de arquitectura](docs/referencia-tecnica/architecture.md). La web y la app móvil consumen la API FastAPI bajo `/api/v1`; SQLAlchemy persiste datos en MySQL; MinIO almacena objetos. El compose local define `db`, `api`, `minio` y `frontend`.
+La arquitectura y diagrama están en [referencia de arquitectura](../../referencia-tecnica/architecture.md). La web y la app móvil consumen la API FastAPI bajo `/api/v1`; SQLAlchemy persiste datos en MySQL; MinIO almacena objetos. El compose local define `db`, `api`, `minio` y `frontend`.
 
 ## Tecnologías
 
@@ -52,11 +52,11 @@ Procesos con evidencia de código: autenticación y recuperación; consulta de c
 
 ### Docker
 
-Sigue [la guía con Docker](docs/setup/con-docker.md). El Compose actual usa puertos 3307, 8000, 5173, 9000 y 9001. Crea `.env` desde `.env.example`; completa secretos localmente sin compartirlos. La API aplica las migraciones antes de iniciar.
+Sigue [la guía con Docker](../../setup/con-docker.md). El Compose actual usa puertos 3307, 8000, 5173, 9000 y 9001. Crea `.env` desde `.env.example`; completa secretos localmente sin compartirlos. La API aplica las migraciones antes de iniciar.
 
 ### Sin Docker
 
-Sigue [la guía sin Docker](docs/setup/sin-docker.md), que utiliza las carpetas y gestores presentes (`be/`, `fe/`, `uv`, `pnpm`). Las versiones locales deben satisfacer los archivos declarados.
+Sigue [la guía sin Docker](../../setup/sin-docker.md), que utiliza las carpetas y gestores presentes (`be/`, `fe/`, `uv`, `pnpm`). Las versiones locales deben satisfacer los archivos declarados.
 
 ### Móvil
 
@@ -67,7 +67,7 @@ Sigue [la guía sin Docker](docs/setup/sin-docker.md), que utiliza las carpetas 
 - Prefijo `/api/v1`; el registro de módulos está en `be/app/main.py`.
 - `be/app/routers/` implementa rutas; `be/app/main.py` deja la documentación OpenAPI predeterminada de FastAPI disponible en `/docs` cuando el servicio está levantado.
 - Los endpoints de autenticación incluyen registro de cliente, verificación, login, Google, refresh, logout, recuperación y cambio de contraseña (`be/app/routers/auth.py`).
-- Módulos de productos, pedidos, citas, técnicos y reportes tienen sus routers dedicados. Consulta [API](docs/referencia-tecnica/api-endpoints.md); las tablas antiguas de ese documento se reemplazan en esta actualización por una guía de módulos y advertencia de fuente de verdad.
+- Módulos de productos, pedidos, citas, técnicos y reportes tienen sus routers dedicados. Consulta [API](../../referencia-tecnica/api-endpoints.md); las tablas antiguas de ese documento se reemplazan en esta actualización por una guía de módulos y advertencia de fuente de verdad.
 - Roles web visibles: visitante, cliente, técnico y administrador. La autorización se aplica en rutas de frontend y dependencias/endpoints del backend; la UI por sí sola no es un control de seguridad.
 
 ## Datos y almacenamiento
@@ -95,8 +95,8 @@ No se encontró definición oficial de mesa de ayuda, responsables, horarios ni 
 
 ## Diagramas y referencias
 
-- [Diagrama de arquitectura y componentes](docs/referencia-tecnica/architecture.md)
-- [API](docs/referencia-tecnica/api-endpoints.md)
-- [Modelo/diccionario de datos](docs/referencia-tecnica/database-schema.md) y [diccionario extendido](docs/referencia-tecnica/diccionario-de-datos.md)
-- [Setup Docker](docs/setup/con-docker.md) · [setup local](docs/setup/sin-docker.md)
-- [Auditoría documental](docs/auditoria-documental.md)
+- [Diagrama de arquitectura y componentes](../../referencia-tecnica/architecture.md)
+- [API](../../referencia-tecnica/api-endpoints.md)
+- [Modelo/diccionario de datos](../../referencia-tecnica/database-schema.md) y [diccionario extendido](../../referencia-tecnica/diccionario-de-datos.md)
+- [Setup Docker](../../setup/con-docker.md) · [setup local](../../setup/sin-docker.md)
+- [Auditoría documental](../../gestion/auditoria-documental.md)

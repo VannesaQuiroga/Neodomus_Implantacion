@@ -1,23 +1,41 @@
-name: SonarCloud Analysis
 
+# Análisis estático de calidad con SonarQube Cloud (SonarCloud).
+# Disparadores: push a 'development' y Pull Requests hacia 'main'.
+# La configuración del proyecto vive en sonar-project.properties
+# (projectKey, organization, sources, exclusions).
+# Cobertura de pruebas: NO integrada en esta etapa (solo análisis estático).
+
+name: SonarCloud Analysis
 
 on:
   push:
-    branches: [ main, master, development ]
+    branches:
+      - development
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+# Permiso mínimo necesario para este trabajo: solo leer el repositorio.
+permissions:
+  contents: read
 
 jobs:
   sonarcloud:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 0 # Requiere historial completo para cálculo de diferencias y métricas de Sonar
+          fetch-depth: 0
 
-      - name: SonarCloud Scan Action
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Proporcionado automáticamente por GitHub
-          SONAR_TOKEN: ${{ secrets.NEODOMUS}}  # El secreto que creaste manualmente
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.NEODOMUS }}
+

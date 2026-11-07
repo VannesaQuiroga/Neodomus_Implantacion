@@ -153,6 +153,19 @@ describe('ProductoDetalle -> carrito -> checkout', () => {
     renderFlujo('/producto/7');
     await screen.findByRole('button', { name: 'Agregar al carrito' });
 
+    // Se espera tambien a que la variante por defecto y su stock queden
+    // calculados: mientras el efecto de valores por defecto no defina la
+    // variante activa, stockDisponible es 0 y los botones de cantidad y
+    // agregar quedan disabled; los clicks sobre ellos se ignoran
+    // silenciosamente y el carrito quedaria vacio (race de renders bajo
+    // la suite completa).
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Aumentar cantidad' }).disabled).toBe(false);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Agregar al carrito' }).disabled).toBe(false);
+    });
+
     fireEvent.click(screen.getByRole('button', { name: 'Aumentar cantidad' }));
     fireEvent.click(screen.getByRole('button', { name: 'Agregar al carrito' }));
 

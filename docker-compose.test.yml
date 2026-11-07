@@ -1,0 +1,83 @@
+# ╔══════════════════════════════════════════════════════════════════════╗
+#  Infraestructura de PRUEBAS de NeoDomus — MinIO dedicado (Bloque 2)
+#
+#  Reglas de aislamiento:
+#    - Contenedor  neodomus_minio_test   (nunca reutiliza neodomus_minio).
+#    - Volumen     neodomus_minio_test_data (datos SOLO de pruebas).
+#    - Redes       neodomus_tests_net     (red dedicada a pruebas; el servicio
+#                  NO se conecta a la red de desarrollo).
+#    - Puertos host 9100 (API S3) y 9101 (consola), PUBLICADOS SOLO EN
+#      127.0.0.1 (localhost): no accesibles desde otras interfaces/redes.
+#      NO chocan con el MinIO de desarrollo (9000/9001), que queda intacto.
+#      Dentro de la red de pruebas los clientes S3 usan el ALIAS INTERNO
+#      `neodomus-minio-test:9000` (puerto interno), nunca el publicado.
+#    - Credenciales EXCLUSIVAS de pruebas: MINIO_TEST_ROOT_USER /
+#      MINIO_TEST_ROOT_PASSWORD (env del host), OBLIGATORIAS y SIN valores
+#      predeterminados: compose aborta si no estan definidas. Nunca se
+#      reutilizan las credenciales de desarrollo ni se versionan secretos.
+#    - Imagen FIJA (no 'latest'), la misma release que usa el proyecto.
+#
+#  Uso (idempotente): docker compose -f docker-compose.test.yml up -d
+#  Preferible:        tests\setup_minio_test.ps1  (verifica puertos/nombres,
+#                     espera salud, crea buckets y muestra TEST_MINIO_*).
+#
+#  PROHIBIDO: docker compose down -v aquí destruye datos de PRUEBAS del
+#  volumen; no se ejecuta nunca contra el proyecto principal.
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+name: neodomus-tests
+
+services:
+  minio-test:
+    # Versión FIJA y compatible (no 'latest'): misma release que usa el stack
+    # del proyecto (verificada contra la imagen del contenedor en ejecución).
+    image: coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    container_name: neodomus_minio_test
+    command: server /data --console-address ":9101"
+    healthcheck:
+      # Configurar el healthcheck SIN curl/wget: la imagen trae 'mc'.
+      # 'mc alias' usa credenciales del propio contenedor (env del servicio).
+      test: ["CMD-SHELL", "mc alias set pruebas_health http://localhost:9000 \"$${MINIO_ROOT_USER}\" \"$${MINIO_ROOT_PASSWORD}\" >/dev/null 2>&1 && (mc ready pruebas_health || mc ls pruebas_health >/dev/null)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    environment:
+      # Credenciales EXCLUSIVAS de pruebas: OBLIGATORIAS via env del host,
+      # SIN valores predeterminados (compose falla ANTES de crear nada si no
+      # estan definidas). Sin secretos embebidos en archivos versionados.
+      MINIO_ROOT_USER: "${MINIO_TEST_ROOT_USER:?Define MINIO_TEST_ROOT_USER (credenciales exclusivas de pruebas; sin valores por defecto)}"
+      MINIO_ROOT_PASSWORD: "${MINIO_TEST_ROOT_PASSWORD:?Define MINIO_TEST_ROOT_PASSWORD (credenciales exclusivas de pruebas; sin valores por defecto)}"
+    ports:
+      # Publicacion SOLO en localhost: nada accesible desde otras interfaces.
+      # La comunicacion entre contenedores va por el alias interno
+      # `neodomus-minio-test:9000` (puerto interno de S3), no por estos.
+      - "127.0.0.1:9100:9000"   # API S3 de pruebas, solo localhost (dev conserva 9000/9001)
+      - "127.0.0.1:9101:9101"   # Consola de pruebas (escucha :9101 DENTRO del contenedor), solo localhost
+    volumes:
+      # Volumen EXCLUSIVO de pruebas: persistencia solo aquí (nada tocado del
+      # MinIO de desarrollo).
+      - minio_test_data:/data
+    networks:
+      neodomus_tests_net:
+        # Alias DNS LEGIBLE por clientes S3 (sin guion bajo: MinIO rechaza
+        # 'Host:' con '_' como nombre invalido). El nombre del CONTENEDOR se
+        # mantiene en neodomus_minio_test; los tests S3 deben usar este alias
+        # como TEST_MINIO_ENDPOINT (modo contenedor).
+        aliases:
+          - neodomus-minio-test
+
+volumes:
+  minio_test_data:
+    name: neodomus_minio_test_data
+
+networks:
+  neodomus_tests_net:
+    # Red DEDICADA a pruebas, con nombre fijo. Se declara externa: es
+    # compartida por la infraestructura de pruebas de NeoDomus (MySQL efimero
+    # de pruebas, contenedores efimeros de migraciones/tests) y por eso NO se
+    # crea/destruye al ritmo de 'docker compose'. El script
+    # tests/setup_minio_test.ps1 la crea ANTES si no existe, y nunca es la red
+    # de desarrollo (neodomus_net / neodomus_implantacion_*).
+    name: neodomus_tests_net
+    external: true
