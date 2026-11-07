@@ -14,7 +14,7 @@ Conexion (se puede configurar con variables de entorno):
     DB_HOST   (default: localhost)
     DB_PORT   (default: 3307 - puerto expuesto por docker-compose)
     DB_USER   (default: neodomus)
-    DB_PASSWORD (default: neodomus123)
+    DB_PASSWORD (obligatoria; ver .env)
     DB_NAME   (default: neodomus)
 
 Ejemplo con docker (desde la maquina host):
@@ -42,7 +42,9 @@ def get_connection():
     host = os.environ.get("DB_HOST", "localhost")
     port = int(os.environ.get("DB_PORT", "3307"))
     user = os.environ.get("DB_USER", "neodomus")
-    password = os.environ.get("DB_PASSWORD", "neodomus123")
+    password = os.environ.get("DB_PASSWORD") or os.environ.get("MYSQL_PASSWORD")
+    if not password:
+        raise RuntimeError("Configura DB_PASSWORD o MYSQL_PASSWORD (ver .env).")
     database = os.environ.get("DB_NAME", "neodomus")
     return pymysql.connect(
         host=host,

@@ -29,7 +29,7 @@ Variables necesarias:
 
 - `TEST_DATABASE_URL` (obligatoria): URL MySQL de la base de pruebas `neodomus_test`,
   distinta de la base de aplicación. Credenciales de desarrollo definidas en
-  `docker-compose.yml` (`neodomus`/`neodomus123`).
+  `docker-compose.yml` (`neodomus`/`${MYSQL_PASSWORD}`).
 - `DATABASE_URL` (solo para migrar la base de pruebas): apuntando a `neodomus_test`.
 
 Dependencias añadidas (grupo dev): `httpx>=0.28.1`, `coverage>=7.16.2`.
@@ -38,16 +38,16 @@ Comandos (desde la raíz del repo, con Docker en marcha):
 
 ```bash
 # 1) Inicializar el esquema de la base de pruebas (una sola vez; no borra bases existentes)
-docker compose exec -T -e DATABASE_URL="mysql+pymysql://neodomus:neodomus123@db:3306/neodomus_test?charset=utf8mb4" api uv run alembic upgrade head
+docker compose exec -T -e DATABASE_URL="mysql+pymysql://neodomus:${MYSQL_PASSWORD}@db:3306/neodomus_test?charset=utf8mb4" api uv run alembic upgrade head
 
 # 2) Sincronizar dependencias (incluye el grupo dev) en el contenedor
 docker compose exec -T api uv sync
 
 # 3) Ejecutar la suite completa (descubrimiento automático)
-docker compose exec -T -e TEST_DATABASE_URL="mysql+pymysql://neodomus:neodomus123@db:3306/neodomus_test?charset=utf8mb4" api uv run python -m unittest discover -s app/tests -p "test_*.py"
+docker compose exec -T -e TEST_DATABASE_URL="mysql+pymysql://neodomus:${MYSQL_PASSWORD}@db:3306/neodomus_test?charset=utf8mb4" api uv run python -m unittest discover -s app/tests -p "test_*.py"
 
 # 4) Cobertura (líneas + ramas), reportes HTML y XML
-docker compose exec -T -e TEST_DATABASE_URL="mysql+pymysql://neodomus:neodomus123@db:3306/neodomus_test?charset=utf8mb4" api sh -c "uv run coverage erase && uv run coverage run --source=app --branch -m unittest discover -s app/tests -p 'test_*.py' && uv run coverage report && uv run coverage html && uv run coverage xml"
+docker compose exec -T -e TEST_DATABASE_URL="mysql+pymysql://neodomus:${MYSQL_PASSWORD}@db:3306/neodomus_test?charset=utf8mb4" api sh -c "uv run coverage erase && uv run coverage run --source=app --branch -m unittest discover -s app/tests -p 'test_*.py' && uv run coverage report && uv run coverage html && uv run coverage xml"
 ```
 
 La cobertura se inicia con `coverage run` (inyecta su tracer al arrancar el
@@ -258,10 +258,10 @@ existentes):
 # GRANT ALL PRIVILEGES ON neodomus_test_t01.* TO 'neodomus'@'%';
 
 # Migrar
-docker compose exec -T -e DATABASE_URL="mysql+pymysql://neodomus:neodomus123@db:3306/neodomus_test_t01?charset=utf8mb4" api uv run alembic upgrade head
+docker compose exec -T -e DATABASE_URL="mysql+pymysql://neodomus:${MYSQL_PASSWORD}@db:3306/neodomus_test_t01?charset=utf8mb4" api uv run alembic upgrade head
 
 # Ejecutar
-docker compose exec -T -e TEST_DATABASE_URL="mysql+pymysql://neodomus:neodomus123@db:3306/neodomus_test_t01?charset=utf8mb4" api uv run python -m unittest discover -s app/tests -p "test_*.py"
+docker compose exec -T -e TEST_DATABASE_URL="mysql+pymysql://neodomus:${MYSQL_PASSWORD}@db:3306/neodomus_test_t01?charset=utf8mb4" api uv run python -m unittest discover -s app/tests -p "test_*.py"
 ```
 
 Resultado de las dos ejecuciones consecutivas: **`Ran 98 tests … OK`** en ambas.
