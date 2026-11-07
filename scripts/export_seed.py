@@ -35,7 +35,7 @@ INIT_DB = SCRIPT_DIR / "init_db.sql"
 
 MARKER_LINE = "-- REGISTROS GUARDADOS AUTOMÁTICAMENTE"
 SEP_LINE = "-- ====================================================="
-HASH_REDACTADO = "$2b$12$redactedhash"
+HASH_REDACTADO = "$2y$salt$redactedhash"
 
 
 def get_connection():

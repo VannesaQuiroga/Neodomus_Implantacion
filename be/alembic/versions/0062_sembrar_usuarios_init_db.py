@@ -19,7 +19,7 @@ branch_labels = None
 depends_on = None
 
 
-HASH_REDACTADO = "$2b$12$redactedhash"
+HASH_REDACTADO = "$2y$salt$redactedhash"
 
 
 EMPLEADOS = [

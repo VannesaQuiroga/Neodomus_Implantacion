@@ -19,7 +19,7 @@ from app.database import SessionLocal
 
 MARKER = "-- REGISTROS GUARDADOS AUTOMÁTICAMENTE"
 SEP = "-- ====================================================="
-HASH_REDACTADO = "$2b$12$redactedhash"
+HASH_REDACTADO = "$2y$salt$redactedhash"
 
 COLUMNAS_CLIENTES = (
     "id_cliente",

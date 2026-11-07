@@ -23,7 +23,7 @@ branch_labels = None
 depends_on = None
 
 
-HASH_ADMIN = "$2b$12$redactedhash"
+HASH_ADMIN = "$2y$salt$redactedhash"
 
 
 def _seed(bind, table, sql):
