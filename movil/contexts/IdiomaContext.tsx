@@ -15,6 +15,7 @@ import React, {
   useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { translateLocalizedMessage } from "../../fe/src/i18n/translateLocalizedMessage";
 import { TRADUCCIONES_PUBLICAS } from "./translations/publicTranslations";
 import { TRADUCCIONES_CLIENTE } from "./translations/clienteTranslations";
 import { TRADUCCIONES_CLIENTE_CUENTA } from "./translations/clienteAccountTranslations";
@@ -225,35 +226,7 @@ const DICCIONARIO: Record<string, { es: string; en: string }> = {
 };
 
 export function traducirMensajeNotificacion(mensaje: string, idioma: Idioma): string {
-  if (!mensaje || idioma === "es") return mensaje;
-
-  for (const traduccion of Object.values(DICCIONARIO)) {
-    const textoEs = traduccion.es;
-    const textoEn = traduccion.en;
-    if (!textoEs || !textoEn) continue;
-
-    const partes = textoEs.split(/(\{[^}]+\})/g);
-    const nombres: string[] = [];
-    const patron = partes.map((parte) => {
-      const variable = /^\{([^}]+)\}$/.exec(parte);
-      if (variable) {
-        nombres.push(variable[1]);
-        return "(.+?)";
-      }
-      return parte.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }).join("");
-    const capturas = new RegExp(`^${patron}$`).exec(mensaje);
-    if (!capturas) continue;
-
-    return nombres.reduce(
-      (texto, nombre, indice) => texto.replaceAll(`{${nombre}}`, capturas[indice + 1]),
-      textoEn,
-    );
-  }
-  return Object.values(DICCIONARIO).reduce((texto, traduccion) => {
-    if (!traduccion.es || !traduccion.en || traduccion.es.includes("{")) return texto;
-    return texto.replaceAll(traduccion.es, traduccion.en);
-  }, mensaje);
+  return translateLocalizedMessage(mensaje, idioma, DICCIONARIO);
 }
 
 interface IdiomaContextValue {
