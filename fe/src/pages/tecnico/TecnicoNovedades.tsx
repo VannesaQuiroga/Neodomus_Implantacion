@@ -1119,16 +1119,16 @@ const TecnicoNovedades = () => {
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
                     {n.mensaje_cliente ? (
-                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <button type="button" style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaPaperPlane style={{ marginRight: 4 }} /> Enviado
-                      </span>
+                      </button>
                     ) : '—'}
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.solucion_cliente ? '#46d06f' : '#8f8f8f' }}>
                     {n.solucion_cliente ? (
-                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <button type="button" style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaCheck style={{ marginRight: 4 }} /> {n.cliente_visible ? 'Visible' : 'Oculta'}
-                      </span>
+                      </button>
                     ) : '—'}
                   </td>
                   <td>
