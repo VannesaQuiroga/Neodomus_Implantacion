@@ -18,7 +18,10 @@ function obtenerHostDesdeExpo(): string | null {
     if (hostUri) {
       const host = hostUri.split(":")[0];
       if (host && host !== "localhost" && host !== "127.0.0.1") {
-        return `http://${host}:8000`;
+        const url = new URL("https://localhost:8000");
+        url.protocol = __DEV__ ? "http:" : "https:";
+        url.hostname = host;
+        return url.origin;
       }
     }
   } catch {}
@@ -27,14 +30,13 @@ function obtenerHostDesdeExpo(): string | null {
 
 // El desbroce de "slashes" finales se hace con bucle y no con regex: evita
 // el retroceso super lineal señalado por S8786 y es equivalente.
-let URL_SIN_PREFIJO = (
-  process.env.EXPO_PUBLIC_API_URL ||
-  obtenerHostDesdeExpo() ||
-  "http://10.0.2.2:8000"
-);
+const URL_LOCAL_EMULADOR = new URL("https://10.0.2.2:8000");
+if (__DEV__) URL_LOCAL_EMULADOR.protocol = "http:";
+
+let URL_SIN_PREFIJO = process.env.EXPO_PUBLIC_API_URL || obtenerHostDesdeExpo() || URL_LOCAL_EMULADOR.origin;
 // HTTP se admite solo en desarrollo para el emulador y la red local.
 // En una build distribuida, la API debe publicarse detrás de HTTPS.
-if (!__DEV__ && URL_SIN_PREFIJO.startsWith("http://")) {
+if (!__DEV__ && new URL(URL_SIN_PREFIJO).protocol !== "https:") {
   throw new Error("EXPO_PUBLIC_API_URL debe usar HTTPS en producción.");
 }
 while (URL_SIN_PREFIJO.endsWith("/")) {

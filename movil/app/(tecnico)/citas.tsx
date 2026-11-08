@@ -77,7 +77,7 @@ export default function TecnicoCitasScreen() {
     } catch {}
     setLoading(false);
   };
-  void useEffect(() => { fetchCitas(); }, []);
+  useEffect(() => { void fetchCitas(); }, []);
   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
 
   // Comunica con el backend mediante API `/tecnicos/citas/${id}/estado`.

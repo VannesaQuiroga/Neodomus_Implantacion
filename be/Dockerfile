@@ -12,10 +12,9 @@ COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 
-# --locked: no resuelve más allá de uv.lock (dependencias bloqueadas,
-# S8544). --no-build-isolation: no ejecuta scripts/setup de entorno de
-# construcción (S8541).
-RUN uv sync --no-dev --locked --no-build-isolation
+# --locked: respeta uv.lock; --no-build evita ejecutar backends de build de
+# dependencias; --no-build-isolation conserva el entorno de build controlado.
+RUN uv sync --no-dev --locked --no-build --no-build-isolation --no-install-project
 
 
 
