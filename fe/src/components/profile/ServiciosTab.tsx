@@ -102,7 +102,7 @@ const ServiciosTab = () => {
         if (activo) setLoading(false);
       }
     };
-    cargar();
+    void cargar();
     const interval = setInterval(cargar, 60000);
     return () => {
       activo = false;
@@ -328,8 +328,8 @@ const ServiciosTab = () => {
 
       {/* Modal de calificación */}
       {calificandoCita && (
-        <div className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
-          <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
               <h3><FaStar /> Califica al técnico</h3>
               <button type="button" className="pf-modal-close" onClick={() => setCalificandoCita(null)} aria-label="Cerrar">

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional, Dict, Any, Union
 
 from jose import JWTError, jwt
@@ -14,6 +14,7 @@ from app.models.user import User
 from app.models.cliente import Cliente
 from app.models.roles_usuario import RolesUsuario
 from app.config import settings
+from app.utils.fechas import ahora_utc_naiva
 
 # Cookies HttpOnly de autenticación (web). El móvil sigue usando el header
 # Authorization con los tokens que recibe en el cuerpo de la respuesta.
@@ -50,7 +51,7 @@ def create_access_token(
         to_encode["rol"] = rol
     if user_id is not None:
         to_encode["uid"] = str(user_id)
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = ahora_utc_naiva() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -67,7 +68,7 @@ def create_refresh_token(
         to_encode["rol"] = rol
     if user_id is not None:
         to_encode["uid"] = str(user_id)
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = ahora_utc_naiva() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 

@@ -13,6 +13,7 @@ import { FaCheck } from 'react-icons/fa6';
 import './SelectorBanco.css';
 
 interface SelectorBancoProps {
+  id?: string;
   bancos: string[];
   value: string;
   onChange: (banco: string) => void;
@@ -37,6 +38,7 @@ function posicionMenu(rect: DOMRect) {
 }
 
 export function SelectorBanco({
+  id,
   bancos,
   value,
   onChange,
@@ -91,6 +93,7 @@ export function SelectorBanco({
       <button
         type="button"
         ref={botonRef}
+        id={id}
         className={`${classNameTrigger} ${value ? 'con-valor' : ''}`}
         onClick={() => setAbierto((prev) => !prev)}
         aria-haspopup="listbox"

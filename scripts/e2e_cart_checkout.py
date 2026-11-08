@@ -132,8 +132,8 @@ def main():
     suffix = int(tag[:8], 16) % 900000000 + 100000000
     client_email = f'e2e.cart.{tag}@example.com'
     admin_email = f'e2e.cart.admin.{tag}@example.com'
-    client_password = f'Cart{tag}9'
-    admin_password = f'Admin{tag}9'
+    clave_cliente = f'Cart{tag}9'
+    clave_admin = f'Admin{tag}9'
 
     db = testdb.TestSessionLocal()
     client_id = admin_id = unit_id = metres_id = variant_id = None
@@ -154,14 +154,14 @@ def main():
 
         client = Cliente(
             first_name='Cliente', last_name='Checkout E2E', email=client_email,
-            password_hash=hash_password(client_password), is_active=True,
+            password_hash=hash_password(clave_cliente), is_active=True,
             id_tipo_documento_c=1, documento_cliente=suffix,
             telefono_cliente=3000000000 + suffix % 100000000,
             address='Calle E2E 123',
         )
         admin = User(
             first_name='Admin', last_name='Checkout E2E', email=admin_email,
-            password_hash=hash_password(admin_password), id_rol_u=role.id_rol,
+            password_hash=hash_password(clave_admin), id_rol_u=role.id_rol,
             is_active=True, id_tipo_documento_u=1, documento_usuario=suffix + 1,
             telefono_usuario=3100000000 + suffix % 100000000,
         )
@@ -207,9 +207,9 @@ def main():
             VITE_API_URL=f'http://127.0.0.1:{api_port}/api/v1',
             E2E_BASE_URL=f'http://127.0.0.1:{web_port}',
             E2E_CLIENT_EMAIL=client_email,
-            E2E_CLIENT_PASSWORD=client_password,
+            E2E_CLIENT_PASSWORD=clave_cliente,
             E2E_ADMIN_EMAIL=admin_email,
-            E2E_ADMIN_PASSWORD=admin_password,
+            E2E_ADMIN_PASSWORD=clave_admin,
             E2E_UNIT_PRODUCT_ID=str(unit_id),
             E2E_UNIT_VARIANT_ID=str(variant_id),
             E2E_METRES_PRODUCT_ID=str(metres_id),

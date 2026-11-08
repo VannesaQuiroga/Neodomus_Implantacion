@@ -75,7 +75,7 @@ const TecnicosPage = () => {
         if (activo) setLoading(false);
       }
     };
-    fetchTecnicos();
+    void fetchTecnicos();
 
     // Tiempo real: cambios del administrador en esta u otra pestaña.
     const cancelarSuscripcion = suscribirCambiosTecnicos(() => fetchTecnicos(true));

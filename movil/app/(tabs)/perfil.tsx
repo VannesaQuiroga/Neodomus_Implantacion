@@ -1,17 +1,17 @@
-// ─────────────────────────────────────────────────────────────
-// Mi perfil — flujo (replicando el comportamiento de la WEB como
-// referencia; cambios SOLO en móvil):
-//   Ver datos → [Editar perfil] → confirmación
-//   "¿Estás seguro que quieres editar tu información?"
-//   Aceptar → campos habilitados → modifica → [Guardar cambios].
+﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Mi perfil â€” flujo (replicando el comportamiento de la WEB como
+// referencia; cambios SOLO en mÃ³vil):
+//   Ver datos â†’ [Editar perfil] â†’ confirmaciÃ³n
+//   "Â¿EstÃ¡s seguro que quieres editar tu informaciÃ³n?"
+//   Aceptar â†’ campos habilitados â†’ modifica â†’ [Guardar cambios].
 // Cambio de correo: al guardar un correo diferente NO se actualiza la
-// BD: se envía un código de verificación AL CORREO ACTUAL (ANTIGUO);
+// BD: se envÃ­a un cÃ³digo de verificaciÃ³n AL CORREO ACTUAL (ANTIGUO);
 // solo tras verificarlo el backend aplica el cambio
 // (request-email-change + verify-email-change, cooldown 30 s).
 // Inhabilitar cuenta = solicitud al administrador (nunca directo).
-// Sin menú "Secciones": esas opciones viven en el menú de herramientas
+// Sin menÃº "Secciones": esas opciones viven en el menÃº de herramientas
 // del navbar.
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -40,9 +40,9 @@ import {
   verificarCambioCorreo,
 } from "@/services/cliente.services";
 
-const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
-// Comunica con el backend mediante API "/clients/me/foto"; prepara FormData para enviar campos y archivos; programa una actualización periódica.
+// Comunica con el backend mediante API "/clients/me/foto"; prepara FormData para enviar campos y archivos; programa una actualizaciÃ³n periÃ³dica.
 export default function PerfilScreen() {
   const { usuario, avatar, setAvatar, actualizarUsuario } = useAuth();
   const { t } = useIdioma();
@@ -55,14 +55,14 @@ export default function PerfilScreen() {
     telefono_cliente: "" as string,
     address: "",
   });
-  // Correo cargado originalmente: permite detectar si el usuario lo cambió.
+  // Correo cargado originalmente: permite detectar si el usuario lo cambiÃ³.
   const [emailOriginal, setEmailOriginal] = useState("");
   const [editando, setEditando] = useState(false);
   const [, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
-  // Confirmación para ENTRAR a modo edición (punto de partida del flujo).
+  // ConfirmaciÃ³n para ENTRAR a modo ediciÃ³n (punto de partida del flujo).
   const [confirmarEdicionVisible, setConfirmarEdicionVisible] = useState(false);
 
   // Cambio de correo
@@ -156,7 +156,7 @@ export default function PerfilScreen() {
   const correoCambiado =
     perfil.email.trim().toLowerCase() !== emailOriginal;
 
-  /** Enviar código de verificación AL CORREO ACTUAL (antiguo). */
+  /** Enviar cÃ³digo de verificaciÃ³n AL CORREO ACTUAL (antiguo). */
   const enviarCodigoCorreo = async () => {
     try {
       await solicitarCambioCorreo(perfil.email.trim());
@@ -164,14 +164,14 @@ export default function PerfilScreen() {
       setExito(t("perfil.correoCodigoEnviado"));
       setCooldown(30); // mismo cooldown que la web
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo enviar el código");
+      setError(e instanceof ApiError ? e.message : "No se pudo enviar el cÃ³digo");
     }
   };
 
   /**
    * Guardar cambios: valida y, si hay cambio de correo sin verificar,
-   * NO guarda todavía: envía el código al correo antiguo y muestra la caja
-   * de verificación. El guardado final ocurre tras verificar el código.
+   * NO guarda todavÃ­a: envÃ­a el cÃ³digo al correo antiguo y muestra la caja
+   * de verificaciÃ³n. El guardado final ocurre tras verificar el cÃ³digo.
    */
   const pedirGuardarCambios = () => {
     setError(null);
@@ -184,18 +184,18 @@ export default function PerfilScreen() {
       return;
     }
     if (correoCambiado && !EMAIL_VALIDO.test(perfil.email.trim())) {
-      setError("Ingresa un correo electrónico válido.");
+      setError("Ingresa un correo electrÃ³nico vÃ¡lido.");
       return;
     }
     // La web bloquea guardar si hay un correo cambiado sin verificar.
     if (correoVerificadoPendiente) {
       setError(
-        "Para cambiar tu correo debes verificar el código enviado a tu correo actual",
+        "Para cambiar tu correo debes verificar el cÃ³digo enviado a tu correo actual",
       );
       return;
     }
     if (correoCambiado) {
-      // PASO OBLIGATORIO: código al correo ANTIGUO antes de tocar la BD.
+      // PASO OBLIGATORIO: cÃ³digo al correo ANTIGUO antes de tocar la BD.
       void enviarCodigoCorreo();
       return;
     }
@@ -212,14 +212,14 @@ export default function PerfilScreen() {
         last_name: perfil.last_name.trim(),
         id_tipo_documento_c: perfil.id_tipo_documento_c,
         documento_cliente: perfil.documento_cliente
-          ? parseInt(perfil.documento_cliente, 10)
+          ? Number.parseInt(perfil.documento_cliente, 10)
           : null,
         telefono_cliente: perfil.telefono_cliente
-          ? parseInt(perfil.telefono_cliente, 10)
+          ? Number.parseInt(perfil.telefono_cliente, 10)
           : null,
         address: perfil.address.trim(),
       });
-      // Única fuente de verdad BD → backend → estado → NAVBAR:
+      // Ãšnica fuente de verdad BD â†’ backend â†’ estado â†’ NAVBAR:
       // reconsulta el perfil y refresca el estado global para que el
       // navbar muestre el nombre/correo nuevos inmediatamente.
       await actualizarUsuario();
@@ -242,8 +242,8 @@ export default function PerfilScreen() {
       setCorreoVerificadoPendiente(false);
       setCodigoCorreo("");
       setEmailOriginal(perfil.email.trim().toLowerCase());
-      // Verificación exitosa: el backend ya aplicó el correo nuevo;
-      // se persisten también los demás campos modificados.
+      // VerificaciÃ³n exitosa: el backend ya aplicÃ³ el correo nuevo;
+      // se persisten tambiÃ©n los demÃ¡s campos modificados.
       await guardarCambios();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
@@ -257,7 +257,7 @@ export default function PerfilScreen() {
 
   const enviarInhabilitacion = async () => {
     if (!motivoInhabilitar.trim()) {
-      setError("Debes indicar el motivo de la inhabilitación");
+      setError("Debes indicar el motivo de la inhabilitaciÃ³n");
       return;
     }
     try {
@@ -334,12 +334,12 @@ export default function PerfilScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      {/* Solicitud de código manual (paridad con WEB): visible cuando el
-          correo cambió y aún no se ha pedido/verificado el código. */}
+      {/* Solicitud de cÃ³digo manual (paridad con WEB): visible cuando el
+          correo cambiÃ³ y aÃºn no se ha pedido/verificado el cÃ³digo. */}
       {editando && correoCambiado && !correoVerificadoPendiente && (
         <>
           <Text style={styles.hintAviso}>
-            Para cambiar tu correo verificaremos tu identidad con un código
+            Para cambiar tu correo verificaremos tu identidad con un cÃ³digo
             enviado a tu correo actual.
           </Text>
           {cooldown <= 0 && (
@@ -351,7 +351,7 @@ export default function PerfilScreen() {
               onPress={() => void enviarCodigoCorreo()}
             >
               <Text style={styles.textoFantasma}>
-                Solicitar código de verificación
+                Solicitar cÃ³digo de verificaciÃ³n
               </Text>
             </Pressable>
           )}
@@ -399,7 +399,7 @@ export default function PerfilScreen() {
       )}
 
       {/* Tipo de documento y documento: se conservan en el PUT pero NO se
-          muestran en la interfaz móvil (decisión de UX, como se pidió). */}
+          muestran en la interfaz mÃ³vil (decisiÃ³n de UX, como se pidiÃ³). */}
 
       <Text style={styles.label}>{t("perfil.telefono")}</Text>
       <TextInput
@@ -429,8 +429,8 @@ export default function PerfilScreen() {
       {exito && <Text style={styles.exito}>{exito}</Text>}
 
       {!editando ? (
-        /* Botón INICIAL: Editar perfil (no habilita edición directamente:
-           primero pasa por la confirmación). */
+        /* BotÃ³n INICIAL: Editar perfil (no habilita ediciÃ³n directamente:
+           primero pasa por la confirmaciÃ³n). */
         <Pressable
           style={({ pressed }) => [styles.botonPrimario, pressed && styles.presionado]}
           onPress={() => {
@@ -456,7 +456,7 @@ export default function PerfilScreen() {
         </Pressable>
       )}
 
-      {/* Confirmación ANTES de habilitar la edición */}
+      {/* ConfirmaciÃ³n ANTES de habilitar la ediciÃ³n */}
       <Modal transparent visible={confirmarEdicionVisible} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalTarjeta}>
@@ -481,7 +481,7 @@ export default function PerfilScreen() {
                 ]}
                 onPress={() => {
                   setConfirmarEdicionVisible(false);
-                  setEditando(true); // Aceptar → habilita edición
+                  setEditando(true); // Aceptar â†’ habilita ediciÃ³n
                 }}
               >
                 <Text style={styles.textoBotonPrimario}>
@@ -493,7 +493,7 @@ export default function PerfilScreen() {
         </View>
       </Modal>
 
-      {/* Inhabilitar cuenta — solicitud al administrador (nunca directo) */}
+      {/* Inhabilitar cuenta â€” solicitud al administrador (nunca directo) */}
       <Modal transparent visible={inhabilitarVisible} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalTarjeta}>
@@ -536,8 +536,8 @@ export default function PerfilScreen() {
         </View>
       </Modal>
 
-      {/* Inhabilitar cuenta — solicitud al administrador (nunca directo).
-          Sin título "Zona de riesgo": sección limpia y sencilla. */}
+      {/* Inhabilitar cuenta â€” solicitud al administrador (nunca directo).
+          Sin tÃ­tulo "Zona de riesgo": secciÃ³n limpia y sencilla. */}
       <View style={styles.zonaPeligro}>
         {estadoSolicitud === "pendiente" ? (
           <Text style={styles.hintAviso}>{t("perfil.solicitudPendiente")}</Text>

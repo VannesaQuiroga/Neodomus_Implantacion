@@ -4,7 +4,7 @@ Lógica de negocio para autenticación en Neodomus.
 """
 
 import json
-import random
+import secrets
 import unicodedata
 from datetime import datetime, timedelta
 
@@ -40,6 +40,7 @@ from app.utils.email import (
     send_password_reset_code,
     send_verification_email,
 )
+from app.utils.fechas import ahora_utc_naiva
 from app.utils.respaldo_usuarios import respaldar_usuarios
 from app.utils.security import (
     create_access_token,
@@ -133,8 +134,8 @@ async def register_client(db: Session, client_data: ClientCreate, background_tas
         db.delete(pending)
         db.commit()
     hashed = hash_password(client_data.password)
-    code = str(random.randint(100000, 999999))
-    expires = datetime.utcnow() + timedelta(hours=settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
+    code = str(100000 + secrets.randbelow(900000))
+    expires = ahora_utc_naiva() + timedelta(hours=settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
     new_pending = PendingRegistration(
         first_name=client_data.first_name.upper(),
         last_name=client_data.last_name.upper(),
@@ -165,7 +166,7 @@ async def register_client(db: Session, client_data: ClientCreate, background_tas
 # Consulta PendingRegistration; confirma los cambios con la sesión de base de datos.
 def verify_client_email(db: Session, code: str) -> None:
     pending = db.query(PendingRegistration).filter(PendingRegistration.code == code).first()
-    if not pending or pending.expires_at < datetime.utcnow():
+    if not pending or pending.expires_at < ahora_utc_naiva():
         raise HTTPException(400, "Código inválido o expirado")
     new_client = Cliente(
         first_name=pending.first_name,
@@ -189,9 +190,9 @@ async def resend_verification_code(db: Session, email: str) -> dict:
     pending = db.query(PendingRegistration).filter(PendingRegistration.email == email).first()
     if not pending:
         raise HTTPException(404, "No hay registro pendiente para este email")
-    new_code = str(random.randint(100000, 999999))
+    new_code = str(100000 + secrets.randbelow(900000))
     pending.code = new_code
-    pending.expires_at = datetime.utcnow() + timedelta(hours=settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
+    pending.expires_at = ahora_utc_naiva() + timedelta(hours=settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
     db.commit()
     await send_verification_email(email, new_code)
     return {"msg": "Nuevo código enviado"}
@@ -306,7 +307,7 @@ def login(db: Session, login_data: UserLogin) -> TokenResponse:
         pending = db.query(PendingRegistration).filter(PendingRegistration.email == email).first()
         if pending:
             log_login_failed(email, "email_not_verified", "client")
-            if pending.expires_at < datetime.utcnow():
+            if pending.expires_at < ahora_utc_naiva():
                 raise HTTPException(
                     400,
                     "Tu correo no ha sido verificado y el código expiró. Solicita uno nuevo.",
@@ -449,8 +450,8 @@ async def request_password_reset(db: Session, email: str, ip: str = None) -> Non
     if not user_type:
         log_password_reset_requested(ip=ip)
         return
-    code = str(random.randint(100000, 999999))
-    expires = datetime.utcnow() + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    code = str(100000 + secrets.randbelow(900000))
+    expires = ahora_utc_naiva() + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
     token_record = PasswordResetToken(
         email=email,
         user_type=user_type,
@@ -473,7 +474,7 @@ def verify_password_reset_code(db: Session, email: str, code: str) -> None:
             PasswordResetToken.email == email,
             PasswordResetToken.code == code,
             PasswordResetToken.used == False,
-            PasswordResetToken.expires_at > datetime.utcnow()
+            PasswordResetToken.expires_at > ahora_utc_naiva()
         )
     ).scalar_one_or_none()
     if not token_rec:
@@ -486,7 +487,7 @@ def reset_password(db: Session, req: ResetPasswordRequest) -> None:
         select(PasswordResetToken).where(
             PasswordResetToken.code == code,
             PasswordResetToken.used == False,
-            PasswordResetToken.expires_at > datetime.utcnow()
+            PasswordResetToken.expires_at > ahora_utc_naiva()
         )
     ).scalar_one_or_none()
     if not token_rec:
@@ -539,15 +540,15 @@ async def request_email_change(
             PasswordResetToken.email == email_actual,
             PasswordResetToken.token.isnot(None),
             PasswordResetToken.used == False,  # noqa: E712
-            PasswordResetToken.expires_at > datetime.utcnow(),
+            PasswordResetToken.expires_at > ahora_utc_naiva(),
         )
         .all()
     )
     for p in previas:
         p.used = True
 
-    code = str(random.randint(100000, 999999))
-    expires = datetime.utcnow() + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    code = str(100000 + secrets.randbelow(900000))
+    expires = ahora_utc_naiva() + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
     token_record = PasswordResetToken(
         email=email_actual,
         user_type=user_type,
@@ -585,7 +586,7 @@ def verify_email_change(
             PasswordResetToken.email == email_actual,
             PasswordResetToken.user_type == user_type,
             PasswordResetToken.used == False,  # noqa: E712
-            PasswordResetToken.expires_at > datetime.utcnow(),
+            PasswordResetToken.expires_at > ahora_utc_naiva(),
         )
         .order_by(PasswordResetToken.id.desc())
         .first()

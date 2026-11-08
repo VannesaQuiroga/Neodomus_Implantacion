@@ -130,7 +130,7 @@ const TechnicianEntregas = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     return () => detenerUbicacion();
   }, []);
 
@@ -516,7 +516,7 @@ const TechnicianEntregas = () => {
                         capture="environment"
                         style={{ display: 'none' }}
                         onChange={(ev) => {
-                          confirmarRecogida(r.id_devolucion, ev.target.files);
+                          void confirmarRecogida(r.id_devolucion, ev.target.files);
                           ev.target.value = '';
                         }}
                       />

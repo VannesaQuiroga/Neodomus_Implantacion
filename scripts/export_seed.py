@@ -14,7 +14,7 @@ Conexion (se puede configurar con variables de entorno):
     DB_HOST   (default: localhost)
     DB_PORT   (default: 3307 - puerto expuesto por docker-compose)
     DB_USER   (default: neodomus)
-    DB_PASSWORD (default: neodomus123)
+    DB_PASSWORD (obligatoria; ver .env)
     DB_NAME   (default: neodomus)
 
 Ejemplo con docker (desde la maquina host):
@@ -35,13 +35,16 @@ INIT_DB = SCRIPT_DIR / "init_db.sql"
 
 MARKER_LINE = "-- REGISTROS GUARDADOS AUTOMÁTICAMENTE"
 SEP_LINE = "-- ====================================================="
+HASH_REDACTADO = "$2y$salt$redactedhash"
 
 
 def get_connection():
     host = os.environ.get("DB_HOST", "localhost")
     port = int(os.environ.get("DB_PORT", "3307"))
     user = os.environ.get("DB_USER", "neodomus")
-    password = os.environ.get("DB_PASSWORD", "neodomus123")
+    password = os.environ.get("DB_PASSWORD") or os.environ.get("MYSQL_PASSWORD")
+    if not password:
+        raise RuntimeError("Configura DB_PASSWORD o MYSQL_PASSWORD (ver .env).")
     database = os.environ.get("DB_NAME", "neodomus")
     return pymysql.connect(
         host=host,
@@ -69,7 +72,14 @@ def _tuple_sql(row):
 def fetch_all(cursor, table, columns, order_by):
     col_list = ", ".join(columns)
     cursor.execute(f"SELECT {col_list} FROM {table} ORDER BY {order_by}")
-    return [tuple(r) for r in cursor.fetchall()]
+    filas = [tuple(r) for r in cursor.fetchall()]
+    if "password_hash" in columns:
+        idx = columns.index("password_hash")
+        filas = [
+            tuple(HASH_REDACTADO if i == idx else v for i, v in enumerate(fila))
+            for fila in filas
+        ]
+    return filas
 
 
 def build_inserts(cursor):

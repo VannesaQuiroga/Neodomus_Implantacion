@@ -36,7 +36,7 @@ export default function TechnicianBottomTabs() {
         if (alive) setNotifCount(0);
       }
     };
-    cargar();
+    void cargar();
     const id = setInterval(cargar, 60000);
     return () => { alive = false; clearInterval(id); };
   }, []);

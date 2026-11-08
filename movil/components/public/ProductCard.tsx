@@ -125,8 +125,8 @@ export default function ProductCard({ producto }: ProductCardProps) {
   // Validación al terminar edición manual (onBlur / onSubmit)
   const confirmarCantidad = () => {
     const raw = (displayCantidad ?? String(cantidad)).trim();
-    let num = parseInt(raw, 10);
-    if (raw === "" || isNaN(num) || num < 1) num = 1;
+    let num = Number.parseInt(raw, 10);
+    if (raw === "" || Number.isNaN(num) || num < 1) num = 1;
     if (Number.isFinite(stockTotal) && num > stockTotal) num = stockTotal as number;
     if (num < 0) num = 1;
     setCantidad(num);
@@ -134,8 +134,8 @@ export default function ProductCard({ producto }: ProductCardProps) {
   };
   const confirmarUnidades = () => {
     const raw = (displayUnidades ?? String(unidades)).trim();
-    let num = parseInt(raw, 10);
-    if (raw === "" || isNaN(num) || num < 1) num = 1;
+    let num = Number.parseInt(raw, 10);
+    if (raw === "" || Number.isNaN(num) || num < 1) num = 1;
     const maxU = Number.isFinite(stockTotal) ? Math.max(1, Math.floor((stockTotal as number) / metros) || 1) : Infinity;
     if (Number.isFinite(maxU) && num > (maxU as number)) num = maxU as number;
     if (num < 0) num = 1;
@@ -281,7 +281,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
                       setDisplayUnidades("");
                       return;
                     }
-                    let num = parseInt(limpio, 10);
+                    let num = Number.parseInt(limpio, 10);
                     const maxU = Number.isFinite(stockTotal) ? Math.max(1, Math.floor(stockTotal / metros) || 1) : Infinity;
                     if (Number.isFinite(maxU) && num > (maxU as number)) num = maxU as number;
                     setDisplayUnidades(String(num));
@@ -343,7 +343,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
                       setDisplayCantidad("");
                       return;
                     }
-                    let num = parseInt(limpio, 10);
+                    let num = Number.parseInt(limpio, 10);
                     if (Number.isFinite(stockTotal) && num > stockTotal) num = stockTotal as number;
                     setDisplayCantidad(String(num));
                   }}

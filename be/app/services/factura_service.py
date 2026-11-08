@@ -648,11 +648,51 @@ def crear_factura_cita(db, cita, cliente) -> None:
     </html>
     """
 
+    # Se capturan los datos antes de programar el envío: en rutas síncronas el
+    # correo sale en un hilo posterior y la sesión de BD de la petición ya pudo
+    # cerrarse (evita DetachedInstanceError).
+    correo_cliente = cliente.email
+    factura_id = factura.id_factura
+
     async def _enviar():
-        await send_email_with_attachment(cliente.email, subject, body, pdf_buffer)
+        try:
+            enviado = await send_email_with_attachment(
+                correo_cliente, subject, body, pdf_buffer
+            )
+        except Exception as e:
+            print(f"Error enviando factura {numero_factura} a {correo_cliente}: {e}")
+            return
+        if not enviado:
+            return
+        # Marca la factura como enviada con una sesión propia: la tarea puede
+        # ejecutarse después de que la petición haya cerrado su sesión.
+        from app.database import SessionLocal
+
+        sesion = SessionLocal()
+        try:
+            actual = sesion.get(Factura, factura_id)
+            if actual is not None:
+                actual.enviada_por_correo = True
+                sesion.commit()
+        except Exception as e:
+            sesion.rollback()
+            print(f"No se pudo marcar la factura {numero_factura} como enviada: {e}")
+        finally:
+            sesion.close()
 
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
+        # Ruta síncrona (FastAPI la ejecuta en un hilo sin event loop): el envío
+        # se hace en un hilo daemon para no bloquear la respuesta.
+        import threading
+
+        def _enviar_en_hilo():
+            try:
+                asyncio.run(_enviar())
+            except Exception as e:
+                print(f"Error en hilo de factura {numero_factura}: {e}")
+
+        threading.Thread(target=_enviar_en_hilo, daemon=True).start()
         return
     loop.create_task(_enviar())

@@ -106,7 +106,7 @@ export default function TecnicoHistorialScreen() {
   };
 
   useEffect(() => {
-    fetchCitas();
+    void fetchCitas();
     const interval = setInterval(fetchCitas, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -122,7 +122,7 @@ export default function TecnicoHistorialScreen() {
         if (activo) setEntregas(Array.isArray(res) ? res : []);
       } catch {}
     };
-    cargar();
+    void cargar();
     return () => { activo = false; };
   }, [vista, entregas.length]);
 

@@ -54,7 +54,7 @@ const Calificaciones = () => {
         setLoading(false);
       }
     };
-    fetchCalificaciones();
+    void fetchCalificaciones();
   }, []);
 
   const todas = useMemo(() => resumen.calificaciones || [], [resumen]);

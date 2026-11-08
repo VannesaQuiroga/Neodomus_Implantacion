@@ -1,4 +1,4 @@
-// Campo de correo con controles de edición y verificación del perfil.
+﻿// Campo de correo con controles de ediciÃ³n y verificaciÃ³n del perfil.
 import { useEffect, useState } from 'react';
 import {
   FaEnvelopeCircleCheck,
@@ -17,7 +17,7 @@ interface CampoEmailProps {
   label: string;
   valor: string;
   emailOriginal: string;
-  /** Cuando es true el componente arranca directamente en modo edición
+  /** Cuando es true el componente arranca directamente en modo ediciÃ³n
    *  (se usa dentro del formulario "Editar perfil"). */
   modoEdicion?: boolean;
   /** Se llama con el valor del input cada vez que el usuario lo cambia. */
@@ -34,20 +34,20 @@ const enmascararCorreo = (email: string): string => {
   return `${visible}****@${dominio}`;
 };
 
-const VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALIDO = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 const REENVIO_COOLDOWN = 30;
 
 /**
- * Verificación del cambio de correo.
+ * VerificaciÃ³n del cambio de correo.
  *
- * Flujo: el usuario escribe el nuevo correo → SOLICITAR CÓDIGO (se envía un
- * código de 6 dígitos al correo actual, SIN ninguna confirmación adicional;
- * la confirmación general "¿Deseas realizar cambios?" ya ocurrió una sola
- * vez al pulsar EDITAR PERFIL) → el usuario ingresa el código → COMPROBAR →
- * el backend valida y aplica el cambio → "Correo verificado".
+ * Flujo: el usuario escribe el nuevo correo â†’ SOLICITAR CÃ“DIGO (se envÃ­a un
+ * cÃ³digo de 6 dÃ­gitos al correo actual, SIN ninguna confirmaciÃ³n adicional;
+ * la confirmaciÃ³n general "Â¿Deseas realizar cambios?" ya ocurriÃ³ una sola
+ * vez al pulsar EDITAR PERFIL) â†’ el usuario ingresa el cÃ³digo â†’ COMPROBAR â†’
+ * el backend valida y aplica el cambio â†’ "Correo verificado".
  *
- * El código nunca se genera en el frontend: lo genera y valida el backend.
+ * El cÃ³digo nunca se genera en el frontend: lo genera y valida el backend.
  */
 const CampoEmail = ({
   label,
@@ -164,7 +164,7 @@ const CampoEmail = ({
       <div className="pf-campo">
         <div className="pf-campo-info">
           <span className="pf-campo-label">{label}</span>
-          <span className="pf-campo-valor">{valor || '—'}</span>
+          <span className="pf-campo-valor">{valor || 'â€”'}</span>
         </div>
         <div className="pf-campo-acciones">
           <button
@@ -195,7 +195,6 @@ const CampoEmail = ({
                 setBorrador(e.target.value);
                 onCambio?.(e.target.value);
               }}
-              autoFocus
               {...propsPortapapeles}
             />
             <span className="pf-campo-hint">{t('perfil.emailCambioHint')}</span>
@@ -265,7 +264,7 @@ const CampoEmail = ({
 
         {verificado && (
           <p className="pf-email-verify-ok">
-            <FaEnvelopeCircleCheck /> {t('perfil.identidadVerificada')} —{' '}
+            <FaEnvelopeCircleCheck /> {t('perfil.identidadVerificada')} â€”{' '}
             {t('perfil.identidadVerificadaMsg')}
           </p>
         )}

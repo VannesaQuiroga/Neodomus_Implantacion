@@ -93,7 +93,7 @@ export default function TecnicoPerfilScreen() {
         setCargando(false);
       }
     };
-    cargar();
+    void cargar();
   }, [usuario?.nombre, usuario?.correo]);
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function TecnicoPerfilScreen() {
         ]);
       }
     };
-    cargarCatalogo();
+    void cargarCatalogo();
   }, []);
 
   const iniciarEdicion = () => {
@@ -172,8 +172,8 @@ export default function TecnicoPerfilScreen() {
         body: JSON.stringify({
           first_name: nombre.trim(),
           last_name: apellido.trim(),
-          telefono_usuario: telClean ? parseInt(telClean, 10) : null,
-          documento_usuario: documento.replace(/\D/g, "") ? parseInt(documento.replace(/\D/g, ""), 10) : null,
+          telefono_usuario: telClean ? Number.parseInt(telClean, 10) : null,
+          documento_usuario: documento.replace(/\D/g, "") ? Number.parseInt(documento.replace(/\D/g, ""), 10) : null,
           certificacion_t: certificacion.trim() || null,
         }),
       });

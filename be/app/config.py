@@ -18,7 +18,13 @@ class Settings(BaseSettings):
     """
     
     # --- Base de datos ---
-    DATABASE_URL: str = "mysql+pymysql://neodomus:neodomus123@db:3306/neodomus?charset=utf8mb4"
+    # La contraseña no se hardcodea: se lee de .env / variables de entorno.
+    MYSQL_USER: str = "neodomus"
+    MYSQL_PASSWORD: str = ""
+    MYSQL_DATABASE: str = "neodomus"
+    DB_HOST: str = "db"
+    DB_PORT: int = 3306
+    DATABASE_URL: Optional[str] = None
     
     # --- JWT y seguridad ---
     SECRET_KEY: str = "clave_super_segura_para_desarrollo_cambiar_en_produccion"
@@ -90,6 +96,17 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _construir_database_url(self):
+        """Construye DATABASE_URL desde MYSQL_* si no viene definida."""
+        if not self.DATABASE_URL:
+            self.DATABASE_URL = (
+                f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}"
+                f"@{self.DB_HOST}:{self.DB_PORT}/{self.MYSQL_DATABASE}"
+                "?charset=utf8mb4"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _validate_production_secrets(self):
         """Fail-fast en producción si quedan secretos de desarrollo."""
         if self.ENVIRONMENT == "production":
@@ -98,8 +115,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "SECRET_KEY insegura en producción: genera con `openssl rand -hex 32` y configura en .env"
                 )
-            if "neodomus123" in self.DATABASE_URL:
-                raise ValueError("DATABASE_URL contiene contraseña de desarrollo en producción")
+            if not self.MYSQL_PASSWORD or len(self.MYSQL_PASSWORD) < 12:
+                raise ValueError(
+                    "MYSQL_PASSWORD insegura en producción: usa al menos 12 caracteres y configúrala en .env"
+                )
             if self.MINIO_SECRET_KEY == "neodomus12345":
                 raise ValueError("MINIO_SECRET_KEY insegura en producción")
         return self

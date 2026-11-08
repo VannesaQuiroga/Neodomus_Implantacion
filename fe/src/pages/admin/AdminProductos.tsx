@@ -75,7 +75,7 @@ const AdminProductos = () => {
   const irPagina = (n: number) => {
     if (n < 1 || n > totalPages) return;
     setPage(n);
-    cargar('', false, n);
+    void cargar('', false, n);
   };
 
   const notify = (msg: string, tipo: 'ok' | 'err' = 'ok') => {
@@ -84,7 +84,7 @@ const AdminProductos = () => {
   };
 
   useEffect(() => {
-    cargar('');
+    void cargar('');
     const handler = () => cargar('', true);
     window.addEventListener('admin-producto-updated', handler);
     return () => window.removeEventListener('admin-producto-updated', handler);
@@ -95,7 +95,7 @@ const AdminProductos = () => {
   useEffect(() => {
     const refetch = () => cargar(busqueda, true);
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') refetch();
+      if (document.visibilityState === 'visible') void refetch();
     };
     window.addEventListener('focus', refetch);
     document.addEventListener('visibilitychange', onVisibility);
@@ -117,26 +117,26 @@ const AdminProductos = () => {
 
   useEffect(() => {
     setPage(1);
-    cargar('', false, 1);
+    void cargar('', false, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriaId]);
 
   useEffect(() => {
     setPage(1);
-    cargar('', false, 1);
+    void cargar('', false, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proveedorId]);
 
   useEffect(() => {
     setPage(1);
-    cargar('', false, 1);
+    void cargar('', false, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroEstado]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    cargar(busqueda.trim(), false, 1);
+    void cargar(busqueda.trim(), false, 1);
   };
 
   // Comunica con el backend mediante PUT `/productos/${producto.id_producto}`.
@@ -226,7 +226,7 @@ const AdminProductos = () => {
       if (p.variantes?.length) {
         for (const v of p.variantes) {
           const crudo = cantidades[claveLinea(p.id_producto, v.id)] || '';
-          const cantidad = porMetros ? parseFloat(crudo || '0') : parseInt(crudo || '0', 10);
+          const cantidad = porMetros ? Number.parseFloat(crudo || '0') : Number.parseInt(crudo || '0', 10);
           if (!Number.isFinite(cantidad) || cantidad <= 0) continue;
           items.push({
             id_producto: p.id_producto,
@@ -237,7 +237,7 @@ const AdminProductos = () => {
         }
       } else {
         const crudo = cantidades[claveLinea(p.id_producto)] || '';
-        const cantidad = porMetros ? parseFloat(crudo || '0') : parseInt(crudo || '0', 10);
+        const cantidad = porMetros ? Number.parseFloat(crudo || '0') : Number.parseInt(crudo || '0', 10);
         if (!Number.isFinite(cantidad) || cantidad <= 0) continue;
         items.push({
           id_producto: p.id_producto,

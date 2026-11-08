@@ -104,7 +104,7 @@ const PersonalTab = ({ notify, onProfileChanged }: PersonalTabProps) => {
     try {
       const body: Record<string, unknown> = { ...payload };
       const tel = String(body.telefono_cliente ?? '').replace(/\D/g, '');
-      body.telefono_cliente = tel ? parseInt(tel, 10) : null;
+      body.telefono_cliente = tel ? Number.parseInt(tel, 10) : null;
       await api.put('/clients/me', body);
       if (typeof body.first_name === 'string' && typeof body.last_name === 'string') {
         setNombre(body.first_name.trim());

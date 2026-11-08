@@ -59,7 +59,7 @@ const AdminFacturas = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     const intervalo = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps

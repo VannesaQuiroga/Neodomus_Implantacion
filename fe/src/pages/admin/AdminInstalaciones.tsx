@@ -184,7 +184,7 @@ const AdminInstalaciones = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     // Tiempo real: refresco silencioso cada 30 s para ver datos actuales.
     const intervalo = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(intervalo);
@@ -229,7 +229,7 @@ const AdminInstalaciones = () => {
         if (activo) setAplazarCargandoHoras(false);
       }
     };
-    cargarHoras();
+    void cargarHoras();
     return () => {
       activo = false;
     };
@@ -273,7 +273,7 @@ const AdminInstalaciones = () => {
         if (activo) setAplazarCargandoHoras2(false);
       }
     };
-    cargarHoras();
+    void cargarHoras();
     return () => {
       activo = false;
     };
@@ -317,7 +317,7 @@ const AdminInstalaciones = () => {
         if (activo) setAplazarCargandoHoras3(false);
       }
     };
-    cargarHoras();
+    void cargarHoras();
     return () => {
       activo = false;
     };
@@ -422,7 +422,7 @@ const AdminInstalaciones = () => {
         tipo: 'ok',
       });
       setCitaACancelar(null);
-      cargar(true);
+      void cargar(true);
     } catch (err: any) {
       const msg = err.response?.data?.detail;
       setToast({
@@ -663,7 +663,7 @@ const AdminInstalaciones = () => {
                         setEdicionTarifas((prev) => ({ ...prev, [tar.tipo_servicio]: e.target.value }))
                       }
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') guardarTarifa(tar.tipo_servicio);
+                        if (e.key === 'Enter') void guardarTarifa(tar.tipo_servicio);
                         if (e.key === 'Escape') {
                           setEdicionTarifas((prev) => {
                             const copia = { ...prev };
@@ -1054,7 +1054,7 @@ const AdminInstalaciones = () => {
                     disabled={guardandoId === cita.id_cita}
                     onChange={(e) => {
                       const v = e.target.value;
-                      if (v) reasignar(cita, parseInt(v, 10));
+                      if (v) void reasignar(cita, Number.parseInt(v, 10));
                     }}
                   >
                     <option value="">{t('adm.instalaciones.sinAsignar')}</option>
@@ -1094,7 +1094,7 @@ const AdminInstalaciones = () => {
                     value={cita.id_tecnico_2?.toString() || ''}
                     disabled={guardandoId === cita.id_cita}
                     onChange={(e) =>
-                      actualizar(cita, { id_tecnico_2: e.target.value ? parseInt(e.target.value, 10) : null })
+                      actualizar(cita, { id_tecnico_2: e.target.value ? Number.parseInt(e.target.value, 10) : null })
                     }
                   >
                     <option value="">{t('adm.instalaciones.sinAsignar')}</option>
@@ -1114,7 +1114,7 @@ const AdminInstalaciones = () => {
                     value={cita.id_tecnico_3?.toString() || ''}
                     disabled={guardandoId === cita.id_cita}
                     onChange={(e) =>
-                      actualizar(cita, { id_tecnico_3: e.target.value ? parseInt(e.target.value, 10) : null })
+                      actualizar(cita, { id_tecnico_3: e.target.value ? Number.parseInt(e.target.value, 10) : null })
                     }
                   >
                     <option value="">{t('adm.instalaciones.sinAsignar')}</option>
@@ -1129,7 +1129,7 @@ const AdminInstalaciones = () => {
                 </div>
                 {!estaInactivo(cita) && (
                   <div className="ap-form-group">
-                    <label className="ap-form-label">&nbsp;</label>
+                    <span className="ap-form-label">&nbsp;</span>
                     <button
                       type="button"
                       className="ap-btn ap-btn-ghost ap-aplazar-btn"
@@ -1192,7 +1192,7 @@ const AdminInstalaciones = () => {
                         setEdicionComision((prev) => ({ ...prev, [cita.id_cita]: e.target.value }))
                       }
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') guardarComision(cita);
+                        if (e.key === 'Enter') void guardarComision(cita);
                         if (e.key === 'Escape') {
                           setEdicionComision((prev) => {
                             const copia = { ...prev };
@@ -1294,7 +1294,7 @@ const AdminInstalaciones = () => {
 
       {citaACancelar && (
         <div className="ap-modal-overlay">
-          <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-head">
               <h3><FaBan /> Cancelar cita #{citaACancelar.id_cita}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setCitaACancelar(null)} aria-label="Cerrar">

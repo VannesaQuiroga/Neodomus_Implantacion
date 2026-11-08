@@ -56,7 +56,7 @@ const ReembolsosCliente = () => {
         setLoading(false);
       }
     };
-    cargarReembolsos();
+    void cargarReembolsos();
   }, []);
 
   const hayFiltros = Boolean(busqueda.trim()) || Boolean(filtroFecha);

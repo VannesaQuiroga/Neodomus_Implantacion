@@ -192,7 +192,7 @@ const TechnicianDashboard = () => {
   const [passGuardando, setPassGuardando] = useState(false);
 
   useEffect(() => {
-    fetchCitas();
+    void fetchCitas();
     const interval = setInterval(fetchCitas, 60000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps

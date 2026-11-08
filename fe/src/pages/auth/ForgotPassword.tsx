@@ -1,4 +1,4 @@
-// Pantalla ForgotPassword de Neodomus. Reúne el estado y las acciones de su vista.
+﻿// Pantalla ForgotPassword de Neodomus. ReÃºne el estado y las acciones de su vista.
 
 import "../../styles/forgot-password.css";
 import { useState } from 'react';
@@ -21,35 +21,35 @@ const ForgotPassword = () => {
     setMessage('');
     setError('');
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
     if (!emailRegex.test(trimmed)) {
-      setError('Correo electrónico inválido');
+      setError('Correo electrÃ³nico invÃ¡lido');
       return;
     }
 
-    // Evita múltiples envíos simultáneos
+    // Evita mÃºltiples envÃ­os simultÃ¡neos
     if (loading) return;
     setLoading(true);
 
     try {
       await api.post('/auth/forgot-password', { email: trimmed }, { timeout: 15000 });
-      // Éxito: el backend responde inmediatamente (background) con mensaje genérico
-      // por seguridad. Avanza al paso de verificación solo si la solicitud fue
+      // Ã‰xito: el backend responde inmediatamente (background) con mensaje genÃ©rico
+      // por seguridad. Avanza al paso de verificaciÃ³n solo si la solicitud fue
       // aceptada (no si hubo error de red/SMTP/timeout).
       openAuth('verificar-codigo', { email: trimmed });
     } catch (err: any) {
       const status = err.response?.status;
       const detail = err.response?.data?.detail;
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        setError('La solicitud tardó demasiado. Verifica tu conexión e inténtalo nuevamente.');
+        setError('La solicitud tardÃ³ demasiado. Verifica tu conexiÃ³n e intÃ©ntalo nuevamente.');
       } else if (status === 429) {
         setError('Demasiadas solicitudes. Espera un minuto antes de reintentar.');
       } else if (detail) {
         setError(typeof detail === 'string' ? detail : 'Error al enviar la solicitud');
       } else if (!err.response) {
-        setError('No se pudo conectar con el servidor. Verifica tu conexión.');
+        setError('No se pudo conectar con el servidor. Verifica tu conexiÃ³n.');
       } else {
-        setError('No fue posible enviar el código. Verifica tu correo e inténtalo nuevamente.');
+        setError('No fue posible enviar el cÃ³digo. Verifica tu correo e intÃ©ntalo nuevamente.');
       }
     } finally {
       setLoading(false);
@@ -57,7 +57,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    /* Tarjeta del formulario (se muestra dentro del modal sobre el catálogo) */
+    /* Tarjeta del formulario (se muestra dentro del modal sobre el catÃ¡logo) */
     <form onSubmit={handleSubmit} className="forgot-card">
       {/* Icono Superior */}
           <div className="forgot-avatar-circle">
@@ -73,9 +73,9 @@ const ForgotPassword = () => {
             </div>
           </div>
 
-          <h2>Recuperar contraseña</h2>
+          <h2>Recuperar contraseÃ±a</h2>
           <p className="forgot-instruction-text">
-            Ingresa tu correo electrónico y te enviaremos un <span className="brand-gold">código</span> para restablecer tu contraseña.
+            Ingresa tu correo electrÃ³nico y te enviaremos un <span className="brand-gold">cÃ³digo</span> para restablecer tu contraseÃ±a.
           </p>
 
           {message && <div className="success-message">{message}</div>}
@@ -84,7 +84,7 @@ const ForgotPassword = () => {
           <div className="login-input-wrapper">
             <input 
               type="email" 
-              placeholder="Tu correo electrónico" 
+              placeholder="Tu correo electrÃ³nico" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required 
@@ -93,16 +93,16 @@ const ForgotPassword = () => {
           </div>
 
           <button type="submit" className="btn-forgot-submit" disabled={loading}>
-            <span>{loading ? 'Enviando...' : 'Enviar código'}</span>
+            <span>{loading ? 'Enviando...' : 'Enviar cÃ³digo'}</span>
           </button>
 
           <div className="forgot-security-notice">
-            <p>Te enviaremos un <span className="brand-gold">código seguro</span> a tu correo.</p>
+            <p>Te enviaremos un <span className="brand-gold">cÃ³digo seguro</span> a tu correo.</p>
           </div>
 
           <div className="forgot-back-to-login">
             <button type="button" onClick={() => openAuth('ingresar')} className="forgot-back-link">
-              ← Volver al inicio de sesión
+              â† Volver al inicio de sesiÃ³n
             </button>
           </div>
         </form>

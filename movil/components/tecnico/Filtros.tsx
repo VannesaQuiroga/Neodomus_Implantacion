@@ -150,7 +150,7 @@ function parseISODate(s: string | null): Date | null {
   const [y, m, d] = s.split("-").map(Number);
   if (!y || !m || !d) return null;
   const dt = new Date(y, m - 1, d);
-  return isNaN(dt.getTime()) ? null : dt;
+  return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
 function toISO(d: Date): string {

@@ -95,9 +95,9 @@ export default function RegistroScreen() {
         last_name: apellido.trim(),
         email: correo.trim(),
         password: contrasena,
-        id_tipo_documento_c: parseInt(tipoDocumento, 10),
-        documento_cliente: parseInt(documento, 10),
-        telefono_cliente: parseInt(telefono, 10),
+        id_tipo_documento_c: Number.parseInt(tipoDocumento, 10),
+        documento_cliente: Number.parseInt(documento, 10),
+        telefono_cliente: Number.parseInt(telefono, 10),
         city: municipio,
         address: direccion.trim(),
       });

@@ -284,8 +284,8 @@ const NuevaNovedadModal = ({
               <div>
                 <div className="ap-form-grid" style={{ marginBottom: 14 }}>
                   <div className="ap-form-group">
-                    <label className="ap-form-label">Tipo de novedad *</label>
-                    <select
+                    <label htmlFor="nb-fesrccomponentstecnicoNuevaNovedadModaltsx287" className="ap-form-label">Tipo de novedad *</label>
+                    <select id="nb-fesrccomponentstecnicoNuevaNovedadModaltsx287"
                       className="ap-form-select"
                       value={tipoSeleccion}
                       onChange={(e) => setTipoSeleccion(e.target.value)}
@@ -298,7 +298,7 @@ const NuevaNovedadModal = ({
                   </div>
 
                   <div className="ap-form-group">
-                    <label className="ap-form-label">Prioridad</label>
+                    <span className="ap-form-label">Prioridad</span>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {PRIORIDADES.map((p) => (
                         <button
@@ -324,8 +324,8 @@ const NuevaNovedadModal = ({
                   </div>
 
                   <div className="ap-form-group full">
-                    <label className="ap-form-label">Lugar de ocurrencia</label>
-                    <input
+                    <label htmlFor="nb-fesrccomponentstecnicoNuevaNovedadModaltsx327" className="ap-form-label">Lugar de ocurrencia</label>
+                    <input id="nb-fesrccomponentstecnicoNuevaNovedadModaltsx327"
                       type="text"
                       className="ap-form-input"
                       placeholder="Ej: Av. Principal #123"
@@ -336,8 +336,8 @@ const NuevaNovedadModal = ({
                 </div>
 
                 <div className="ap-form-group" style={{ marginBottom: 14 }}>
-                  <label className="ap-form-label">Descripcion *</label>
-                  <textarea
+                  <label htmlFor="nb-fesrccomponentstecnicoNuevaNovedadModaltsx339" className="ap-form-label">Descripcion *</label>
+                  <textarea id="nb-fesrccomponentstecnicoNuevaNovedadModaltsx339"
                     className="ap-form-textarea"
                     rows={3}
                     placeholder="Describe la situacion detalladamente..."
@@ -365,7 +365,7 @@ const NuevaNovedadModal = ({
             {/* PASO 2: Evidencia */}
             {paso === 'evidencia' && (
               <div>
-                <label className="ap-form-label">Evidencia de la novedad</label>
+                <span className="ap-form-label">Evidencia de la novedad</span>
                 <p style={{ fontSize: '0.78rem', color: '#8f8f8f', margin: '0 0 14px' }}>Opcional: adjunta una foto como evidencia</p>
 
                 {evidenciaPreview ? (

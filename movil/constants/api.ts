@@ -25,11 +25,16 @@ function obtenerHostDesdeExpo(): string | null {
   return null;
 }
 
-const URL_SIN_PREFIJO = (
+// El desbroce de "slashes" finales se hace con bucle y no con regex: evita
+// el retroceso super lineal señalado por S8786 y es equivalente.
+let URL_SIN_PREFIJO = (
   process.env.EXPO_PUBLIC_API_URL ||
   obtenerHostDesdeExpo() ||
   "http://10.0.2.2:8000"
-).replace(/\/+$/, "");
+);
+while (URL_SIN_PREFIJO.endsWith("/")) {
+  URL_SIN_PREFIJO = URL_SIN_PREFIJO.slice(0, -1);
+}
 
 /** Base completa para todas las peticiones: <host>:<puerto>/api/v1 */
 export const API_BASE_URL = `${URL_SIN_PREFIJO}/api/v1`;

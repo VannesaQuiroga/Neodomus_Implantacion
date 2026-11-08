@@ -355,7 +355,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                   </select>
                 </div>
                 <div className="pf-form-group">
-                  <label className="pf-form-label">Calificación</label>
+                  <span className="pf-form-label">Calificación</span>
                   <div className="pf-rating-input">
                     {[1, 2, 3, 4, 5].map((nota) => (
                       <button key={nota} type="button" className={nota <= ratingLocal ? 'on' : ''} aria-label={`${nota} estrellas`} onClick={() => setRatingLocal(nota)}><FaStar /></button>

@@ -179,7 +179,7 @@ const AdminDevoluciones = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     // Tiempo real: refresco silencioso cada 30 s para ver datos actuales.
     const intervalo = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(intervalo);
@@ -275,7 +275,7 @@ const AdminDevoluciones = () => {
       notify(t('adm.instalaciones.reembolsoEligeCita'), 'err');
       return;
     }
-    const pctRetencion = parseFloat(retencionPct);
+    const pctRetencion = Number.parseFloat(retencionPct);
     if (Number.isNaN(pctRetencion) || pctRetencion < 0 || pctRetencion > 100) {
       notify('Indica un porcentaje de retención válido (0–100)', 'err');
       return;
@@ -314,7 +314,7 @@ const AdminDevoluciones = () => {
     try {
       const pct = porcentajes[id];
       await api.post(`/reembolsos/${id}/procesar`, {
-        porcentaje_cliente: pct ? parseFloat(pct) : null,
+        porcentaje_cliente: pct ? Number.parseFloat(pct) : null,
       });
       notify(t('adm.instalaciones.reembolsoExito'));
       await cargar();
@@ -597,7 +597,7 @@ const AdminDevoluciones = () => {
                 {selReembolso && retencionPct && (() => {
                   const elegida = elegibles.find((e) => claveElegible(e) === selReembolso);
                   if (!elegida) return null;
-                  const pct = parseFloat(retencionPct);
+                  const pct = Number.parseFloat(retencionPct);
                   const alCliente = Math.round(elegida.monto_pagado * (1 - pct / 100));
                   const retenido = elegida.monto_pagado - alCliente;
                   return (
@@ -681,7 +681,7 @@ const AdminDevoluciones = () => {
                               const base = r.costo_original ?? r.monto;
                               return (
                                 <span style={{ color: '#46d06f', fontSize: '0.82rem', fontWeight: 700 }}>
-                                  → {formatoPeso(base * parseFloat(porcentajes[r.id_reembolso] || '0') / 100)} al cliente
+                                  → {formatoPeso(base * Number.parseFloat(porcentajes[r.id_reembolso] || '0') / 100)} al cliente
                                 </span>
                               );
                             })()}
@@ -708,7 +708,7 @@ const AdminDevoluciones = () => {
       {/* ── Modal: aprobar con resolución ── */}
       {aprobarSol && (
         <div className="ap-modal-overlay">
-          <div className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="ap-modal-head">
               <h3>Aprobar {aprobarSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setAprobarSol(null)}>×</button>
@@ -717,8 +717,8 @@ const AdminDevoluciones = () => {
               <p style={{ margin: '0 0 10px', fontSize: '0.85rem', color: '#bdbdbd' }}>
                 ¿Cómo quieres resolver esta devolución? El cliente será notificado.
               </p>
-              <label className="ap-form-label">Resolución</label>
-              <select
+              <label htmlFor="nb-fesrcpagesadminAdminDevolucionestsx720" className="ap-form-label">Resolución</label>
+              <select id="nb-fesrcpagesadminAdminDevolucionestsx720"
                 className="ap-form-select"
                 value={resolucionSel}
                 onChange={(e) => setResolucionSel(e.target.value as 'Reembolso' | 'Cambio')}
@@ -742,14 +742,14 @@ const AdminDevoluciones = () => {
       {/* ── Modal: rechazar con motivo ── */}
       {rechazarSol && (
         <div className="ap-modal-overlay">
-          <div className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="ap-modal-head">
               <h3>Rechazar {rechazarSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setRechazarSol(null)}>×</button>
             </div>
             <div className="ap-modal-body">
-              <label className="ap-form-label">Motivo del rechazo *</label>
-              <textarea
+              <label htmlFor="nb-fesrcpagesadminAdminDevolucionestsx751" className="ap-form-label">Motivo del rechazo *</label>
+              <textarea id="nb-fesrcpagesadminAdminDevolucionestsx751"
                 className="ap-form-textarea"
                 rows={3}
                 placeholder="Explica al cliente por qué se rechaza su solicitud..."
@@ -772,7 +772,7 @@ const AdminDevoluciones = () => {
       {/* ── Modal: detalle de la solicitud ── */}
       {detalleSol && (
         <div className="ap-modal-overlay">
-          <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-head">
               <h3>Devolución {detalleSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setDetalleSol(null)}>×</button>
@@ -837,7 +837,7 @@ const AdminDevoluciones = () => {
                           onChange={(e) => {
                             const v = Number(e.target.value);
                             if (v && v !== it.id_tecnico_recogida) {
-                              reasignarTecnico(it.id_devolucion, v);
+                              void reasignarTecnico(it.id_devolucion, v);
                             }
                           }}
                         >
@@ -859,10 +859,10 @@ const AdminDevoluciones = () => {
                 })}
               </ul>
 
-              <label className="ap-form-label" style={{ marginTop: 12 }}>
+              <label htmlFor="nb-fesrcpagesadminAdminDevolucionestsx862" className="ap-form-label" style={{ marginTop: 12 }}>
                 Observaciones internas
               </label>
-              <textarea
+              <textarea id="nb-fesrcpagesadminAdminDevolucionestsx862"
                 className="ap-form-textarea"
                 rows={3}
                 placeholder="Notas del equipo sobre esta devolución..."

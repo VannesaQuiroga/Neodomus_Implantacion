@@ -97,7 +97,7 @@ const TechnicalPerfil = () => {
         setCargando(false);
       }
     };
-    cargarPerfil();
+    void cargarPerfil();
   }, [user]);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ const TechnicalPerfil = () => {
         console.error('Error cargando catálogo de especializaciones:', err);
       }
     };
-    cargarCatalogo();
+    void cargarCatalogo();
   }, []);
 
   // Comunica con el backend mediante POST `/tecnicos/mis-especializaciones/${id}`, DELETE `/tecnicos/mis-especializaciones/${id}`.
@@ -199,8 +199,8 @@ const TechnicalPerfil = () => {
       const body: Record<string, unknown> = { ...payload };
       const tel = String(body.telefono_usuario ?? '').replace(/\D/g, '');
       const doc = String(body.documento_usuario ?? '').replace(/\D/g, '');
-      body.telefono_usuario = tel ? parseInt(tel, 10) : null;
-      body.documento_usuario = doc ? parseInt(doc, 10) : null;
+      body.telefono_usuario = tel ? Number.parseInt(tel, 10) : null;
+      body.documento_usuario = doc ? Number.parseInt(doc, 10) : null;
       await api.put('/users/me', body);
       if (typeof body.first_name === 'string' && typeof body.last_name === 'string') {
         setNombre(body.first_name.trim());

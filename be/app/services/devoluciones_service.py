@@ -187,7 +187,7 @@ def elegibilidad_pedido(db: Session, client: Cliente, id_pedido: int) -> dict:
 
 def _asignar_tecnico_recogida(db: Session, linea: Devolucion) -> None:
     """Asigna un técnico activo aleatorio para recoger el producto (legado)."""
-    import random
+    import secrets
 
     from app.models.tecnico import Tecnico
     from app.models.user import User
@@ -198,7 +198,7 @@ def _asignar_tecnico_recogida(db: Session, linea: Devolucion) -> None:
         .filter(User.is_active == True, User.id_rol_u == 2)  # noqa: E712
         .all()
     )
-    tecnico = random.choice(tecnicos_activos) if tecnicos_activos else None
+    tecnico = secrets.choice(tecnicos_activos) if tecnicos_activos else None
     if tecnico is not None:
         linea.id_tecnico_recogida = tecnico.id_tecnico
         linea.recogida_estado = "Asignada"

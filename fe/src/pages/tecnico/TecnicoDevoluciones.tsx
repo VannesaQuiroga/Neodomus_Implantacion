@@ -101,7 +101,7 @@ const TecnicoDevoluciones = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
   }, []);
 
   // Comunica con el backend mediante POST `/devoluciones/${idDevolucion}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
@@ -372,7 +372,7 @@ const TecnicoDevoluciones = () => {
                         capture="environment"
                         style={{ display: 'none' }}
                         onChange={(ev) => {
-                          confirmarRecogida(r.id_devolucion, ev.target.files);
+                          void confirmarRecogida(r.id_devolucion, ev.target.files);
                           ev.target.value = '';
                         }}
                       />
@@ -397,7 +397,7 @@ const TecnicoDevoluciones = () => {
                         capture="environment"
                         style={{ display: 'none' }}
                         onChange={(ev) => {
-                          confirmarCambio(r.id_devolucion, ev.target.files);
+                          void confirmarCambio(r.id_devolucion, ev.target.files);
                           ev.target.value = '';
                         }}
                       />

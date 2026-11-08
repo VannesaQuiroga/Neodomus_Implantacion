@@ -113,8 +113,8 @@ const AdminTecnicos = () => {
   };
 
   useEffect(() => {
-    cargar();
-    cargarCatalogo();
+    void cargar();
+    void cargarCatalogo();
   }, []);
 
   useEffect(() => {
@@ -235,8 +235,8 @@ const AdminTecnicos = () => {
           password: form.password,
           id_rol: 2,
         };
-        if (form.telefono.trim()) payload.telefono_usuario = parseInt(form.telefono.replace(/\D/g, ''), 10);
-        if (form.documento.trim()) payload.documento_usuario = parseInt(form.documento.replace(/\D/g, ''), 10);
+        if (form.telefono.trim()) payload.telefono_usuario = Number.parseInt(form.telefono.replace(/\D/g, ''), 10);
+        if (form.documento.trim()) payload.documento_usuario = Number.parseInt(form.documento.replace(/\D/g, ''), 10);
         payload.especializaciones_ids = form.especializaciones_ids;
         await api.post('/users', payload);
         notify(t('adm.tecnicos.registradoOk', { email: form.email }));
@@ -254,8 +254,8 @@ const AdminTecnicos = () => {
           especializaciones_ids: form.especializaciones_ids,
         };
         if (cambiarPass) payload.password = form.password;
-        if (form.telefono.trim()) payload.telefono_usuario = parseInt(form.telefono.replace(/\D/g, ''), 10);
-        if (form.documento.trim()) payload.documento_usuario = parseInt(form.documento.replace(/\D/g, ''), 10);
+        if (form.telefono.trim()) payload.telefono_usuario = Number.parseInt(form.telefono.replace(/\D/g, ''), 10);
+        if (form.documento.trim()) payload.documento_usuario = Number.parseInt(form.documento.replace(/\D/g, ''), 10);
         await api.put(`/users/${editando.id_usuario}`, payload);
         notify(t('adm.tecnicos.actualizadoOk'));
         notificarCambiosTecnicos();

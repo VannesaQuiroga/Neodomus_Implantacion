@@ -153,7 +153,7 @@ const Perfil = () => {
         setFavoritosLoading(false);
       }
     };
-    fetchFavoritos();
+    void fetchFavoritos();
   }, [favoritos]);
 
   // Cargar datos del perfil desde API
@@ -308,11 +308,11 @@ const Perfil = () => {
     try {
       const body: Record<string, unknown> = { ...payload };
       const tel = String(body.telefono_cliente ?? '').replace(/\D/g, '');
-      body.telefono_cliente = tel ? parseInt(tel, 10) : null;
+      body.telefono_cliente = tel ? Number.parseInt(tel, 10) : null;
       const doc = String(body.documento_cliente ?? '').replace(/\D/g, '');
-      body.documento_cliente = doc ? parseInt(doc, 10) : null;
+      body.documento_cliente = doc ? Number.parseInt(doc, 10) : null;
       body.id_tipo_documento_c = body.id_tipo_documento_c
-        ? parseInt(String(body.id_tipo_documento_c), 10)
+        ? Number.parseInt(String(body.id_tipo_documento_c), 10)
         : null;
       await api.put('/clients/me', body);
       const storedUser = tabGet('user');
@@ -657,8 +657,8 @@ const Perfil = () => {
 
       {/* ── Modal inhabilitar cuenta ─────────────────────────── */}
       {confirmarInhabilitar && (
-        <div className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
-          <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
               <h3>Inhabilitar cuenta</h3>
               <button type="button" className="pf-modal-close" onClick={() => setConfirmarInhabilitar(false)} aria-label="Cerrar" disabled={enviandoSolicitud}>×</button>

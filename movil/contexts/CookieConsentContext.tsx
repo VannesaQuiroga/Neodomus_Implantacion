@@ -112,7 +112,7 @@ export function CookieConsentProvider({
 
   useEffect(() => {
     let activo = true;
-    cargarConsentimiento().then((resultado) => {
+    void cargarConsentimiento().then((resultado) => {
       if (!activo) return;
       setEstado(resultado);
       setListo(true);

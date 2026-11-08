@@ -45,7 +45,7 @@ const TechniciansTab = () => {
         if (activo) setLoading(false);
       }
     };
-    cargar();
+    void cargar();
     return () => { activo = false; };
   }, []);
 

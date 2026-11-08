@@ -175,7 +175,6 @@ const VerifyEmail = () => {
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 onPaste={index === 0 ? handlePaste : undefined}
                 disabled={loading}
-                autoFocus={index === 0}
               />
             ))}
           </div>

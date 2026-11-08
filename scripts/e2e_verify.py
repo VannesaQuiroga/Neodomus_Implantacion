@@ -13,6 +13,7 @@ Uso (dentro del contenedor api, con DATABASE_URL de pruebas):
 """
 from __future__ import annotations
 
+import re
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -32,11 +33,23 @@ REF_METROS = "E2E-CABLE-METROS"
 
 
 def _leer_pedido_id(args: list[str]) -> int | None:
+    # La ruta se recibe por línea de comandos (uso local de verificación) y la
+    # validación evita recorrers completa hacia archivos arbitrarios (S8707):
+    # solo se acepta un archivo plano con un entero, y sin '..', ~ o enlaces.
     for i, a in enumerate(args):
         if a == "--pedido-file" and i + 1 < len(args):
-            p = Path(args[i + 1])
-            if p.exists():
-                return int(p.read_text().strip())
+            crudo = args[i + 1].strip()
+            if not crudo:
+                return None
+            p = Path(crudo).resolve()
+            base = Path.cwd().resolve()
+            if not p.is_file() or ".." in p.parts or base not in p.parents:
+                print("FAIL: --pedido-file debe ser un archivo dentro del proyecto")
+                return None
+            contenido = p.read_text(encoding="utf-8").strip()
+            if not re.fullmatch(r"\d+", contenido):
+                return None
+            return int(contenido)
     return None
 
 

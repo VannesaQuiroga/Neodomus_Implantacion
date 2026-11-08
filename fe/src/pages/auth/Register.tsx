@@ -153,9 +153,9 @@ const Register = () => {
         last_name: formData.apellido.trim(),
         email: correoNorm,
         password: formData.contraseña,
-        id_tipo_documento_c: parseInt(formData.tipo_documento as any),
-        documento_cliente: parseInt(formData.documento),
-        telefono_cliente: parseInt(formData.telefono),
+        id_tipo_documento_c: Number.parseInt(formData.tipo_documento as any),
+        documento_cliente: Number.parseInt(formData.documento),
+        telefono_cliente: Number.parseInt(formData.telefono),
         city: formData.municipio, 
         address: formData.direccion.trim(),
       }, { timeout: 15000 });
@@ -197,34 +197,34 @@ const Register = () => {
           <div className="form-grid">
             {/* Pareja 1: nombres / apellidos */}
             <div className="input-group-block">
-              <label>Nombres</label>
-              <input name="nombre" placeholder="Ingresa tus nombres" value={formData.nombre} autoComplete="given-name" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx200">Nombres</label>
+              <input id="nb-fesrcpagesauthRegistertsx200" name="nombre" placeholder="Ingresa tus nombres" value={formData.nombre} autoComplete="given-name" onChange={handleChange} required disabled={loading} />
             </div>
             <div className="input-group-block">
-              <label>Apellidos</label>
-              <input name="apellido" placeholder="Ingresa tus apellidos" value={formData.apellido} autoComplete="family-name" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx204">Apellidos</label>
+              <input id="nb-fesrcpagesauthRegistertsx204" name="apellido" placeholder="Ingresa tus apellidos" value={formData.apellido} autoComplete="family-name" onChange={handleChange} required disabled={loading} />
             </div>
             
             {/* Pareja 2: tipo de documento / documento */}
             <div className="input-group-block">
-              <label>Tipo documento</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx210">Tipo documento</label>
               <div className="select-wrapper">
-                <select name="tipo_documento" onChange={handleChange} disabled={loading} defaultValue="1">
+                <select id="nb-fesrcpagesauthRegistertsx210" name="tipo_documento" onChange={handleChange} disabled={loading} defaultValue="1">
                   <option value="1">CC</option>
                   <option value="2">CE</option>
                 </select>
               </div>
             </div>
             <div className="input-group-block">
-              <label>Documento</label>
-              <input name="documento" placeholder="Ingresa tu número de documento" value={formData.documento} autoComplete="off" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx219">Documento</label>
+              <input id="nb-fesrcpagesauthRegistertsx219" name="documento" placeholder="Ingresa tu número de documento" value={formData.documento} autoComplete="off" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
             </div>
 
             {/* Pareja 3: ciudad / municipio */}
             <div className="input-group-block">
-              <label>Ciudad</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx225">Ciudad</label>
               <div className="select-wrapper">
-                <select name="ciudad" onChange={handleChange} required disabled={loading} value={formData.ciudad}>
+                <select id="nb-fesrcpagesauthRegistertsx225" name="ciudad" onChange={handleChange} required disabled={loading} value={formData.ciudad}>
                   <option value="" disabled>Selecciona tu ciudad</option>
                   {Object.keys(regionesColombia).map((city) => (
                     <option key={city} value={city}>{city}</option>
@@ -233,9 +233,9 @@ const Register = () => {
               </div>
             </div>
             <div className="input-group-block">
-              <label>Municipio</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx236">Municipio</label>
               <div className="select-wrapper">
-                <select 
+                <select id="nb-fesrcpagesauthRegistertsx236" 
                   name="municipio" 
                   onChange={handleChange} 
                   required 
@@ -252,22 +252,22 @@ const Register = () => {
 
             {/* Pareja 4: dirección / teléfono */}
             <div className="input-group-block">
-              <label>Dirección</label>
-              <input name="direccion" placeholder="Ingresa tu dirección" value={formData.direccion} autoComplete="street-address" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx255">Dirección</label>
+              <input id="nb-fesrcpagesauthRegistertsx255" name="direccion" placeholder="Ingresa tu dirección" value={formData.direccion} autoComplete="street-address" onChange={handleChange} required disabled={loading} />
             </div>
             <div className="input-group-block">
-              <label>Teléfono</label>
-              <input name="telefono" placeholder="Ingresa tu número telefónico" value={formData.telefono} autoComplete="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx259">Teléfono</label>
+              <input id="nb-fesrcpagesauthRegistertsx259" name="telefono" placeholder="Ingresa tu número telefónico" value={formData.telefono} autoComplete="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
             </div>
 
             {/* Pareja 5: correo / confirmación de correo */}
             <div className="input-group-block">
-              <label>Correo</label>
-              <input name="correo" type="email" placeholder="Ingresa tu correo" value={formData.correo} autoComplete="email" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx265">Correo</label>
+              <input id="nb-fesrcpagesauthRegistertsx265" name="correo" type="email" placeholder="Ingresa tu correo" value={formData.correo} autoComplete="email" onChange={handleChange} required disabled={loading} />
             </div>
             <div className="input-group-block">
-              <label>Confirmación de correo</label>
-              <input
+              <label htmlFor="nb-fesrcpagesauthRegistertsx269">Confirmación de correo</label>
+              <input id="nb-fesrcpagesauthRegistertsx269"
                 type="email"
                 placeholder="Confirma tu correo"
                 value={confirmCorreo}
@@ -282,9 +282,9 @@ const Register = () => {
             
             {/* Pareja 6: contraseña / confirmación de contraseña */}
             <div className="input-group-block">
-              <label>Contraseña</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx285">Contraseña</label>
               <div className="password-input-wrapper">
-                <input
+                <input id="nb-fesrcpagesauthRegistertsx285"
                   name="contraseña"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Ingresa tu contraseña"
@@ -319,9 +319,9 @@ const Register = () => {
               </div>
             </div>
             <div className="input-group-block">
-              <label>Confirmación de contraseña</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx322">Confirmación de contraseña</label>
               <div className="password-input-wrapper">
-                <input
+                <input id="nb-fesrcpagesauthRegistertsx322"
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirma tu contraseña"
                   value={confirmPassword}

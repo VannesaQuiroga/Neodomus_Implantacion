@@ -41,7 +41,7 @@ const TecnicoClientes = () => {
   };
 
   useEffect(() => {
-    fetchClientes();
+    void fetchClientes();
     const interval = setInterval(fetchClientes, 60000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps

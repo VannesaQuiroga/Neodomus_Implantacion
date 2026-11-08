@@ -608,7 +608,7 @@ async def solicitar_reabastecimiento(
         )
 
     filas_html = "".join(
-        "<tr style='background:%s'>%s%s%s%s%s</tr>"
+        "<tr style='background:%s'>%s%s%s%s%s%s</tr>"
         % (
             "#ffffff" if i % 2 == 0 else "#faf7f0",
             _celda(f"<strong>{p.nombre_producto}</strong>", True),

@@ -1,4 +1,4 @@
-// Pantalla Login de Neodomus. Reúne el estado y las acciones de su vista.
+﻿// Pantalla Login de Neodomus. ReÃºne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCircleExclamation } from 'react-icons/fa6';
@@ -11,7 +11,7 @@ import { GOOGLE_LOGIN_HABILITADO } from '@utils/google';
 import '@styles/login.css';
 
 const REMEMBERED_EMAIL_KEY = 'neodomus_remembered_email';
-// Clave legado: versiones anteriores guardaban la contraseña en texto plano.
+// Clave legado: versiones anteriores guardaban la contraseÃ±a en texto plano.
 // Se limpia al montar y nunca se vuelve a escribir.
 const LEGACY_REMEMBERED_PASSWORD_KEY = 'neodomus_remembered_password';
 
@@ -22,10 +22,10 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // Solo redirige automáticamente cuando el inicio de sesión ocurrió en esta
-  // pestaña. Si la pestaña heredó la sesión de otra (duplicar pestaña o abrir
-  // un link en pestaña nueva), se permite iniciar sesión con otra cuenta sin
-  // afectar la sesión original.
+  // Solo redirige automÃ¡ticamente cuando el inicio de sesiÃ³n ocurriÃ³ en esta
+  // pestaÃ±a. Si la pestaÃ±a heredÃ³ la sesiÃ³n de otra (duplicar pestaÃ±a o abrir
+  // un link en pestaÃ±a nueva), se permite iniciar sesiÃ³n con otra cuenta sin
+  // afectar la sesiÃ³n original.
   const [sesionIniciadaAqui, setSesionIniciadaAqui] = useState(false);
   const { login, googleLogin, user, isAuthenticated, passwordResetRequired } = useAuth();
   const { openAuth, closeAuth } = useAuthModal();
@@ -65,9 +65,9 @@ const Login = () => {
     }
   }, [isAuthenticated, user, sesionIniciadaAqui, navigate, closeAuth]);
 
-  // Restaurar el correo guardado con "Recordarme" (nunca la contraseña).
+  // Restaurar el correo guardado con "Recordarme" (nunca la contraseÃ±a).
   useEffect(() => {
-    // Limpieza de instalaciones antiguas que guardaban la contraseña.
+    // Limpieza de instalaciones antiguas que guardaban la contraseÃ±a.
     try {
       localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
     } catch {
@@ -86,9 +86,9 @@ const Login = () => {
     setError('');
     setCuentaInhabilitada(false);
     setSolicitudEnviada(false);
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
     if (!emailRegex.test(email)) {
-      setError('Ingresa un correo electrónico válido');
+      setError('Ingresa un correo electrÃ³nico vÃ¡lido');
       return;
     }
     setLoading(true);
@@ -96,14 +96,14 @@ const Login = () => {
       await login(email, password);
       setSesionIniciadaAqui(true);
       if (rememberMe) {
-        // Solo se recuerda el correo; jamás la contraseña.
+        // Solo se recuerda el correo; jamÃ¡s la contraseÃ±a.
         localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
       } else {
         localStorage.removeItem(REMEMBERED_EMAIL_KEY);
       }
     } catch (err: any) {
       const status = err.response?.status;
-      const detail = err.response?.data?.detail || 'Error al iniciar sesión';
+      const detail = err.response?.data?.detail || 'Error al iniciar sesiÃ³n';
       if (status === 403 && typeof detail === 'string' && detail.toLowerCase().includes('inhabilitada')) {
         setCuentaInhabilitada(true);
       }
@@ -111,7 +111,7 @@ const Login = () => {
         setEmailSinVerificar(true);
       }
       if (status === 401) {
-        setError('Correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.');
+        setError('Correo o contraseÃ±a incorrectos. Verifica tus datos e intÃ©ntalo de nuevo.');
       } else {
         setError(detail);
       }
@@ -138,7 +138,7 @@ const Login = () => {
   return (
     <>
       
-      {/* Tarjeta del formulario (se muestra dentro del modal sobre el catálogo) */}
+      {/* Tarjeta del formulario (se muestra dentro del modal sobre el catÃ¡logo) */}
         <form onSubmit={handleSubmit} className="login-card">
           
           {/* Avatar Icon Superior */}
@@ -151,10 +151,10 @@ const Login = () => {
             </div>
           </div>
 
-          <h2>Iniciar sesión</h2>
+          <h2>Iniciar sesiÃ³n</h2>
           <p className="welcome-text">Bienvenido de nuevo a <span className="brand-gold">NEODOMUS</span></p>
 
-          {/* Área de alerta con altura fija para que el modal no cambie de tamaño */}
+          {/* Ãrea de alerta con altura fija para que el modal no cambie de tamaÃ±o */}
           <div className="login-error-slot">
             {error && (
               <div className="login-error-box">
@@ -165,11 +165,11 @@ const Login = () => {
           </div>
           
           {/* Etiqueta y Input de Correo */}
-          <label className="login-label">Correo electrónico:</label>
+          <label htmlFor="nb-fesrcpagesauthLogintsx168" className="login-label">Correo electrÃ³nico:</label>
           <div className="login-input-wrapper">
-            <input
+            <input id="nb-fesrcpagesauthLogintsx168"
               type="email"
-              placeholder="Correo electrónico"
+              placeholder="Correo electrÃ³nico"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -178,12 +178,12 @@ const Login = () => {
             />
           </div>
 
-          {/* Etiqueta y Input de Contraseña */}
-          <label className="login-label">Contraseña:</label>
+          {/* Etiqueta y Input de ContraseÃ±a */}
+          <label htmlFor="nb-fesrcpagesauthLogintsx182" className="login-label">ContraseÃ±a:</label>
 <div className="login-input-wrapper">
-  <input
+  <input id="nb-fesrcpagesauthLogintsx182"
     type={showPassword ? 'text' : 'password'}
-    placeholder="Contraseña"
+    placeholder="ContraseÃ±a"
     value={password}
     onChange={(e) => setPassword(e.target.value)}
     required
@@ -211,22 +211,22 @@ const Login = () => {
 
           {solicitudEnviada && (
             <div className="login-reactivate-box success">
-              <p>Solicitud de habilitación enviada. El administrador revisará tu caso y, si la aprueba, podrás iniciar sesión nuevamente.</p>
+              <p>Solicitud de habilitaciÃ³n enviada. El administrador revisarÃ¡ tu caso y, si la aprueba, podrÃ¡s iniciar sesiÃ³n nuevamente.</p>
             </div>
           )}
 
           {cuentaInhabilitada && (
             <div className="login-reactivate-box">
-              <p>Tu cuenta está inhabilitada por un administrador. Puedes solicitar que sea habilitada nuevamente.</p>
+              <p>Tu cuenta estÃ¡ inhabilitada por un administrador. Puedes solicitar que sea habilitada nuevamente.</p>
               <button type="button" className="btn-reactivate" onClick={handleSolicitarHabilitacion} disabled={enviandoSolicitud}>
-                {enviandoSolicitud ? 'Enviando...' : 'Solicitar habilitación de la cuenta'}
+                {enviandoSolicitud ? 'Enviando...' : 'Solicitar habilitaciÃ³n de la cuenta'}
               </button>
             </div>
           )}
 
           {emailSinVerificar && (
             <div className="login-reactivate-box">
-              <p>Tu correo aún no ha sido verificado. Debes ingresar el código de verificación para poder iniciar sesión.</p>
+              <p>Tu correo aÃºn no ha sido verificado. Debes ingresar el cÃ³digo de verificaciÃ³n para poder iniciar sesiÃ³n.</p>
               <button
                 type="button"
                 className="btn-reactivate"
@@ -248,7 +248,7 @@ const Login = () => {
               <span>Recordarme</span>
             </label>
             <button type="button" className="forgot-password-link" onClick={() => openAuth('recuperar')}>
-              ¿Olvidaste tu contraseña?
+              Â¿Olvidaste tu contraseÃ±a?
             </button>
           </div>
 
@@ -271,7 +271,7 @@ const Login = () => {
                     }
                   }}
                   onError={() => {
-                    setError('No se pudo iniciar sesión con Google');
+                    setError('No se pudo iniciar sesiÃ³n con Google');
                   }}
                   theme="outline"
                   size="large"
@@ -283,7 +283,7 @@ const Login = () => {
           )}
 
           <div className="register-redirect-section">
-            <span>¿No tienes una cuenta?</span>
+            <span>Â¿No tienes una cuenta?</span>
             <button type="button" className="register-gold-link" onClick={() => openAuth('registro')}>Registrarse</button>
           </div>
 

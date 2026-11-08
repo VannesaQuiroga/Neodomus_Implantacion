@@ -1,10 +1,10 @@
-// ─────────────────────────────────────────────────────────────
-// Login — adaptación móvil del Login.tsx de la WEB, presentado
-// como MODAL sobre la pantalla pública actual.
+﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Login â€” adaptaciÃ³n mÃ³vil del Login.tsx de la WEB, presentado
+// como MODAL sobre la pantalla pÃºblica actual.
 // Mismos mensajes (401 fijo, 403 por substring inhabilitada/
-// verificado), "Recordarme", solicitar habilitación y recuperar
-// contraseña. Sesión persistente real contra el backend.
-// ─────────────────────────────────────────────────────────────
+// verificado), "Recordarme", solicitar habilitaciÃ³n y recuperar
+// contraseÃ±a. SesiÃ³n persistente real contra el backend.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import React, { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -51,9 +51,9 @@ export default function LoginScreen() {
 
   // accede a AsyncStorage para conservar o recuperar datos locales.
   const ingresar = async () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
     if (!emailRegex.test(email.trim())) {
-      setError("Ingresa un correo electrónico válido");
+      setError("Ingresa un correo electrÃ³nico vÃ¡lido");
       return;
     }
 
@@ -65,21 +65,21 @@ export default function LoginScreen() {
     try {
       await iniciarSesion(email.trim(), password);
 
-      // Recordarme: guarda SOLO el email (nunca la contraseña).
+      // Recordarme: guarda SOLO el email (nunca la contraseÃ±a).
       if (recordarme) {
         AsyncStorage.setItem(CLAVE_RECORDAR, email.trim()).catch(() => {});
       } else {
         AsyncStorage.removeItem(CLAVE_RECORDAR).catch(() => {});
       }
 
-      // Redirección por rol (igual que web RoleRoute)
+      // RedirecciÃ³n por rol (igual que web RoleRoute)
       const { obtenerSesion } = await import("@/services/storage");
       const sesion = await obtenerSesion();
       const rol = (sesion?.rol || "").toLowerCase();
       if (rol === "tecnico") {
         router.replace("/(tecnico)" as Href);
       } else if (rol === "admin" || rol === "administrador") {
-        // Admin sigue en flujo cliente por ahora (podría ir a /admin)
+        // Admin sigue en flujo cliente por ahora (podrÃ­a ir a /admin)
         router.replace((redirigirA ?? "/(tabs)/productos") as Href);
       } else {
         router.replace((redirigirA ?? "/(tabs)/productos") as Href);
@@ -87,7 +87,7 @@ export default function LoginScreen() {
     } catch (e) {
       const status = e instanceof ApiError ? e.status : 0;
       const detail =
-        e instanceof Error ? e.message : "Error al iniciar sesión";
+        e instanceof Error ? e.message : "Error al iniciar sesiÃ³n";
 
       if (status === 403 && detail.toLowerCase().includes("inhabilitada")) {
         setCuentaInhabilitada(true);
@@ -97,7 +97,7 @@ export default function LoginScreen() {
         setError(detail);
       } else if (status === 401) {
         setError(
-          "Correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.",
+          "Correo o contraseÃ±a incorrectos. Verifica tus datos e intÃ©ntalo de nuevo.",
         );
       } else {
         setError(detail);
@@ -112,7 +112,7 @@ export default function LoginScreen() {
     try {
       await solicitarHabilitacion(email.trim(), password);
       setMensajeHabilitacion(
-        "Solicitud de habilitación enviada. El administrador revisará tu caso y, si la aprueba, podrás iniciar sesión nuevamente.",
+        "Solicitud de habilitaciÃ³n enviada. El administrador revisarÃ¡ tu caso y, si la aprueba, podrÃ¡s iniciar sesiÃ³n nuevamente.",
       );
       setCuentaInhabilitada(false);
     } catch (e) {
@@ -126,16 +126,16 @@ export default function LoginScreen() {
 
   return (
     <AuthScreen>
-      <Text style={styles.titulo}>Iniciar sesión</Text>
+      <Text style={styles.titulo}>Iniciar sesiÃ³n</Text>
       <Text style={styles.bienvenida}>
         Bienvenido de nuevo a{" "}
         <Text style={styles.marcaDorada}>NEODOMUS</Text>
       </Text>
 
-      <Text style={styles.label}>Correo electrónico</Text>
+      <Text style={styles.label}>Correo electrÃ³nico</Text>
       <TextInput
         style={styles.input}
-        placeholder="Correo electrónico"
+        placeholder="Correo electrÃ³nico"
         placeholderTextColor="#8a8a8a"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -144,16 +144,16 @@ export default function LoginScreen() {
         editable={!cargando}
       />
 
-      <Text style={styles.label}>Contraseña</Text>
+      <Text style={styles.label}>ContraseÃ±a</Text>
       <PasswordInput
-        placeholder="Contraseña"
+        placeholder="ContraseÃ±a"
         value={password}
         onChangeText={setPassword}
         editable={!cargando}
         onSubmitEditing={() => void ingresar()}
       />
 
-      {/* Recordarme + Olvidé mi contraseña */}
+      {/* Recordarme + OlvidÃ© mi contraseÃ±a */}
       <View style={styles.filaOpciones}>
         <Pressable
           style={styles.checkFila}
@@ -173,18 +173,18 @@ export default function LoginScreen() {
           disabled={cargando}
           hitSlop={6}
         >
-          <Text style={styles.enlaceOlvido}>¿Olvidaste tu contraseña?</Text>
+          <Text style={styles.enlaceOlvido}>Â¿Olvidaste tu contraseÃ±a?</Text>
         </Pressable>
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      {/* Cuenta inhabilitada → solicitar habilitación */}
+      {/* Cuenta inhabilitada â†’ solicitar habilitaciÃ³n */}
       {cuentaInhabilitada && !mensajeHabilitacion && (
         <View style={styles.cajaAviso}>
           <FontAwesome6 name="circle-exclamation" size={14} color={C.oroSuave} />
           <Text style={styles.avisoTexto}>
-            Tu cuenta está inhabilitada por un administrador. Puedes
+            Tu cuenta estÃ¡ inhabilitada por un administrador. Puedes
             solicitar que sea habilitada nuevamente.
           </Text>
           <Pressable
@@ -199,7 +199,7 @@ export default function LoginScreen() {
             <Text style={styles.textoBotonAviso}>
               {enviandoHabilitacion
                 ? "Enviando..."
-                : "Solicitar habilitación de la cuenta"}
+                : "Solicitar habilitaciÃ³n de la cuenta"}
             </Text>
           </Pressable>
         </View>
@@ -212,13 +212,13 @@ export default function LoginScreen() {
         </View>
       )}
 
-      {/* Correo sin verificar → ir a verificación */}
+      {/* Correo sin verificar â†’ ir a verificaciÃ³n */}
       {emailSinVerificar && (
         <View style={styles.cajaAviso}>
           <FontAwesome6 name="circle-exclamation" size={14} color={C.oroSuave} />
           <Text style={styles.avisoTexto}>
-            Tu correo aún no ha sido verificado. Debes ingresar el código de
-            verificación para poder iniciar sesión.
+            Tu correo aÃºn no ha sido verificado. Debes ingresar el cÃ³digo de
+            verificaciÃ³n para poder iniciar sesiÃ³n.
           </Text>
           <Pressable
             style={({ pressed }) => [styles.botonAviso, pressed && styles.presionado]}
@@ -235,7 +235,7 @@ export default function LoginScreen() {
       )}
 
       <View style={styles.filaRegistro}>
-        <Text style={styles.textoRegistro}>¿No tienes una cuenta?</Text>
+        <Text style={styles.textoRegistro}>Â¿No tienes una cuenta?</Text>
         <Pressable onPress={() => router.push("/registro")} hitSlop={6}>
           <Text style={styles.enlaceRegistro}>Registrarse</Text>
         </Pressable>
@@ -250,7 +250,7 @@ export default function LoginScreen() {
         onPress={() => void ingresar()}
         disabled={cargando}
       >
-        <Text style={styles.textoBoton}>{cargando ? "Ingresando..." : "Iniciar sesión"}</Text>
+        <Text style={styles.textoBoton}>{cargando ? "Ingresando..." : "Iniciar sesiÃ³n"}</Text>
       </Pressable>
     </AuthScreen>
   );

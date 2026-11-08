@@ -57,7 +57,7 @@ export function FavoritosProvider({
   // Cargar la lista correspondiente a la identidad actual.
   useEffect(() => {
     let activo = true;
-    cargarClave(correoUsuario ? clavePorCorreo(correoUsuario) : CLAVE_VISITANTE)
+    void cargarClave(correoUsuario ? clavePorCorreo(correoUsuario) : CLAVE_VISITANTE)
       .then((lista) => {
         if (activo) setFavoritos(lista);
       });
@@ -110,7 +110,7 @@ export function FavoritosProvider({
     if (!correoUsuario) return;
     let activo = true;
 
-    (async () => {
+    void (async () => {
       try {
         const visitante = await AsyncStorage.getItem(CLAVE_VISITANTE);
         if (!visitante) return;
