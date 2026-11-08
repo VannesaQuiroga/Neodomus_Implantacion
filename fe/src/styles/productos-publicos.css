@@ -829,7 +829,6 @@
 
 .btn-agregar--footer {
   width: 100%;
-  flex: none;
   height: 42px;
   min-height: 42px;
   align-self: stretch;
