@@ -1,0 +1,13 @@
+# Solo para pruebas locales; tls internal usa una CA local privada.
+# curl --resolve enlaza estos nombres .local con 127.0.0.1.
+app.neodomus.local {
+	tls internal
+	encode zstd gzip
+	reverse_proxy frontend:5173
+}
+
+api.neodomus.local {
+	tls internal
+	encode zstd gzip
+	reverse_proxy api:8000
+}

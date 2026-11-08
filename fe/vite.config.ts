@@ -20,6 +20,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // Autoriza únicamente el nombre virtual del proxy local de Caddy.
+    allowedHosts: ['app.neodomus.local'],
     open: false,
     // Evita que el navegador bloquee window.postMessage del botón de
     // Google Identity Services (advertencia Cross-Origin-Opener-Policy).

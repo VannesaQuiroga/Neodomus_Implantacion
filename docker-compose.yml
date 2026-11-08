@@ -53,6 +53,9 @@ services:
       FRONTEND_VERIFY_EMAIL_PATH: /verify-email
       FRONTEND_RESET_PASSWORD_PATH: /reset-password
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Polling evita errores del watcher sobre bind mounts de Windows/WSL.
+      WATCHFILES_FORCE_POLLING: ${WATCHFILES_FORCE_POLLING:-true}
+      WATCHFILES_POLL_DELAY_MS: ${WATCHFILES_POLL_DELAY_MS:-500}
       # Controla si el seed de usuarios de prueba se ejecuta al arrancar (solo desarrollo)
       EJECUTAR_SEED_AL_ARRANCAR: ${EJECUTAR_SEED_AL_ARRANCAR:-true}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
@@ -111,8 +114,28 @@ services:
     networks:
       - neodomus_net
 
+  # Reverse proxy con certificados internos, solo para pruebas locales.
+  caddy:
+    image: caddy:2-alpine
+    container_name: neodomus_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - neodomus_net
+
 volumes:
   mysql_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   neodomus_net:

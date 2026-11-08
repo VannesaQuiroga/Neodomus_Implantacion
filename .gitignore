@@ -59,6 +59,8 @@ __pycache__/
 # Respaldos locales de datos
 backup_neodomus.sql
 evidencias_backup/
+/backups/
+/caddy-root.crt
 
 # MinIO — datos del bucket (no versionar, contiene binarios y metadatos)
 minio_data/
