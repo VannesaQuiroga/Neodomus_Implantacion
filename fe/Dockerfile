@@ -9,6 +9,10 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --no-frozen-lockfile
 
+# El servidor de desarrollo corre sin privilegios de root.
+RUN chown -R node:node /app
+USER node
+
 # Copia con listado explícito (S6470): evita arrastrar archivos sensibles o
 # ajenos a la imagen (p. ej. .env, artefactos dist/, stores de paquetes).
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json tsconfig.app.json ./

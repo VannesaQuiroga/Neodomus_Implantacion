@@ -80,7 +80,7 @@ export default function TecnicoDevolucionesScreen() {
     setLoading(false);
   };
 
-  void useEffect(() => { fetchWithHistorial(); }, []);
+  useEffect(() => { void fetchWithHistorial(); }, []);
   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
 
   // Reset filtros al cambiar de vista (opcional: mantener búsqueda pero reset estado/fecha/hora)
@@ -161,7 +161,9 @@ export default function TecnicoDevolucionesScreen() {
       fd.append("file", { uri: asset.uri, name: "evidencia.jpg", type: "image/jpeg" } as any);
       await apiFetch(`/devoluciones/${id}/evidencia-recogida`, { method: "POST", body: fd, headers: {} as any });
       setToast("Evidencia subida");
-      void fetchWithHistorial();
+      void fetchWithHistorial().catch((error) => {
+        setToast(error instanceof Error ? error.message : "Error al actualizar devoluciones");
+      });
     } catch (e: any) { setToast(e.message || "Error"); }
     setSubiendo(null);
   };

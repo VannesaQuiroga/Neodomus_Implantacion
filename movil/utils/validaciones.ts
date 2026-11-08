@@ -7,8 +7,22 @@
 export const REGEX_CONTRASENA =
   /^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[^!@#$%^&*(),.?":{}|<>]*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
-/** Regex de correo de Login/ForgotPassword de la WEB. */
-export const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Valida el formato de correo en una pasada, sin retroceso de regex. */
+export function esEmailValido(valor: string): boolean {
+  let arroba = -1;
+  let puntosDominio = 0;
+  for (let i = 0; i < valor.length; i += 1) {
+    const caracter = valor[i];
+    if (/\s/.test(caracter)) return false;
+    if (caracter === "@") {
+      if (arroba !== -1 || i === 0) return false;
+      arroba = i;
+    } else if (caracter === "." && arroba !== -1 && i > arroba + 1 && i < valor.length - 1) {
+      puntosDominio += 1;
+    }
+  }
+  return arroba !== -1 && arroba < valor.length - 1 && puntosDominio > 0;
+}
 
 export interface RequisitosContrasena {
   length: boolean;

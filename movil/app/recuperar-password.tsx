@@ -12,7 +12,7 @@ import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import AuthScreen from "@/components/auth/AuthScreen";
 import { solicitarRecuperacionPassword } from "@/services/auth.services";
 import { ApiError } from "@/services/api";
-import { REGEX_EMAIL } from "@/utils/validaciones";
+import { esEmailValido } from "@/utils/validaciones";
 
 export default function RecuperarPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -20,7 +20,7 @@ export default function RecuperarPasswordScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const enviar = async () => {
-    if (!REGEX_EMAIL.test(email.trim())) {
+    if (!esEmailValido(email.trim())) {
       setError("Correo electrónico inválido");
       return;
     }

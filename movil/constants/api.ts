@@ -32,6 +32,11 @@ let URL_SIN_PREFIJO = (
   obtenerHostDesdeExpo() ||
   "http://10.0.2.2:8000"
 );
+// HTTP se admite solo en desarrollo para el emulador y la red local.
+// En una build distribuida, la API debe publicarse detrás de HTTPS.
+if (!__DEV__ && URL_SIN_PREFIJO.startsWith("http://")) {
+  throw new Error("EXPO_PUBLIC_API_URL debe usar HTTPS en producción.");
+}
 while (URL_SIN_PREFIJO.endsWith("/")) {
   URL_SIN_PREFIJO = URL_SIN_PREFIJO.slice(0, -1);
 }
