@@ -105,6 +105,8 @@ services:
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+      # No escribir la caché de deps en el volumen node_modules.
+      NEODOMUS_VITE_CACHE_DIR: /tmp/neodomus-vite-cache
     volumes:
       - ./fe:/app
       - /app/node_modules
