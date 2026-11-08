@@ -51,24 +51,26 @@ setup_cors(app)
 setup_rate_limit(app)
 setup_security_headers(app)
 
+API_PREFIX = "/api/v1"
+
 # Incluir routers con prefijo /api/v1
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(users_router, prefix="/api/v1")
-app.include_router(clients_router, prefix="/api/v1")
-app.include_router(tecnicos_router, prefix="/api/v1")
-app.include_router(productos_router, prefix="/api/v1")
-app.include_router(citas_router, prefix="/api/v1")
-app.include_router(solicitudes_router, prefix="/api/v1")
-app.include_router(reports_router, prefix="/api/v1")
-app.include_router(consultas_router, prefix="/api/v1")
-app.include_router(pedidos_router, prefix="/api/v1")
-app.include_router(tarifas_router, prefix="/api/v1")
-app.include_router(calificaciones_router, prefix="/api/v1")
-app.include_router(notificaciones_router, prefix="/api/v1")
-app.include_router(especializaciones_router, prefix="/api/v1")
-app.include_router(reembolsos_router, prefix="/api/v1")
-app.include_router(devoluciones_router, prefix="/api/v1")
-app.include_router(novedades_router, prefix="/api/v1")
+app.include_router(auth_router, prefix=API_PREFIX)
+app.include_router(users_router, prefix=API_PREFIX)
+app.include_router(clients_router, prefix=API_PREFIX)
+app.include_router(tecnicos_router, prefix=API_PREFIX)
+app.include_router(productos_router, prefix=API_PREFIX)
+app.include_router(citas_router, prefix=API_PREFIX)
+app.include_router(solicitudes_router, prefix=API_PREFIX)
+app.include_router(reports_router, prefix=API_PREFIX)
+app.include_router(consultas_router, prefix=API_PREFIX)
+app.include_router(pedidos_router, prefix=API_PREFIX)
+app.include_router(tarifas_router, prefix=API_PREFIX)
+app.include_router(calificaciones_router, prefix=API_PREFIX)
+app.include_router(notificaciones_router, prefix=API_PREFIX)
+app.include_router(especializaciones_router, prefix=API_PREFIX)
+app.include_router(reembolsos_router, prefix=API_PREFIX)
+app.include_router(devoluciones_router, prefix=API_PREFIX)
+app.include_router(novedades_router, prefix=API_PREFIX)
 
 # Imágenes subidas (productos) servidas desde /uploads
 PRODUCTOS_IMG_DIR = Path(__file__).resolve().parent / "static" / "productos"
@@ -103,4 +105,4 @@ async def generic_exception_handler(request: Request, exc: Exception):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="127.0.0.1", port=port)

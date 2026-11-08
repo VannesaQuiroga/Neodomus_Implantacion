@@ -5,11 +5,23 @@ seeds y utilidades de base de datos se organiza aquí.
 
 ## Contenido
 
+verificar-requisitos.sh comprueba dependencias, acceso al daemon Docker, Docker Compose, RAM (mínimo 4 GiB), disco libre (mínimo 10 GiB) y disponibilidad de puertos TCP. Permite fallo intencional con SIMULATE_FAIL=true.
+
+Ejecutar desde Linux antes de desplegar:
+
+~~~bash
+bash scripts/verificar-requisitos.sh
+SIMULATE_FAIL=true bash scripts/verificar-requisitos.sh
+~~~
+
+El modo SIMULATE_FAIL debe terminar con código 1 y sirve para verificar el manejo de fallos; no acredita requisitos del host. El script no necesita privilegios root. El acceso al socket Docker equivale a privilegios elevados: concederlo solo a operadores autorizados.
+
 | Archivo | Descripción |
 |---|---|
 | `seed_test_users.py` | Crea automáticamente los usuarios de prueba (clientes, administrador y técnico) con contraseña temporal con hash. Idempotente: no duplica ni sobrescribe usuarios existentes. |
 | `export_seed.py` | Guarda los registros actuales de la BD (clientes, usuarios, técnicos) dentro de `init_db.sql`, regenerando su sección final con `INSERT IGNORE`. |
 | `init_db.sql` | Esquema y datos iniciales en SQL (no destructivo e idempotente). Este archivo es la fuente de datos que regenera `export_seed.py`. |
+| `respaldar.sh` | Genera un dump comprimido de MySQL, valida el gzip, permite cifrado opcional con `age` y elimina respaldos locales vencidos. |
 
 > Nota: el **versionado real del esquema** (tablas, columnas, seeds) se gestiona
 > con **Alembic** en `be/alembic/versions/`, que es el que ejecuta el contenedor
@@ -72,3 +84,13 @@ python scripts/export_seed.py
 El esquema de base de datos se gestiona con **Alembic** en `be/alembic/versions/`.
 Las nuevas tablas/columnas del proyecto (marcas, venta por metros, pagos,
 facturas) están en las migraciones `0002_*`.
+
+## Respaldo de MySQL
+
+Desde la raíz del repositorio con Docker Compose v2 y el servicio `db` activo:
+
+```bash
+BACKUP_SOURCE=docker bash ./scripts/respaldar.sh
+```
+
+Para producción/staging configura directorio seguro, retención y cifrado con `age` mediante variables de entorno; la clave privada de descifrado se mantiene fuera del servidor de respaldos. El script no realiza copia off-site ni restaura la base. Consulta el runbook en [`docs/implantacion/plan-implantacion.md`](../docs/implantacion/plan-implantacion.md) y ensaya una restauración aislada.
