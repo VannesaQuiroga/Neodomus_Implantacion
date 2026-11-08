@@ -161,11 +161,7 @@ def _celda(texto, estilo):
     return Paragraph(str(texto or ""), estilo)
 
 
-def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
-    """Genera el PDF de la factura en memoria y retorna un BytesIO."""
-    s = _styles()
-    numero_factura = factura.numero_factura
-
+def _crear_documento(numero_factura: str) -> tuple[io.BytesIO, SimpleDocTemplate]:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -177,108 +173,141 @@ def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
         title=f"Factura {numero_factura} - NEODOMUS",
         author="NEODOMUS",
     )
+    return buffer, doc
 
-    historia = []
 
-    # ── Encabezado: logo + nombre ──────────────────────────────────────
-    tabla_logo = Table([[_logo_factura()]], colWidths=[30 * mm])
-    tabla_logo.setStyle(
-        TableStyle([
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ])
-    )
-    info_empresa = Table(
-        [[Paragraph("<b>NEODOMUS</b>", s["titulo"])],
-         [Paragraph("Innovación para tu hogar", s["sub"])],
-         [Paragraph("Calle de la Domótica # 123, Bogotá D.C. - Colombia", s["sub"])],
-         [Paragraph("contacto@neodomus.com", s["sub"])]],
+def _construir_encabezado(factura, estilos) -> list:
+    logo = Table([[_logo_factura()]], colWidths=[30 * mm])
+    logo.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    empresa = Table(
+        [[Paragraph("<b>NEODOMUS</b>", estilos["titulo"])],
+         [Paragraph("Innovación para tu hogar", estilos["sub"])],
+         [Paragraph("Calle de la Domótica # 123, Bogotá D.C. - Colombia", estilos["sub"])],
+         [Paragraph("contacto@neodomus.com", estilos["sub"])],],
         colWidths=[130 * mm],
     )
-    info_empresa.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "RIGHT")]))
-    encabezado = Table([[tabla_logo, info_empresa]], colWidths=[40 * mm, 140 * mm])
+    empresa.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "RIGHT")]))
+    encabezado = Table([[logo, empresa]], colWidths=[40 * mm, 140 * mm])
     encabezado.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    historia.append(encabezado)
-    historia.append(Spacer(1, 2 * mm))
 
     linea = Table([[""]], colWidths=[180 * mm], rowHeights=[1.2])
     linea.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), ORO)]))
-    historia.append(linea)
-    historia.append(Spacer(1, 6 * mm))
+    return [
+        encabezado,
+        Spacer(1, 2 * mm),
+        linea,
+        Spacer(1, 6 * mm),
+        Paragraph(f"FACTURA {factura.numero_factura}", estilos["titulo"]),
+        Paragraph(
+            f"Fecha: {factura.fecha_factura.strftime('%d/%m/%Y %H:%M')}",
+            estilos["sub"],
+        ),
+        Spacer(1, 6 * mm),
+    ]
 
-    # ── Título ─────────────────────────────────────────────────────────
-    historia.append(Paragraph(f"FACTURA {numero_factura}", s["titulo"]))
-    historia.append(
-        Paragraph(f"Fecha: {factura.fecha_factura.strftime('%d/%m/%Y %H:%M')}", s["sub"])
-    )
-    historia.append(Spacer(1, 6 * mm))
 
-    # ── Datos del cliente ──────────────────────────────────────────────
-    tipo_doc = "CC"
-    if cliente.id_tipo_documento_c:
-        try:
-            from app.models.otros import TipoDocumento
-            td = cliente.id_tipo_documento_c
-            # resolve by id if possible
-            tipo_doc = "CC"
-        except Exception:
-            tipo_doc = "CC"
+def _tabla_cliente(cliente, estilos) -> Table:
     documento = cliente.documento_cliente or "No registrado"
     telefono = cliente.telefono_cliente or "No registrado"
     direccion = cliente.address or "No registrada"
-
-    datos_cliente = [
-        [_celda("CLIENTE", s["label"]), _celda("TIPO DOC", s["label"]),
-         _celda("NÚMERO DOC", s["label"])],
-        [_celda(f"{cliente.first_name} {cliente.last_name}".strip(), s["valor"]),
-         _celda(tipo_doc, s["valor"]),
-         _celda(documento, s["valor"])],
-        [_celda("TELÉFONO", s["label"]), _celda("CORREO", s["label"]),
-         _celda("DIRECCIÓN", s["label"])],
-        [_celda(telefono, s["valor"]), _celda(cliente.email, s["valor"]),
-         _celda(direccion, s["valor"])],
+    datos = [
+        [_celda("CLIENTE", estilos["label"]), _celda("TIPO DOC", estilos["label"]),
+         _celda("NÚMERO DOC", estilos["label"])],
+        [_celda(f"{cliente.first_name} {cliente.last_name}".strip(), estilos["valor"]),
+         _celda("CC", estilos["valor"]), _celda(documento, estilos["valor"])],
+        [_celda("TELÉFONO", estilos["label"]), _celda("CORREO", estilos["label"]),
+         _celda("DIRECCIÓN", estilos["label"])],
+        [_celda(telefono, estilos["valor"]), _celda(cliente.email, estilos["valor"]),
+         _celda(direccion, estilos["valor"])],
     ]
-    tabla_cliente = Table(datos_cliente, colWidths=[60 * mm, 45 * mm, 75 * mm])
-    tabla_cliente.setStyle(
-        TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
-            ("BACKGROUND", (0, 0), (-1, 0), FONDO_TABLA),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ])
-    )
-    historia.append(tabla_cliente)
-    historia.append(Spacer(1, 6 * mm))
+    tabla = Table(datos, colWidths=[60 * mm, 45 * mm, 75 * mm])
+    tabla.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
+        ("BACKGROUND", (0, 0), (-1, 0), FONDO_TABLA),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    return tabla
 
-    # ── Datos del pago ─────────────────────────────────────────────────
-    metodo = factura.metodo_pago or ""
-    estado = factura.estado_pago or ""
-    transaccion = factura.numero_transaccion or "N/A"
-    datos_pago = [
-        [_celda("MÉTODO DE PAGO", s["label"]), _celda("ESTADO DEL PAGO", s["label"]),
-         _celda("N° TRANSACCIÓN", s["label"])],
-        [_celda(metodo, s["valor"]), _celda(estado, s["valor"]), _celda(transaccion, s["valor"])],
+
+def _tabla_pago(factura, estilos) -> Table:
+    datos = [
+        [_celda("MÉTODO DE PAGO", estilos["label"]), _celda("ESTADO DEL PAGO", estilos["label"]),
+         _celda("N° TRANSACCIÓN", estilos["label"])],
+        [_celda(factura.metodo_pago or "", estilos["valor"]),
+         _celda(factura.estado_pago or "", estilos["valor"]),
+         _celda(factura.numero_transaccion or "N/A", estilos["valor"])],
     ]
-    tabla_pago = Table(datos_pago, colWidths=[70 * mm, 55 * mm, 55 * mm])
-    tabla_pago.setStyle(
-        TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
-            ("BACKGROUND", (0, 0), (-1, 0), FONDO_TABLA),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ])
-    )
-    historia.append(tabla_pago)
-    historia.append(Spacer(1, 6 * mm))
+    tabla = Table(datos, colWidths=[70 * mm, 55 * mm, 55 * mm])
+    tabla.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
+        ("BACKGROUND", (0, 0), (-1, 0), FONDO_TABLA),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    return tabla
 
+
+def _estilos_tabla_detalle() -> list[tuple]:
+    return [
+        ("BACKGROUND", (0, 0), (-1, 0), ORO),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, FONDO_TABLA]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]
+
+
+def _agregar_total_y_pie(historia: list, monto, estilos) -> None:
+    total = Table(
+        [[_celda("TOTAL A PAGAR", estilos["label"]),
+          _celda(formatear_cop(monto), estilos["total"])]],
+        colWidths=[130 * mm, 50 * mm],
+    )
+    total.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LINEABOVE", (0, 0), (-1, 0), 1, ORO),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    historia.extend([total, Spacer(1, 10 * mm)])
+    historia.append(Paragraph(
+        "Esta factura fue generada por el sistema de NEODOMUS con fines "
+        "académicos/de demostración. No representa un cobro real.",
+        estilos["nota"],
+    ))
+    historia.append(Paragraph(
+        f"Generado el {fecha_bogota().strftime('%d/%m/%Y %H:%M')} - NEODOMUS · "
+        "Innovación para tu hogar",
+        estilos["nota"],
+    ))
+
+
+def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
+    """Genera el PDF de la factura en memoria y retorna un BytesIO."""
+    s = _styles()
+    buffer, doc = _crear_documento(factura.numero_factura)
+    historia = _construir_encabezado(factura, s)
+    historia.extend([_tabla_cliente(cliente, s), Spacer(1, 6 * mm)])
+    historia.extend([_tabla_pago(factura, s), Spacer(1, 6 * mm)])
     # ── Detalle de productos ───────────────────────────────────────────
     historia.append(Paragraph("DETALLE DE LA COMPRA", s["label"]))
     historia.append(Spacer(1, 2 * mm))
@@ -306,17 +335,7 @@ def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
         ])
 
     tabla_detalle = Table(filas, colWidths=[78 * mm, 30 * mm, 22 * mm, 26 * mm, 26 * mm], repeatRows=1)
-    estilos_detalle = [
-        ("BACKGROUND", (0, 0), (-1, 0), ORO),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, FONDO_TABLA]),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]
+    estilos_detalle = _estilos_tabla_detalle()
     tabla_detalle.setStyle(TableStyle(estilos_detalle))
     historia.append(tabla_detalle)
     historia.append(Spacer(1, 6 * mm))
@@ -348,36 +367,7 @@ def generar_factura_pdf(factura, pedido, cliente, detalles) -> io.BytesIO:
         historia.append(tabla_serv)
         historia.append(Spacer(1, 6 * mm))
 
-    # ── Total ──────────────────────────────────────────────────────────
-    tabla_total = Table(
-        [[_celda("TOTAL A PAGAR", s["label"]), _celda(formatear_cop(pedido.total_pedido), s["total"])]],
-        colWidths=[130 * mm, 50 * mm],
-    )
-    tabla_total.setStyle(
-        TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("LINEABOVE", (0, 0), (-1, 0), 1, ORO),
-            ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ])
-    )
-    historia.append(tabla_total)
-    historia.append(Spacer(1, 10 * mm))
-
-    # ── Pie ────────────────────────────────────────────────────────────
-    historia.append(Paragraph(
-        "Esta factura fue generada por el sistema de NEODOMUS con fines "
-        "académicos/de demostración. No representa un cobro real.",
-        s["nota"],
-    ))
-    historia.append(Paragraph(
-        f"Generado el {fecha_bogota().strftime('%d/%m/%Y %H:%M')} - NEODOMUS · "
-        "Innovación para tu hogar",
-        s["nota"],
-    ))
+    _agregar_total_y_pie(historia, pedido.total_pedido, s)
 
     doc.build(historia)
     buffer.seek(0)
@@ -419,113 +409,10 @@ async def enviar_factura_por_correo(to_email: str, pdf_bytes: io.BytesIO) -> boo
 def generar_factura_cita_pdf(factura, cita, cliente) -> io.BytesIO:
     """Genera el PDF de la factura para una cita en memoria y retorna un BytesIO."""
     s = _styles()
-    numero_factura = factura.numero_factura
-
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        rightMargin=18 * mm,
-        leftMargin=18 * mm,
-        topMargin=14 * mm,
-        bottomMargin=14 * mm,
-        title=f"Factura {numero_factura} - NEODOMUS",
-        author="NEODOMUS",
-    )
-
-    historia = []
-
-    # ── Encabezado: logo + nombre ──────────────────────────────────────
-    tabla_logo = Table([[_logo_factura()]], colWidths=[30 * mm])
-    tabla_logo.setStyle(
-        TableStyle([
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ])
-    )
-    info_empresa = Table(
-        [[Paragraph("<b>NEODOMUS</b>", s["titulo"])],
-         [Paragraph("Innovación para tu hogar", s["sub"])],
-         [Paragraph("Calle de la Domótica # 123, Bogotá D.C. - Colombia", s["sub"])],
-         [Paragraph("contacto@neodomus.com", s["sub"])]],
-        colWidths=[130 * mm],
-    )
-    info_empresa.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "RIGHT")]))
-    encabezado = Table([[tabla_logo, info_empresa]], colWidths=[40 * mm, 140 * mm])
-    encabezado.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    historia.append(encabezado)
-    historia.append(Spacer(1, 2 * mm))
-
-    linea = Table([[""]], colWidths=[180 * mm], rowHeights=[1.2])
-    linea.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), ORO)]))
-    historia.append(linea)
-    historia.append(Spacer(1, 6 * mm))
-
-    # ── Título ─────────────────────────────────────────────────────────
-    historia.append(Paragraph(f"FACTURA {numero_factura}", s["titulo"]))
-    historia.append(
-        Paragraph(f"Fecha: {factura.fecha_factura.strftime('%d/%m/%Y %H:%M')}", s["sub"])
-    )
-    historia.append(Spacer(1, 6 * mm))
-
-    # ── Datos del cliente ──────────────────────────────────────────────
-    tipo_doc = "CC"
-    documento = cliente.documento_cliente or "No registrado"
-    telefono = cliente.telefono_cliente or "No registrado"
-    direccion = cliente.address or "No registrada"
-
-    datos_cliente = [
-        [_celda("CLIENTE", s["label"]), _celda("TIPO DOC", s["label"]),
-         _celda("NÚMERO DOC", s["label"])],
-        [_celda(f"{cliente.first_name} {cliente.last_name}".strip(), s["valor"]),
-         _celda(tipo_doc, s["valor"]),
-         _celda(documento, s["valor"])],
-        [_celda("TELÉFONO", s["label"]), _celda("CORREO", s["label"]),
-         _celda("DIRECCIÓN", s["label"])],
-        [_celda(telefono, s["valor"]), _celda(cliente.email, s["valor"]),
-         _celda(direccion, s["valor"])],
-    ]
-    tabla_cliente = Table(datos_cliente, colWidths=[60 * mm, 45 * mm, 75 * mm])
-    tabla_cliente.setStyle(
-        TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
-            ("BACKGROUND", (0, 0), (-1, 0), FONDO_TABLA),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ])
-    )
-    historia.append(tabla_cliente)
-    historia.append(Spacer(1, 6 * mm))
-
-    # ── Datos del pago ─────────────────────────────────────────────────
-    metodo = factura.metodo_pago or ""
-    estado = factura.estado_pago or ""
-    transaccion = factura.numero_transaccion or "N/A"
-    datos_pago = [
-        [_celda("MÉTODO DE PAGO", s["label"]), _celda("ESTADO DEL PAGO", s["label"]),
-         _celda("N° TRANSACCIÓN", s["label"])],
-        [_celda(metodo, s["valor"]), _celda(estado, s["valor"]), _celda(transaccion, s["valor"])],
-    ]
-    tabla_pago = Table(datos_pago, colWidths=[70 * mm, 55 * mm, 55 * mm])
-    tabla_pago.setStyle(
-        TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
-            ("BACKGROUND", (0, 0), (-1, 0), FONDO_TABLA),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ])
-    )
-    historia.append(tabla_pago)
-    historia.append(Spacer(1, 6 * mm))
-
+    buffer, doc = _crear_documento(factura.numero_factura)
+    historia = _construir_encabezado(factura, s)
+    historia.extend([_tabla_cliente(cliente, s), Spacer(1, 6 * mm)])
+    historia.extend([_tabla_pago(factura, s), Spacer(1, 6 * mm)])
     # ── Detalle del servicio ───────────────────────────────────────────
     historia.append(Paragraph("DETALLE DEL SERVICIO", s["label"]))
     historia.append(Spacer(1, 2 * mm))
@@ -541,52 +428,12 @@ def generar_factura_cita_pdf(factura, cita, cliente) -> io.BytesIO:
     ]
 
     tabla_svc = Table(filas_svc, colWidths=[35 * mm, 25 * mm, 20 * mm, 65 * mm, 35 * mm], repeatRows=1)
-    estilos_detalle = [
-        ("BACKGROUND", (0, 0), (-1, 0), ORO),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e0d5b0")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#f0e6cc")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, FONDO_TABLA]),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]
+    estilos_detalle = _estilos_tabla_detalle()
     tabla_svc.setStyle(TableStyle(estilos_detalle))
     historia.append(tabla_svc)
     historia.append(Spacer(1, 6 * mm))
 
-    # ── Total ──────────────────────────────────────────────────────────
-    tabla_total = Table(
-        [[_celda("TOTAL A PAGAR", s["label"]),
-          _celda(formatear_cop(cita.costo_cita), s["total"])]],
-        colWidths=[130 * mm, 50 * mm],
-    )
-    tabla_total.setStyle(
-        TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("LINEABOVE", (0, 0), (-1, 0), 1, ORO),
-            ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ])
-    )
-    historia.append(tabla_total)
-    historia.append(Spacer(1, 10 * mm))
-
-    # ── Pie ────────────────────────────────────────────────────────────
-    historia.append(Paragraph(
-        "Esta factura fue generada por el sistema de NEODOMUS con fines "
-        "académicos/de demostración. No representa un cobro real.",
-        s["nota"],
-    ))
-    historia.append(Paragraph(
-        f"Generado el {fecha_bogota().strftime('%d/%m/%Y %H:%M')} - NEODOMUS · "
-        "Innovación para tu hogar",
-        s["nota"],
-    ))
+    _agregar_total_y_pie(historia, cita.costo_cita, s)
 
     doc.build(historia)
     buffer.seek(0)
