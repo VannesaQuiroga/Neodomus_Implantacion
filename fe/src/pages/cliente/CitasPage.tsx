@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla CitasPage de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -1662,7 +1663,7 @@ const CitasPage = () => {
         {toast && (
           <div className={`citas-toast ${toast.tipo}`}>
             {toast.tipo === 'success' ? <FaCircleCheck /> : <FaExclamation />}
-            <span>{toast.msg}</span>
+            <span><LocalizedNotificationText message={toast.msg} /></span>
           </div>
         )}
       </main>

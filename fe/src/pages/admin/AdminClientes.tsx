@@ -199,7 +199,7 @@ const AdminClientes = () => {
       setConfirmModal(null);
       await cargar();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Error al procesar la acción');
+      alert(err.response?.data?.detail || t('notify.errorProcesarAccion'));
     } finally {
       setProcesando(false);
     }
@@ -526,7 +526,7 @@ const AdminClientes = () => {
                                           window.open(url, '_blank');
                                           setTimeout(() => URL.revokeObjectURL(url), 10000);
                                         } catch {
-                                          alert('No se pudo generar la factura');
+                                          alert(t('notify.errorGenerarFactura'));
                                         }
                                       }}
                                     >

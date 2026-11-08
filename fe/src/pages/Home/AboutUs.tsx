@@ -1,9 +1,12 @@
 // Contenido institucional de presentación de Neodomus.
 import fondo2 from '@assets/images/Fondo2.png';
 import sobreImg from '@assets/images/sobre.jpeg';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/info_pages.css';
 
 const AboutUs = () => {
+  const { t } = useIdioma();
+
   return (
     <div className="landing-sections-wrapper">
               <div 
@@ -13,15 +16,15 @@ const AboutUs = () => {
         <section className="info-section">
           <div className="about-layout">
             <div className="about-image-container">
-              <img src={sobreImg} alt="Ilustración Neodomus" />
+              <img src={sobreImg} alt={t('home.about.altIlustracion')} />
             </div>
             <div className="about-text-block">
-              <h1>Sobre Nosotros</h1>
+              <h1>{t('home.about.titulo')}</h1>
               <p>
-                En Neodomus ofrecemos soluciones innovadoras y confiables que generan valor real a nuestros clientes. Nos enfocamos en la calidad, la tecnología y la confianza, brindando servicios eficientes que se adaptan a cada necesidad.
+                {t('home.about.historia1')}
               </p>
               <p>
-                Nuestra misión es transformar ideas en resultados y nuestra visión, consolidarnos como un aliado estratégico que impulse el crecimiento y la evolución de quienes confían en nosotros.
+                {t('home.about.historia2')}
               </p>
             </div>
           </div>

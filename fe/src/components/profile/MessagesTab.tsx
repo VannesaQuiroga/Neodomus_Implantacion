@@ -5,6 +5,7 @@ import {
 } from 'react-icons/fa6';
 import type { ReactNode } from 'react';
 import { getMensajes, saveItem, PF_MENSAJES_KEY, Mensaje } from '@utils/profileStorage';
+import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 
 const tipoIcono: Record<Mensaje['tipo'], ReactNode> = {
@@ -24,6 +25,7 @@ const tipoClase: Record<Mensaje['tipo'], string> = {
 type Filtro = 'todas' | 'noLeidas';
 
 const MessagesTab = ({ onDataChanged }: { onDataChanged: () => void }) => {
+  const { t } = useIdioma();
   const [mensajes, setMensajes] = useState<Mensaje[]>(getMensajes());
   const [filtro, setFiltro] = useState<Filtro>('todas');
   const [seleccionado, setSeleccionado] = useState<Mensaje | null>(null);
@@ -52,12 +54,12 @@ const MessagesTab = ({ onDataChanged }: { onDataChanged: () => void }) => {
     <div className="pf-tab">
       <SectionHeader
         icon={<FaEnvelopeOpenText />}
-        title="Mis mensajes"
-        subtitle="Conversaciones y notificaciones de la plataforma."
+        title={t('perfil.misMensajes')}
+        subtitle={t('perfil.mensajes.subtitulo')}
         action={
           noLeidas > 0 ? (
             <button type="button" className="pf-btn pf-btn-ghost" onClick={marcarTodas}>
-              Marcar todas como leídas
+              {t('perfil.mensajes.marcarTodas')}
             </button>
           ) : undefined
         }
@@ -67,7 +69,7 @@ const MessagesTab = ({ onDataChanged }: { onDataChanged: () => void }) => {
         <div className="pf-msg-detail">
           <div className="pf-msg-detail-head">
             <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setSeleccionado(null)}>
-              <FaArrowLeft /> Volver
+              <FaArrowLeft /> {t('common.volver')}
             </button>
             <span className={`pf-msg-detail-tag ${tipoClase[seleccionado.tipo]}`}>{seleccionado.de}</span>
           </div>
@@ -83,21 +85,21 @@ const MessagesTab = ({ onDataChanged }: { onDataChanged: () => void }) => {
               className={`pf-filter-btn ${filtro === 'todas' ? 'active' : ''}`}
               onClick={() => setFiltro('todas')}
             >
-              Todas
+              {t('perfil.mensajes.todas')}
             </button>
             <button
               type="button"
               className={`pf-filter-btn ${filtro === 'noLeidas' ? 'active' : ''}`}
               onClick={() => setFiltro('noLeidas')}
             >
-              No leídas{noLeidas > 0 ? ` (${noLeidas})` : ''}
+              {t('perfil.mensajes.noLeidas')}{noLeidas > 0 ? ` (${noLeidas})` : ''}
             </button>
           </div>
 
           {visibles.length === 0 ? (
             <div className="pf-empty">
               <span className="pf-empty-icon"><FaEnvelopeOpenText /></span>
-              <p>{filtro === 'noLeidas' ? 'No tienes mensajes sin leer.' : 'No tienes mensajes todavía.'}</p>
+              <p>{filtro === 'noLeidas' ? t('perfil.mensajes.vacioNoLeidas') : t('perfil.mensajes.vacio')}</p>
             </div>
           ) : (
             <div className="pf-msg-list">

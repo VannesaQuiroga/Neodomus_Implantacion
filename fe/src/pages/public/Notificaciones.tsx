@@ -12,6 +12,7 @@ import {
   type RolNotificaciones,
 } from '../../hooks/useAdminNotificaciones';
 import '@styles/notificaciones.css';
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 
 const Notificaciones = () => {
   const { t } = useIdioma();
@@ -39,7 +40,7 @@ const Notificaciones = () => {
             <p>{t('notif.subtitulo')}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="notif-badge">{noLeidas} sin leer</span>
+            <span className="notif-badge">{t('notif.sinLeer', { count: noLeidas })}</span>
             <button
               type="button"
               className="notif-marcar-todas"
@@ -55,7 +56,7 @@ const Notificaciones = () => {
           <div className="notif-vacio" role="alert">
             <p>{error}</p>
             <button type="button" className="notif-reintentar" onClick={() => void recargar()}>
-              Reintentar
+              {t('notif.reintentar')}
             </button>
           </div>
         )}
@@ -85,14 +86,14 @@ const Notificaciones = () => {
               <div className="notif-item-body">
                 <div className="notif-item-top">
                   <span className="notif-badge">
-                    {ETIQUETA_TIPO[notificacion.tipo] ?? 'Sistema'}
+                    {t(ETIQUETA_TIPO[notificacion.tipo] ?? 'notif.tipo.sistema')}
                   </span>
                   <span className="notif-fecha">{notificacion.fecha}</span>
                 </div>
-                <h3 className="notif-titulo">{notificacion.titulo}</h3>
-                <p className="notif-mensaje">{notificacion.mensaje}</p>
+                <h3 className="notif-titulo"><LocalizedNotificationText message={notificacion.titulo} /></h3>
+                <p className="notif-mensaje"><LocalizedNotificationText message={notificacion.mensaje} /></p>
                 {notificacion.accion && (
-                  <span className="notif-accion">{notificacion.accion.label}</span>
+                  <span className="notif-accion"><LocalizedNotificationText message={notificacion.accion.label} /></span>
                 )}
               </div>
               {notificacion.leida ? (

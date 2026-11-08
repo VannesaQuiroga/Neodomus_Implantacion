@@ -15,12 +15,19 @@ import React, {
   useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { translateLocalizedMessage } from "../../fe/src/i18n/translateLocalizedMessage";
+import { TRADUCCIONES_PUBLICAS } from "./translations/publicTranslations";
+import { TRADUCCIONES_CLIENTE } from "./translations/clienteTranslations";
+import { TRADUCCIONES_CLIENTE_CUENTA } from "./translations/clienteAccountTranslations";
+import { TRADUCCIONES_TECNICO } from "./translations/tecnicoTranslations";
+import { TRADUCCIONES_COMPARTIDAS } from "./translations/sharedTranslations";
+import { TRADUCCIONES_NOTIFICACIONES } from "./translations/notificationTranslations";
 
 export type Idioma = "es" | "en";
 
 const CLAVE_IDIOMA = "pf_idioma";
 
-const DICCIONARIO: Record<string, { es: string; en: string }> = {
+const DICCIONARIO_BASE: Record<string, { es: string; en: string }> = {
   // Navbar / menú usuario
   "nav.inicio": { es: "Inicio", en: "Home" },
   "nav.productos": { es: "Productos", en: "Products" },
@@ -207,6 +214,20 @@ const DICCIONARIO: Record<string, { es: string; en: string }> = {
   "auth.cambiarPassword": { es: "Cambiar contraseña", en: "Change password" },
   "auth.idioma": { es: "Idioma", en: "Language" },
 };
+
+const DICCIONARIO: Record<string, { es: string; en: string }> = {
+  ...DICCIONARIO_BASE,
+  ...TRADUCCIONES_PUBLICAS,
+  ...TRADUCCIONES_CLIENTE,
+  ...TRADUCCIONES_CLIENTE_CUENTA,
+  ...TRADUCCIONES_TECNICO,
+  ...TRADUCCIONES_COMPARTIDAS,
+  ...TRADUCCIONES_NOTIFICACIONES,
+};
+
+export function traducirMensajeNotificacion(mensaje: string, idioma: Idioma): string {
+  return translateLocalizedMessage(mensaje, idioma, DICCIONARIO);
+}
 
 interface IdiomaContextValue {
   idioma: Idioma;

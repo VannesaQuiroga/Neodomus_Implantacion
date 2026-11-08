@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { FaFileInvoice, FaFilePdf, FaEnvelope } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 
 interface Factura {
@@ -55,6 +56,7 @@ const formatearFecha = (fecha?: string | null) => {
 
 // Comunica con el backend mediante GET '/pedidos/mis-pedidos'.
 const FacturasTab = () => {
+  const { t } = useIdioma();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -71,7 +73,7 @@ const FacturasTab = () => {
       } catch (err: any) {
         console.error(err);
         if (!activo) return;
-        setError('No se pudieron cargar tus facturas. Intenta más tarde.');
+        setError('perfil.facturas.errorCargar');
       } finally {
         if (activo) setLoading(false);
       }
@@ -97,18 +99,18 @@ const FacturasTab = () => {
     <div className="pf-tab">
       <SectionHeader
         icon={<FaFileInvoice />}
-        title="Mis facturas"
-        subtitle="Consulta y descarga las facturas de tus compras."
+        title={t('perfil.misFacturas')}
+        subtitle={t('perfil.facturas.subtitulo')}
       />
 
       {loading ? (
-        <div className="pf-empty"><p>Cargando tus facturas...</p></div>
+        <div className="pf-empty"><p>{t('perfil.facturas.cargando')}</p></div>
       ) : error ? (
-        <div className="pf-empty"><p>{error}</p></div>
+        <div className="pf-empty"><p>{t(error)}</p></div>
       ) : facturas.length === 0 ? (
         <div className="pf-empty">
           <span className="pf-empty-icon"><FaFileInvoice /></span>
-          <p>Aún no tienes facturas. Cuando completes una compra, tu factura aparecerá aquí.</p>
+          <p>{t('perfil.facturas.vacio')}</p>
         </div>
       ) : (
         <div className="pf-orders-list">
@@ -121,7 +123,7 @@ const FacturasTab = () => {
                   <div className="pf-order-id-col">
                     <span className="pf-order-id">{factura.numero_factura}</span>
                     <span className="pf-order-folio">
-                      Pedido #{pedido.id_pedido}
+                      {t('perfil.facturas.pedido', { id: pedido.id_pedido })}
                       {pedido.fecha ? ` · ${formatearFecha(pedido.fecha)}` : ''}
                     </span>
                   </div>
@@ -135,12 +137,12 @@ const FacturasTab = () => {
 
                 <div className="pf-factura-rows">
                   <div className="pf-factura-row">
-                    <span>Valor facturado</span>
+                    <span>{t('perfil.facturas.valorFacturado')}</span>
                     <strong>{formatoPeso(factura.monto_total ?? pedido.total)}</strong>
                   </div>
                   {pedido.pago?.metodo_pago && (
                     <div className="pf-factura-row">
-                      <span>Método de pago</span>
+                      <span>{t('perfil.facturas.metodoPago')}</span>
                       <strong>{pedido.pago.metodo_pago}</strong>
                     </div>
                   )}
@@ -148,13 +150,13 @@ const FacturasTab = () => {
                     <span>
                       {factura.enviada_por_correo ? (
                         <>
-                          <FaEnvelope /> Enviada a tu correo
+                          <FaEnvelope /> {t('perfil.facturas.enviadaCorreo')}
                         </>
                       ) : (
-                        'Disponible para descarga'
+                        t('perfil.facturas.disponibleDescarga')
                       )}
                     </span>
-                    <strong>{factura.enviada_por_correo ? 'Sí' : '—'}</strong>
+                    <strong>{factura.enviada_por_correo ? t('perfil.facturas.si') : '—'}</strong>
                   </div>
                 </div>
 
@@ -167,7 +169,7 @@ const FacturasTab = () => {
                       disabled={descargando === pedido.id_pedido}
                     >
                       <FaFilePdf />
-                      {descargando === pedido.id_pedido ? 'Descargando...' : 'Descargar factura PDF'}
+                      {descargando === pedido.id_pedido ? t('perfil.facturas.descargando') : t('perfil.facturas.descargarPdf')}
                     </button>
                   </div>
                 )}

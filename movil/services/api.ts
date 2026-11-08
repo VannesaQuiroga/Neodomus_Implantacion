@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { API_BASE_URL } from "@/constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   borrarSesion,
   guardarSesion,
@@ -123,11 +124,13 @@ async function request<T>(
   let response: Response;
   try {
     const isMultipart = options.body instanceof FormData;
+    const idioma = await AsyncStorage.getItem("pf_idioma").catch(() => null);
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
         ...(!isMultipart ? { "Content-Type": "application/json" } : {}),
         ...(sesion ? { Authorization: `Bearer ${sesion.accessToken}` } : {}),
+        "Accept-Language": idioma === "en" ? "en" : "es",
         ...options.headers,
       },
       signal: controller.signal,

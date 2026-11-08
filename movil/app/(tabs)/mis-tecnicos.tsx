@@ -16,6 +16,7 @@ import {
   type TecnicoPublico,
 } from "@/services/cliente.services";
 import { useTecnicosFavoritos } from "@/contexts/TecnicosFavoritosContext";
+import { useIdioma } from "@/contexts/IdiomaContext";
 
 interface TecnicoLista {
   id_tecnico: number;
@@ -39,6 +40,7 @@ const numeroWhatsApp = (telefono?: string | null): string | null => {
 };
 
 export default function MisTecnicosScreen() {
+  const { t } = useIdioma();
   const { favoritosTecnicos } = useTecnicosFavoritos();
   const [tecnicosPublicos, setTecnicosPublicos] = useState<TecnicoPublico[]>([]);
   const [citas, setCitas] = useState<Cita[]>([]);
@@ -112,16 +114,16 @@ export default function MisTecnicosScreen() {
     const numero = numeroWhatsApp(tecnico.telefono);
     if (!numero) {
       Alert.alert(
-        "WhatsApp no disponible",
-        "Este técnico no tiene un número de WhatsApp registrado.",
+        t("notify.whatsappNoDisponible"),
+        t("notify.tecnicoSinWhatsApp"),
       );
       return;
     }
     // wa.me funciona tanto con la app instalada como vía navegador.
     Linking.openURL(`https://wa.me/${numero}`).catch(() =>
       Alert.alert(
-        "No se pudo abrir WhatsApp",
-        `Verifica que tengas WhatsApp instalado. Número: +${numero}`,
+        t("notify.whatsappNoAbrir"),
+        t("notify.verificaWhatsApp", { number: numero }),
       ),
     );
   };
@@ -129,7 +131,7 @@ export default function MisTecnicosScreen() {
   const llamar = (telefono: string) => {
     const digitos = telefono.replace(/\D/g, "");
     Linking.openURL(`tel:+57${digitos}`).catch(() =>
-      Alert.alert("No se pudo realizar la llamada", `Número: ${telefono}`),
+      Alert.alert(t("notify.llamadaError"), t("notify.numeroTelefono", { number: telefono })),
     );
   };
 

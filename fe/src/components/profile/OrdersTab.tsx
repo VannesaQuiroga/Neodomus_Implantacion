@@ -16,6 +16,7 @@ import {
   FaXmark,
 } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
 
@@ -177,6 +178,15 @@ const ESTADO_DEV_CLASE: Record<string, string> = {
 
 const PASOS_PIPELINE = ['Solicitada', 'En revisión', 'Aprobada', 'Producto en devolución', 'Recibida', 'Reembolso procesado'];
 
+const PASO_DEV_CLAVE: Record<string, string> = {
+  Solicitada: 'perfil.pedidos.paso.solicitada',
+  'En revisión': 'perfil.pedidos.paso.enRevision',
+  Aprobada: 'perfil.pedidos.paso.aprobada',
+  'Producto en devolución': 'perfil.pedidos.paso.productoDevolucion',
+  Recibida: 'perfil.pedidos.paso.recibida',
+  'Reembolso procesado': 'perfil.pedidos.paso.reembolsoProcesado',
+};
+
 const estadoColor: Record<string, string> = {
   Pagado: '#28a745',
   'Pago pendiente': '#d3ac4d',
@@ -184,13 +194,13 @@ const estadoColor: Record<string, string> = {
   Cancelado: '#dc3545',
 };
 
-const formatoPeso = (value: number) =>
-  value.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+const formatoPeso = (value: number, locale = 'es-CO') =>
+  value.toLocaleString(locale, { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
-const formatearFecha = (fecha?: string | null) => {
+const formatearFecha = (fecha?: string | null, locale = 'es-CO') => {
   if (!fecha) return '';
   try {
-    return new Date(fecha).toLocaleDateString('es-CO', {
+    return new Date(fecha).toLocaleDateString(locale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -202,17 +212,17 @@ const formatearFecha = (fecha?: string | null) => {
   }
 };
 
-const pagoEstadoInfo = (estado?: string | null): { texto: string; clase: string } => {
+const pagoEstadoInfo = (estado?: string | null): { clave: string; clase: string } => {
   switch ((estado || '').toLowerCase()) {
     case 'aprobado':
     case 'pagado':
-      return { texto: 'Pago aprobado', clase: 'ok' };
+      return { clave: 'citas.estadoPago.aprobado', clase: 'ok' };
     case 'rechazado':
-      return { texto: 'Pago rechazado', clase: 'error' };
+      return { clave: 'citas.estadoPago.rechazado', clase: 'error' };
     case 'pendiente':
-      return { texto: 'Pago pendiente', clase: 'pendiente' };
+      return { clave: 'citas.estadoPago.pendiente', clase: 'pendiente' };
     default:
-      return { texto: estado || '—', clase: '' };
+      return { clave: '', clase: '' };
   }
 };
 
@@ -225,6 +235,8 @@ const pedidoCompletado = (pedido: Pedido): boolean =>
 
 // Comunica con el backend mediante GET '/pedidos/mis-pedidos', POST `/pedidos/${pedidoId}/confirmar-pago`, GET `/pedidos/${pedidoId}/seguimiento` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
+  const { t, idioma } = useIdioma();
+  const locale = idioma === 'en' ? 'en-US' : 'es-CO';
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [novedadesPedido, setNovedadesPedido] = useState<NovedadPedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,7 +290,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
       setError('');
     } catch (err: any) {
       console.error(err);
-      setError('No se pudieron cargar tus pedidos. Intenta más tarde.');
+      setError(t('perfil.pedidos.errorCargar'));
     } finally {
       setLoading(false);
     }
@@ -293,11 +305,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     setConfirmando(pedidoId);
     try {
       await api.post(`/pedidos/${pedidoId}/confirmar-pago`);
-      notify(`Pago del pedido #${pedidoId} confirmado. ¡Gracias!`, 'success');
+      notify(t('perfil.pedidos.pagoConfirmado', { id: pedidoId }), 'success');
       await cargarPedidos();
     } catch (err: any) {
-      const detalle = err.response?.data?.detail || 'No se pudo confirmar el pago.';
-      notify(typeof detalle === 'string' ? detalle : 'No se pudo confirmar el pago.', 'error');
+      const detalle = err.response?.data?.detail || t('perfil.pedidos.errorConfirmarPago');
+      notify(typeof detalle === 'string' ? detalle : t('perfil.pedidos.errorConfirmarPago'), 'error');
     } finally {
       setConfirmando(null);
     }
@@ -379,14 +391,14 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     try {
       const res = await api.get<ElegibilidadInfo>(`/devoluciones/elegibilidad/${pedido.id_pedido}`);
       if (!res.data.elegible) {
-        notify(res.data.razon || 'Este pedido no es elegible para devolución.', 'error');
+        notify(res.data.razon || t('perfil.pedidos.errorElegibilidad'), 'error');
         setWizardPedido(null);
         return;
       }
       setElegibilidad(res.data);
     } catch (err: any) {
       const detalle = err.response?.data?.detail;
-      notify(typeof detalle === 'string' ? detalle : 'No se pudo cargar la devolución.', 'error');
+      notify(typeof detalle === 'string' ? detalle : t('perfil.pedidos.errorCargarDevolucion'), 'error');
       setWizardPedido(null);
     } finally {
       setCargandoEleg(false);
@@ -421,7 +433,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
   const continuarPaso1 = () => {
     if (itemsSeleccionados().length === 0) {
-      notify('Selecciona al menos un producto para devolver.', 'error');
+      notify(t('perfil.pedidos.errorSeleccionaProducto'), 'error');
       return;
     }
     setPasoWizard(2);
@@ -429,11 +441,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
   const continuarPaso2 = () => {
     if (!motivoSel) {
-      notify('Selecciona el motivo de la devolución.', 'error');
+      notify(t('perfil.pedidos.errorSeleccionaMotivo'), 'error');
       return;
     }
     if (motivoSel === 'otro' && motivoOtroTxt.trim().length < 10) {
-      notify('Cuéntanos brevemente el motivo (mínimo 10 caracteres).', 'error');
+      notify(t('perfil.pedidos.errorMotivoCorto'), 'error');
       return;
     }
     setPasoWizard(3);
@@ -452,14 +464,14 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
         comentario: comentarioTxt.trim() || undefined,
       });
       notify(
-        `Tu solicitud de devolución fue enviada. Recibirás una notificación con el estado.`,
+        t('perfil.pedidos.solicitudEnviada'),
         'success',
       );
       cerrarWizard();
       await cargarResenas(wizardPedido);
     } catch (err: any) {
       const detalle = err.response?.data?.detail;
-      notify(typeof detalle === 'string' ? detalle : 'No se pudo enviar la solicitud.', 'error');
+      notify(typeof detalle === 'string' ? detalle : t('perfil.pedidos.errorEnviarSolicitud'), 'error');
     } finally {
       setEnviandoDev(false);
     }
@@ -470,7 +482,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     if (!item.id_producto_d) return;
     const nota = ratingSel[item.id_producto_d];
     if (!nota) {
-      notify('Selecciona una cantidad de estrellas antes de enviar.', 'error');
+      notify(t('perfil.pedidos.errorEstrellas'), 'error');
       return;
     }
     setGuardandoCalif(item.id_producto_d);
@@ -501,11 +513,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
           return next;
         });
       }
-      notify('¡Gracias por tu calificación!', 'success');
+      notify(t('perfil.pedidos.graciasCalificacion'), 'success');
       await cargarResenas(pedido);
     } catch (err: any) {
       const detalle = err.response?.data?.detail;
-      notify(typeof detalle === 'string' ? detalle : 'No se pudo enviar tu calificación.', 'error');
+      notify(typeof detalle === 'string' ? detalle : t('perfil.pedidos.errorEnviarCalificacion'), 'error');
     } finally {
       setGuardandoCalif(null);
     }
@@ -515,18 +527,18 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     <div className="pf-tab">
       <SectionHeader
         icon={<FaBoxOpen />}
-        title="Mis pedidos"
-        subtitle="Consulta el historial de tus compras, su estado y descarga tus facturas."
+        title={t('perfil.misPedidos')}
+        subtitle={t('perfil.pedidos.subtitulo')}
       />
 
       {loading ? (
-        <div className="pf-empty"><p>Cargando tus pedidos...</p></div>
+        <div className="pf-empty"><p>{t('perfil.pedidos.cargando')}</p></div>
       ) : error ? (
         <div className="pf-empty"><p>{error}</p></div>
       ) : pedidos.length === 0 ? (
         <div className="pf-empty">
           <span className="pf-empty-icon"><FaBoxOpen /></span>
-          <p>No tienes pedidos todavía. Cuando realices una compra, aparecerá aquí.</p>
+          <p>{t('perfil.pedidos.vacio')}</p>
         </div>
       ) : (
         <div className="pf-orders-list">
@@ -540,12 +552,14 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                   <div className="pf-order-id-col">
                     <span className="pf-order-id">#{pedido.id_pedido}</span>
                     <span className="pf-order-folio">
-                      {pedido.factura?.numero_factura || `Pedido ${pedido.id_pedido}`}
-                      {pedido.fecha ? ` · ${formatearFecha(pedido.fecha)}` : ''}
+                      {pedido.factura?.numero_factura || t('perfil.pedidos.folioPedido', { id: pedido.id_pedido })}
+                      {pedido.fecha ? ` · ${formatearFecha(pedido.fecha, locale)}` : ''}
                     </span>
                     {novedadesDelPedido.length > 0 && (
                       <span className="pf-order-novedad-badge">
-                        <FaCircleExclamation /> {novedadesDelPedido.length} {novedadesDelPedido.length === 1 ? 'novedad' : 'novedades'}
+                        <FaCircleExclamation /> {novedadesDelPedido.length === 1
+                          ? t('perfil.pedidos.novedad', { n: novedadesDelPedido.length })
+                          : t('perfil.pedidos.novedades', { n: novedadesDelPedido.length })}
                       </span>
                     )}
                   </div>
@@ -553,7 +567,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     <span className="pf-status-badge" style={{ background: colorEstado }}>
                       {pedido.estado}
                     </span>
-                    <span className="pf-order-total">{formatoPeso(pedido.total)}</span>
+                    <span className="pf-order-total">{formatoPeso(pedido.total, locale)}</span>
                   </div>
                 </div>
 
@@ -573,48 +587,48 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                   aria-expanded={abierto}
                 >
                   {abierto ? <FaChevronUp /> : <FaChevronDown />}
-                  <span>{abierto ? 'Ocultar detalle' : 'Ver detalle del pedido'}</span>
+                  <span>{abierto ? t('perfil.pedidos.ocultarDetalle') : t('perfil.pedidos.verDetalle')}</span>
                 </button>
 
                 {abierto && (
                   <div className="pf-order-details">
                     {novedadesDelPedido.length > 0 && (
                       <div className="pf-detail-block pf-order-novedades">
-                        <h4 className="pf-detail-title"><FaCircleExclamation /> Novedades de este pedido</h4>
+                        <h4 className="pf-detail-title"><FaCircleExclamation /> {t('perfil.pedidos.novedadesTitulo')}</h4>
                         {novedadesDelPedido.map((n) => (
                             <article className="pf-order-novedad" key={n.id_novedad}>
                               <div className="pf-order-novedad-head">
                                 <strong>{n.tipo_novedad}</strong>
                                 <span className="pf-order-novedad-status">{n.estado_novedad}</span>
                               </div>
-                              {n.fecha_reporte && <time>{formatearFecha(n.fecha_reporte)}</time>}
+                              {n.fecha_reporte && <time>{formatearFecha(n.fecha_reporte, locale)}</time>}
                               <p>{n.descripcion_novedad}</p>
                               {n.mensaje_cliente && (
                                 <div className="pf-order-novedad-answer">
-                                  <strong>Actualización del equipo</strong>
+                                  <strong>{t('perfil.pedidos.actualizacionEquipo')}</strong>
                                   <p>{n.mensaje_cliente}</p>
                                 </div>
                               )}
                               {n.solucion_cliente && (
                                 <div className="pf-order-novedad-answer">
-                                  <strong>Solución</strong>
+                                  <strong>{t('perfil.pedidos.solucion')}</strong>
                                   <p>{n.solucion_cliente}</p>
                                 </div>
                               )}
                               {n.cupon && (
                                 <div className="pf-order-novedad-answer pf-order-novedad-cupon">
-                                  <strong>Cupón de compensación</strong>
+                                  <strong>{t('perfil.pedidos.cuponCompensacion')}</strong>
                                   <p>
                                     <b>{n.cupon.codigo}</b> · {n.cupon.tipo_descuento === 'porcentaje'
-                                      ? `${n.cupon.valor_descuento}% de descuento`
-                                      : `${Number(n.cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
+                                      ? t('perfil.pedidos.cuponPorcentaje', { valor: n.cupon.valor_descuento })
+                                      : t('perfil.pedidos.cuponMonto', { valor: Number(n.cupon.valor_descuento).toLocaleString(locale) })}
                                   </p>
                                   <small style={{ color: '#fff' }}>
                                     {n.cupon.activo && n.cupon.usos_realizados < n.cupon.usos_maximos
-                                      ? 'Disponible para usar en tu próxima compra'
-                                      : 'Este cupón ya no está disponible'}
+                                      ? t('perfil.pedidos.cuponDisponible')
+                                      : t('perfil.pedidos.cuponNoDisponible')}
                                     {n.cupon.fecha_vencimiento
-                                      ? ` · Vence ${new Date(`${n.cupon.fecha_vencimiento}T00:00:00`).toLocaleDateString('es-CO')}`
+                                      ? t('perfil.pedidos.cuponVence', { fecha: new Date(`${n.cupon.fecha_vencimiento}T00:00:00`).toLocaleDateString(locale) })
                                       : ''}
                                   </small>
                                 </div>
@@ -624,7 +638,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                       </div>
                     )}
                     <div className="pf-detail-block">
-                      <h4 className="pf-detail-title">Productos</h4>
+                      <h4 className="pf-detail-title">{t('carrito.productos')}</h4>
                       <div className="pf-order-items">
                         {pedido.detalles.map((item, idx) => {
                           const esProducto = !item.es_servicio && item.id_producto_d != null;
@@ -634,38 +648,38 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                               <div className="pf-order-item">
                                 <span className="pf-order-item-name">
                                   {item.nombre}
-                                  {item.es_servicio ? ' (servicio)' : ''}
+                                  {item.es_servicio ? ` ${t('perfil.pedidos.servicio')}` : ''}
                                 </span>
                                 <span className="pf-order-item-qty">
                                   {item.metros != null ? `× ${item.metros} m` : `× ${item.cantidad}`}
                                 </span>
-                                <span className="pf-order-item-price">{formatoPeso(item.subtotal)}</span>
+                                <span className="pf-order-item-price">{formatoPeso(item.subtotal, locale)}</span>
                               </div>
                               {esProducto && pedidoCompletado(pedido) && (
                                 <div className="pf-resena">
                                   {calif ? (
                                     <div className="pf-resena-guardada">
-                                      <span className="pf-stars-static" aria-label={`${calif.calificacion} de 5`}>
+                                      <span className="pf-stars-static" aria-label={t('perfil.pedidos.calificacionDe5', { n: calif.calificacion })}>
                                         {[1, 2, 3, 4, 5].map((s) => (
                                           <FaStar key={s} className={s <= calif.calificacion ? 'on' : ''} />
                                         ))}
                                       </span>
-                                      Tu calificación
+                                      {t('perfil.pedidos.tuCalificacion')}
                                       {calif.comentario ? <em>“{calif.comentario}”</em> : null}
                                       {calif.foto_url && (
-                                        <img className="pf-resena-foto-guardada" src={calif.foto_url} alt={`Foto de ${item.nombre}`} />
+                                        <img className="pf-resena-foto-guardada" src={calif.foto_url} alt={t('perfil.pedidos.fotoProducto', { nombre: item.nombre })} />
                                       )}
                                     </div>
                                   ) : (
                                     <div className="pf-resena-form">
                                       <div className="pf-resena-row">
-                                        <span className="pf-resena-label">Califica este producto:</span>
+                                        <span className="pf-resena-label">{t('perfil.pedidos.calificaProducto')}</span>
                                         <span className="pf-stars-picker">
                                           {[1, 2, 3, 4, 5].map((s) => (
                                             <button
                                               key={s}
                                               type="button"
-                                              aria-label={`${s} estrellas`}
+                                              aria-label={t('perfil.pedidos.estrellas', { n: s })}
                                               className={(ratingSel[item.id_producto_d!] ?? 0) >= s ? 'on' : ''}
                                               aria-pressed={(ratingSel[item.id_producto_d!] ?? 0) >= s}
                                               onClick={() =>
@@ -680,7 +694,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                       <input
                                         type="text"
                                         className="pf-resena-comentario"
-                                        placeholder="Cuéntanos tu experiencia (opcional)"
+                                        placeholder={t('perfil.pedidos.experienciaPlaceholder')}
                                         maxLength={500}
                                         value={comentarioSel[item.id_producto_d!] || ''}
                                         onChange={(e) =>
@@ -697,7 +711,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                           disabled={guardandoCalif === item.id_producto_d}
                                           onClick={() => guardarCalificacion(pedido, item)}
                                         >
-                                          {guardandoCalif === item.id_producto_d ? 'Enviando...' : 'Enviar'}
+                                          {guardandoCalif === item.id_producto_d ? t('perfil.pedidos.enviando') : t('perfil.pedidos.enviar')}
                                         </button>
                                         <input
                                           ref={(el) => { fotoCalifRefs.current[item.id_producto_d!] = el; }}
@@ -719,10 +733,10 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                         <button
                                           type="button"
                                           className={`pf-resena-foto ${fotosSeleccionadas[item.id_producto_d!] ? 'seleccionada' : ''}`}
-                                          title="Adjuntar foto del producto"
+                                          title={t('perfil.pedidos.adjuntarFotoTitle')}
                                           onClick={() => fotoCalifRefs.current[item.id_producto_d!]?.click()}
                                         >
-                                          <FaCamera /> <span>{fotosSeleccionadas[item.id_producto_d!] ? 'Cambiar foto' : 'Adjuntar foto'}</span>
+                                          <FaCamera /> <span>{fotosSeleccionadas[item.id_producto_d!] ? t('perfil.cambiarFoto') : t('perfil.pedidos.adjuntarFoto')}</span>
                                         </button>
                                         {fotosSeleccionadas[item.id_producto_d!] && (
                                           <span className="pf-resena-foto-nombre" title={fotosSeleccionadas[item.id_producto_d!]}>
@@ -744,7 +758,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     {pedidoCompletado(pedido) &&
                       solicitudesDev.some((s) => s.id_pedido === pedido.id_pedido) && (
                         <div className="pf-detail-block">
-                          <h4 className="pf-detail-title">Devoluciones</h4>
+                          <h4 className="pf-detail-title">{t('perfil.pedidos.devoluciones')}</h4>
                           <div className="pf-dev-solicitudes">
                             {solicitudesDev
                               .filter((s) => s.id_pedido === pedido.id_pedido)
@@ -759,7 +773,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                       onClick={() => setDetalleSolAbierta(abierta ? null : s.id_solicitud)}
                                     >
                                       <span className="pf-dev-sol-num">
-                                        <FaRotateLeft /> Devolución {s.numero}
+                                        <FaRotateLeft /> {t('perfil.pedidos.devolucionNumero', { numero: s.numero })}
                                       </span>
                                       <span className={`pf-dev-estado ${ESTADO_DEV_CLASE[s.estado] || ''}`}>
                                         {s.estado}
@@ -774,16 +788,16 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                               <span
                                                 key={paso}
                                                 className={`pf-dev-paso ${i <= pasoIdx ? 'done' : ''}`}
-                                                title={paso}
+                                                title={t(PASO_DEV_CLAVE[paso] || paso)}
                                               >
                                                 <FaCircleCheck />
-                                                <small>{paso}</small>
+                                                <small>{t(PASO_DEV_CLAVE[paso] || paso)}</small>
                                               </span>
                                             ))}
                                           </div>
                                         ) : (
                                           <p className="pf-dev-rechazo">
-                                            <FaCircleExclamation /> Devolución rechazada
+                                            <FaCircleExclamation /> {t('perfil.pedidos.devolucionRechazada')}
                                             {s.motivo_rechazo ? `: ${s.motivo_rechazo}` : ''}
                                           </p>
                                         )}
@@ -792,38 +806,40 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                             <li key={it.id_devolucion}>
                                               <span>{it.producto}</span>
                                               <span className="pf-dev-item-cant">× {it.cantidad}</span>
-                                              <span>{formatoPeso(it.subtotal_linea)}</span>
+                                              <span>{formatoPeso(it.subtotal_linea, locale)}</span>
                                             </li>
                                           ))}
                                         </ul>
                                         <div className="pf-dev-meta">
                                           <p>
-                                            <strong>Motivo:</strong> {s.motivo_label}
+                                            <strong>{t('perfil.pedidos.motivo')}</strong> {s.motivo_label}
                                             {s.motivo_otro ? ` — ${s.motivo_otro}` : ''}
                                           </p>
                                           {s.comentario && (
                                             <p>
-                                              <strong>Comentario:</strong> {s.comentario}
+                                              <strong>{t('perfil.pedidos.comentario')}</strong> {s.comentario}
                                             </p>
                                           )}
                                           <p>
-                                            <strong>Tipo:</strong>{' '}
+                                            <strong>{t('perfil.pedidos.tipo')}</strong>{' '}
                                             {s.tipo_devolucion === 'total'
-                                              ? 'Devolución completa del pedido'
-                                              : 'Devolución parcial'}
+                                              ? t('perfil.pedidos.devolucionCompleta')
+                                              : t('perfil.pedidos.devolucionParcial')}
                                           </p>
                                           <p className="pf-dev-total">
-                                            <strong>Total a devolver: {formatoPeso(s.monto_total)}</strong>
+                                            <strong>{t('perfil.pedidos.totalADevolver', { monto: formatoPeso(s.monto_total, locale) })}</strong>
                                           </p>
                                           {s.reembolso?.numero_transaccion_reembolso && (
                                             <p className="pf-dev-transaccion">
-                                              Reembolso {s.reembolso.estado} · Transacción{' '}
-                                              {s.reembolso.numero_transaccion_reembolso}
+                                              {t('perfil.pedidos.reembolsoTransaccion', {
+                                                estado: s.reembolso.estado,
+                                                numero: s.reembolso.numero_transaccion_reembolso,
+                                              })}
                                             </p>
                                           )}
                                           {s.observaciones_admin && (
                                             <p>
-                                              <strong>Observaciones:</strong> {s.observaciones_admin}
+                                              <strong>{t('perfil.pedidos.observaciones')}</strong> {s.observaciones_admin}
                                             </p>
                                           )}
                                         </div>
@@ -838,17 +854,19 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
                     {pedido.pago && (
                       <div className="pf-detail-block">
-                        <h4 className="pf-detail-title">Pago</h4>
+                        <h4 className="pf-detail-title">{t('perfil.pedidos.pago')}</h4>
                         <div className="pf-detail-grid">
                           <div className="pf-detail-row">
-                            <span className="pf-detail-label">Estado del pago</span>
+                            <span className="pf-detail-label">{t('perfil.pedidos.estadoPago')}</span>
                             <span className={`pf-pago-estado ${pagoEstadoInfo(pedido.pago.estado).clase}`}>
-                              {pagoEstadoInfo(pedido.pago.estado).texto}
+                              {pagoEstadoInfo(pedido.pago.estado).clave
+                                ? t(pagoEstadoInfo(pedido.pago.estado).clave)
+                                : pedido.pago.estado || '—'}
                             </span>
                           </div>
                           {pedido.pago.metodo_pago_nombre || pedido.pago.metodo_pago ? (
                             <div className="pf-detail-row">
-                              <span className="pf-detail-label">Método de pago</span>
+                              <span className="pf-detail-label">{t('perfil.pedidos.metodoPago')}</span>
                               <span className="pf-detail-value">
                                 {pedido.pago.metodo_pago_nombre || pedido.pago.metodo_pago}
                               </span>
@@ -856,7 +874,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           ) : null}
                           {pedido.pago.numero_transaccion && (
                             <div className="pf-detail-row pf-detail-row-wide">
-                              <span className="pf-detail-label">Número de transacción</span>
+                              <span className="pf-detail-label">{t('perfil.pedidos.numeroTransaccion')}</span>
                               <span className="pf-detail-value pf-detail-code">
                                 {pedido.pago.numero_transaccion}
                               </span>
@@ -864,7 +882,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           )}
                           {pedido.pago.codigo_punto_pago && (
                             <div className="pf-detail-row pf-detail-row-wide">
-                              <span className="pf-detail-label">Código de pago</span>
+                              <span className="pf-detail-label">{t('perfil.pedidos.codigoPago')}</span>
                               <span className="pf-detail-value pf-detail-code">
                                 {pedido.pago.codigo_punto_pago}
                               </span>
@@ -875,33 +893,33 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     )}
 
                     <div className="pf-detail-block">
-                      <h4 className="pf-detail-title">Entrega y rastreo</h4>
+                      <h4 className="pf-detail-title">{t('perfil.pedidos.entregaRastreo')}</h4>
                       <div className="pf-detail-grid">
                         <div className="pf-detail-row">
-                          <span className="pf-detail-label">Fecha de entrega</span>
+                          <span className="pf-detail-label">{t('perfil.pedidos.fechaEntrega')}</span>
                           <span className="pf-detail-value">
                             {pedido.fecha_entrega
-                              ? `${new Date(pedido.fecha_entrega).toLocaleDateString('es-CO')}`
-                              : 'Por programar'}
+                              ? `${new Date(pedido.fecha_entrega).toLocaleDateString(locale)}`
+                              : t('perfil.pedidos.porProgramar')}
                           </span>
                         </div>
                         {(pedido.hora_entrega || pedido.hora_entrega_fin) && (
                           <div className="pf-detail-row">
-                            <span className="pf-detail-label">Franja de entrega</span>
+                            <span className="pf-detail-label">{t('perfil.pedidos.franjaEntrega')}</span>
                             <span className="pf-detail-value">
                               {pedido.hora_entrega_fin
-                                ? `Entre ${pedido.hora_entrega} y ${pedido.hora_entrega_fin}`
+                                ? t('perfil.pedidos.entreHoras', { inicio: pedido.hora_entrega || '', fin: pedido.hora_entrega_fin })
                                 : pedido.hora_entrega}
                             </span>
                           </div>
                         )}
                         <div className="pf-detail-row">
-                          <span className="pf-detail-label">Estado de la entrega</span>
+                          <span className="pf-detail-label">{t('perfil.pedidos.estadoEntrega')}</span>
                           <span className="pf-detail-value">{pedido.estado_entrega || '—'}</span>
                         </div>
                         {pedido.nombre_tecnico_entrega && (
                           <div className="pf-detail-row">
-                            <span className="pf-detail-label">Técnico asignado</span>
+                            <span className="pf-detail-label">{t('citas.tecnicoAsignado')}</span>
                             <span className="pf-order-tecnico-entrega">
                               {pedido.foto_tecnico_entrega && (
                                 <img
@@ -916,7 +934,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                         )}
                         {pedido.telefono_tecnico_entrega && (
                           <div className="pf-detail-row">
-                            <span className="pf-detail-label">Teléfono del técnico</span>
+                            <span className="pf-detail-label">{t('perfil.pedidos.telefonoTecnico')}</span>
                             <span className="pf-detail-value">{pedido.telefono_tecnico_entrega}</span>
                           </div>
                         )}
@@ -933,40 +951,41 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           </div>
                           {seguimiento.tecnico?.nombre && (
                             <p className="pf-tracker-tecnico">
-                              Tu técnico: {seguimiento.tecnico.nombre}
+                              {t('perfil.pedidos.tuTecnico', { nombre: seguimiento.tecnico.nombre })}
                               {seguimiento.tecnico.telefono ? ` · ${seguimiento.tecnico.telefono}` : ''}
                             </p>
                           )}
                           {seguimiento.rango_entrega && (
                             <p className="pf-tracker-actualizado">
-                              Franja de entrega: {seguimiento.rango_entrega}
+                              {t('perfil.pedidos.franjaEntregaValor', { rango: seguimiento.rango_entrega })}
                             </p>
                           )}
                           {seguimiento.estado_entrega === 'En camino' &&
                             (seguimiento.ubicacion ? (
                               <>
                                 <p className="pf-tracker-actualizado">
-                                  Ubicación actualizada a las{' '}
-                                  {new Date(seguimiento.ubicacion.actualizado_en).toLocaleTimeString('es-CO', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
+                                  {t('perfil.pedidos.ubicacionActualizada', {
+                                    hora: new Date(seguimiento.ubicacion.actualizado_en).toLocaleTimeString(locale, {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    }),
                                   })}
                                 </p>
                                 <iframe
-                                  title="Ubicación del técnico"
+                                  title={t('perfil.pedidos.ubicacionTecnico')}
                                   className="pf-tracker-mapa"
                                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${seguimiento.ubicacion.longitud - 0.008}%2C${seguimiento.ubicacion.latitud - 0.005}%2C${seguimiento.ubicacion.longitud + 0.008}%2C${seguimiento.ubicacion.latitud + 0.005}&layer=mapnik&marker=${seguimiento.ubicacion.latitud}%2C${seguimiento.ubicacion.longitud}`}
                                 />
                               </>
                             ) : (
                               <p className="pf-tracker-actualizado">
-                                El técnico aún no ha compartido su ubicación.
+                                {t('perfil.pedidos.sinUbicacion')}
                               </p>
                             ))}
                         </div>
                       )}
                       {seguimientoDe === pedido.id_pedido && !seguimiento && (
-                        <p className="pf-tracker-actualizado">Cargando rastreo...</p>
+                        <p className="pf-tracker-actualizado">{t('perfil.pedidos.cargandoRastreo')}</p>
                       )}
                       <button
                         type="button"
@@ -974,7 +993,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                         onClick={() => alternarRastreo(pedido.id_pedido)}
                       >
                         <FaLocationDot />
-                        {seguimientoDe === pedido.id_pedido ? 'Ocultar rastreo' : 'Rastrear mi pedido'}
+                        {seguimientoDe === pedido.id_pedido ? t('perfil.pedidos.ocultarRastreo') : t('perfil.pedidos.rastrear')}
                       </button>
                     </div>
 
@@ -987,7 +1006,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           disabled={confirmando === pedido.id_pedido}
                         >
                           <FaCircleCheck />
-                          {confirmando === pedido.id_pedido ? 'Confirmando...' : 'Confirmar pago'}
+                          {confirmando === pedido.id_pedido ? t('perfil.pedidos.confirmando') : t('perfil.pedidos.confirmarPago')}
                         </button>
                       )}
                       {pedido.factura?.pdf_url && (
@@ -996,7 +1015,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           className="pf-order-factura"
                           onClick={() => pedido.factura?.pdf_url && descargarFactura(pedido.factura.pdf_url)}
                         >
-                          <FaFilePdf /> Descargar factura PDF
+                          <FaFilePdf /> {t('perfil.pedidos.descargarFactura')}
                         </button>
                       )}
                     </div>
@@ -1009,16 +1028,16 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                             className="pf-dev-btn"
                             onClick={() => abrirWizard(pedido)}
                           >
-                            <FaRotateLeft /> Solicitar devolución
+                            <FaRotateLeft /> {t('perfil.pedidos.solicitarDevolucion')}
                           </button>
                           <span className="pf-dev-cta-hint">
-                            Puedes devolver uno, varios o todos los productos del pedido.
+                            {t('perfil.pedidos.devolucionHint')}
                           </span>
                         </div>
                       )}
 
                     <div className="pf-order-detail-footer">
-                      <strong className="pf-order-total-big">Total: {formatoPeso(pedido.total)}</strong>
+                      <strong className="pf-order-total-big">{t('perfil.pedidos.total', { monto: formatoPeso(pedido.total, locale) })}</strong>
                     </div>
                   </div>
                 )}
@@ -1034,21 +1053,21 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
           <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
               <h3>
-                <FaRotateLeft /> Solicitar devolución · Pedido #{wizardPedido.id_pedido}
+                <FaRotateLeft /> {t('perfil.pedidos.modalTitulo', { id: wizardPedido.id_pedido })}
               </h3>
-              <button type="button" className="pf-modal-close" onClick={cerrarWizard} aria-label="Cerrar">
+              <button type="button" className="pf-modal-close" onClick={cerrarWizard} aria-label={t('common.cerrar')}>
                 <FaXmark />
               </button>
             </div>
 
             {cargandoEleg || !elegibilidad ? (
-              <p className="pf-dev-cargando">Cargando productos del pedido...</p>
+              <p className="pf-dev-cargando">{t('perfil.pedidos.cargandoProductos')}</p>
             ) : (
               <>
                 <div className="pf-dev-pasos">
-                  {['Productos', 'Motivo', 'Resumen'].map((nombre, i) => (
-                    <span key={nombre} className={`pf-dev-paso-ind ${pasoWizard >= i + 1 ? 'activo' : ''}`}>
-                      {i + 1}. {nombre}
+                  {['carrito.productos', 'perfil.pedidos.motivoPaso', 'perfil.pedidos.resumen'].map((clave, i) => (
+                    <span key={clave} className={`pf-dev-paso-ind ${pasoWizard >= i + 1 ? 'activo' : ''}`}>
+                      {i + 1}. {t(clave)}
                     </span>
                   ))}
                 </div>
@@ -1056,7 +1075,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                 {pasoWizard === 1 && (
                   <div className="pf-dev-body">
                     <p className="pf-dev-instruccion">
-                      Selecciona los productos a devolver y cuántas unidades.
+                      {t('perfil.pedidos.seleccionaProductos')}
                     </p>
                     {elegibilidad.productos.map((linea) => {
                       const cant = seleccion[linea.id_producto] || 0;
@@ -1080,17 +1099,19 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           <span className="pf-dev-linea-info">
                             <strong>{linea.nombre}</strong>
                             <small>
-                              Comprados: {linea.cantidad_comprada} · Precio:{' '}
-                              {formatoPeso(linea.precio_unitario)}
+                              {t('perfil.pedidos.compradosPrecio', {
+                                comprados: linea.cantidad_comprada,
+                                precio: formatoPeso(linea.precio_unitario, locale),
+                              })}
                             </small>
                           </span>
                           {agotada ? (
-                            <span className="pf-dev-agotada">Ya devuelto / en proceso</span>
+                            <span className="pf-dev-agotada">{t('perfil.pedidos.yaDevuelto')}</span>
                           ) : (
                             <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-dev-cantidades" onClick={(e) => e.preventDefault()}>
                               <button
                                 type="button"
-                                aria-label="Quitar unidad"
+                                aria-label={t('perfil.pedidos.quitarUnidad')}
                                 disabled={cant === 0}
                                 onClick={() => cambiarCantidad(linea.id_producto, -1, linea.cantidad_disponible)}
                               >
@@ -1099,7 +1120,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                               <strong>{cant}</strong>
                               <button
                                 type="button"
-                                aria-label="Agregar unidad"
+                                aria-label={t('perfil.pedidos.agregarUnidad')}
                                 disabled={cant >= linea.cantidad_disponible}
                                 onClick={() => cambiarCantidad(linea.id_producto, 1, linea.cantidad_disponible)}
                               >
@@ -1111,15 +1132,15 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                       );
                     })}
                     <div className="pf-dev-subtotal">
-                      <span>Subtotal a devolver:</span>
-                      <strong>{formatoPeso(totalSeleccionado())}</strong>
+                      <span>{t('perfil.pedidos.subtotalDevolver')}</span>
+                      <strong>{formatoPeso(totalSeleccionado(), locale)}</strong>
                     </div>
                     <div className="pf-form-actions">
                       <button type="button" className="pf-btn pf-btn-ghost" onClick={cerrarWizard}>
-                        Cancelar
+                        {t('common.cancelar')}
                       </button>
                       <button type="button" className="pf-btn pf-btn-primary" onClick={continuarPaso1}>
-                        Continuar devolución
+                        {t('perfil.pedidos.continuarDevolucion')}
                       </button>
                     </div>
                   </div>
@@ -1127,7 +1148,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
                 {pasoWizard === 2 && (
                   <div className="pf-dev-body">
-                    <p className="pf-dev-instruccion">¿Cuál es el motivo de la devolución?</p>
+                    <p className="pf-dev-instruccion">{t('perfil.pedidos.motivoPregunta')}</p>
                     <div className="pf-dev-motivos">
                       {(elegibilidad.motivos || []).map((m) => (
                         <label key={m.key} className={`pf-dev-motivo ${motivoSel === m.key ? 'sel' : ''}`}>
@@ -1144,7 +1165,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     {motivoSel === 'otro' && (
                       <textarea
                         className="pf-dev-textarea"
-                        placeholder="Explica brevemente el motivo (mínimo 10 caracteres)"
+                        placeholder={t('perfil.pedidos.motivoPlaceholder')}
                         maxLength={1000}
                         value={motivoOtroTxt}
                         onChange={(e) => setMotivoOtroTxt(e.target.value)}
@@ -1152,17 +1173,17 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     )}
                     <textarea
                       className="pf-dev-textarea"
-                      placeholder="Comentario adicional (opcional)"
+                      placeholder={t('perfil.pedidos.comentarioPlaceholder')}
                       maxLength={1000}
                       value={comentarioTxt}
                       onChange={(e) => setComentarioTxt(e.target.value)}
                     />
                     <div className="pf-form-actions">
                       <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setPasoWizard(1)}>
-                        Atrás
+                        {t('perfil.pedidos.atras')}
                       </button>
                       <button type="button" className="pf-btn pf-btn-primary" onClick={continuarPaso2}>
-                        Ver resumen
+                        {t('perfil.pedidos.verResumen')}
                       </button>
                     </div>
                   </div>
@@ -1170,9 +1191,9 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
                 {pasoWizard === 3 && (
                   <div className="pf-dev-body">
-                    <h4 className="pf-dev-resumen-titulo">Solicitud de devolución</h4>
+                    <h4 className="pf-dev-resumen-titulo">{t('perfil.pedidos.solicitudDevolucion')}</h4>
                     <p className="pf-dev-resumen-pedido">
-                      Pedido: <strong>#{wizardPedido.id_pedido}</strong>
+                      {t('perfil.pedidos.pedidoLabel')} <strong>#{wizardPedido.id_pedido}</strong>
                     </p>
                     <ul className="pf-dev-items">
                       {itemsSeleccionados().map((it) => {
@@ -1182,24 +1203,24 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           <li key={it.id_producto}>
                             <span>{linea.nombre}</span>
                             <span className="pf-dev-item-cant">
-                              {it.cantidad} unidad{it.cantidad > 1 ? 'es' : ''}
+                              {it.cantidad === 1
+                                ? t('perfil.pedidos.unidad', { n: it.cantidad })
+                                : t('perfil.pedidos.unidades', { n: it.cantidad })}
                             </span>
-                            <span>{formatoPeso(linea.precio_unitario * it.cantidad)}</span>
+                            <span>{formatoPeso(linea.precio_unitario * it.cantidad, locale)}</span>
                           </li>
                         );
                       })}
                     </ul>
                     <p className="pf-dev-total-estimado">
-                      Total estimado a devolver: <strong>{formatoPeso(totalSeleccionado())}</strong>
+                      {t('perfil.pedidos.totalEstimado', { monto: formatoPeso(totalSeleccionado(), locale) })}
                     </p>
                     <p className="pf-dev-nota">
-                      El reembolso se calcula únicamente sobre los productos y cantidades
-                      seleccionadas. Un técnico pasará a recogerlos una vez aprobada la
-                      solicitud.
+                      {t('perfil.pedidos.notaReembolso')}
                     </p>
                     <div className="pf-form-actions">
                       <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setPasoWizard(2)}>
-                        Atrás
+                        {t('perfil.pedidos.atras')}
                       </button>
                       <button
                         type="button"
@@ -1207,7 +1228,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                         disabled={enviandoDev}
                         onClick={enviarSolicitud}
                       >
-                        {enviandoDev ? 'Enviando...' : 'Solicitar devolución'}
+                        {enviandoDev ? t('perfil.pedidos.enviando') : t('perfil.pedidos.solicitarDevolucion')}
                       </button>
                     </div>
                   </div>

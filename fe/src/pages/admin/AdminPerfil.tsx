@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Formulario de perfil y datos de acceso del administrador.
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -319,7 +320,7 @@ const AdminPerfil = () => {
             exit={{ opacity: 0, y: -24, scale: 0.96 }}
           >
             {toast.tipo === 'error' ? <FaXmark /> : <FaCheck />}
-            <span>{toast.msg}</span>
+            <span><LocalizedNotificationText message={toast.msg} /></span>
           </motion.div>
         )}
       </AnimatePresence>

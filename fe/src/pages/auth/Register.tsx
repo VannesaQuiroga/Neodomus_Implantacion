@@ -5,6 +5,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@contexts/AuthContext';
 import api from '@services/api';
 import { GOOGLE_LOGIN_HABILITADO } from '@utils/google';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/register.css';    
      
 
@@ -30,6 +31,7 @@ const regionesColombia: Record<string, string[]> = {
 const Register = () => {
   const { openAuth, closeAuth } = useAuthModal();
   const { googleLogin } = useAuth();
+  const { t } = useIdioma();
   const [formData, setFormData] = useState<FormData>({
     nombre: '', apellido: '', tipo_documento: 2, documento: '', 
     ciudad: '', municipio: '', direccion: '', telefono: '', 
@@ -124,15 +126,15 @@ const Register = () => {
       passwordErrors.number &&
       passwordErrors.special;
     if (!passwordValid) {
-      setError('La contraseña no cumple los requisitos.');
+      setError(t('auth.register.errorRequisitos'));
       return false;
     }
     if (formData.correo !== confirmCorreo) {
-      setError('Los correos no coinciden.');
+      setError(t('auth.register.errorCorreos'));
       return false;
     }
     if (formData.contraseña !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
+      setError(t('auth.register.errorContrasenas'));
       return false;
     }
     return true;
@@ -163,11 +165,11 @@ const Register = () => {
     } catch (err: any) {
       const status = err.response?.status;
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        setError('La solicitud tardó demasiado. Verifica tu conexión e inténtalo nuevamente.');
+        setError(t('auth.register.errorTimeout'));
       } else if (status === 429) {
-        setError('Demasiadas solicitudes. Espera un minuto antes de reintentar.');
+        setError(t('auth.register.errorRate'));
       } else {
-        setError(err.response?.data?.detail || 'Error al registrarse. Verifica los datos e inténtalo de nuevo.');
+        setError(err.response?.data?.detail || t('auth.register.errorGeneral'));
       }
     } finally {
       enviandoRef.current = false;
@@ -190,24 +192,24 @@ const Register = () => {
           </div>
 
 
-          <h2>Crear cuenta</h2>
+          <h2>{t('auth.register.titulo')}</h2>
           
           {error && <div className="error">{error}</div>}
           
           <div className="form-grid">
             {/* Pareja 1: nombres / apellidos */}
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx200">Nombres</label>
-              <input id="nb-fesrcpagesauthRegistertsx200" name="nombre" placeholder="Ingresa tus nombres" value={formData.nombre} autoComplete="given-name" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx200">{t('auth.register.nombres')}</label>
+              <input id="nb-fesrcpagesauthRegistertsx200" name="nombre" placeholder={t('auth.register.placeholderNombres')} value={formData.nombre} autoComplete="given-name" onChange={handleChange} required disabled={loading} />
             </div>
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx204">Apellidos</label>
-              <input id="nb-fesrcpagesauthRegistertsx204" name="apellido" placeholder="Ingresa tus apellidos" value={formData.apellido} autoComplete="family-name" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx204">{t('perfil.apellidosPlural')}</label>
+              <input id="nb-fesrcpagesauthRegistertsx204" name="apellido" placeholder={t('auth.register.placeholderApellidos')} value={formData.apellido} autoComplete="family-name" onChange={handleChange} required disabled={loading} />
             </div>
             
             {/* Pareja 2: tipo de documento / documento */}
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx210">Tipo documento</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx210">{t('auth.register.tipoDocumento')}</label>
               <div className="select-wrapper">
                 <select id="nb-fesrcpagesauthRegistertsx210" name="tipo_documento" onChange={handleChange} disabled={loading} defaultValue="1">
                   <option value="1">CC</option>
@@ -216,16 +218,16 @@ const Register = () => {
               </div>
             </div>
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx219">Documento</label>
-              <input id="nb-fesrcpagesauthRegistertsx219" name="documento" placeholder="Ingresa tu número de documento" value={formData.documento} autoComplete="off" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx219">{t('auth.register.documento')}</label>
+              <input id="nb-fesrcpagesauthRegistertsx219" name="documento" placeholder={t('auth.register.placeholderDocumento')} value={formData.documento} autoComplete="off" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
             </div>
 
             {/* Pareja 3: ciudad / municipio */}
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx225">Ciudad</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx225">{t('auth.register.ciudad')}</label>
               <div className="select-wrapper">
                 <select id="nb-fesrcpagesauthRegistertsx225" name="ciudad" onChange={handleChange} required disabled={loading} value={formData.ciudad}>
-                  <option value="" disabled>Selecciona tu ciudad</option>
+                  <option value="" disabled>{t('auth.register.placeholderCiudad')}</option>
                   {Object.keys(regionesColombia).map((city) => (
                     <option key={city} value={city}>{city}</option>
                   ))}
@@ -233,7 +235,7 @@ const Register = () => {
               </div>
             </div>
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx236">Municipio</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx236">{t('auth.register.municipio')}</label>
               <div className="select-wrapper">
                 <select id="nb-fesrcpagesauthRegistertsx236" 
                   name="municipio" 
@@ -242,7 +244,7 @@ const Register = () => {
                   disabled={loading || !formData.ciudad} 
                   value={formData.municipio}
                 >
-                  <option value="" disabled>Selecciona tu municipio</option>
+                  <option value="" disabled>{t('auth.register.placeholderMunicipio')}</option>
                   {municipiosDisponibles.map((mun) => (
                     <option key={mun} value={mun}>{mun}</option>
                   ))}
@@ -252,24 +254,24 @@ const Register = () => {
 
             {/* Pareja 4: dirección / teléfono */}
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx255">Dirección</label>
-              <input id="nb-fesrcpagesauthRegistertsx255" name="direccion" placeholder="Ingresa tu dirección" value={formData.direccion} autoComplete="street-address" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx255">{t('auth.register.direccion')}</label>
+              <input id="nb-fesrcpagesauthRegistertsx255" name="direccion" placeholder={t('auth.register.placeholderDireccion')} value={formData.direccion} autoComplete="street-address" onChange={handleChange} required disabled={loading} />
             </div>
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx259">Teléfono</label>
-              <input id="nb-fesrcpagesauthRegistertsx259" name="telefono" placeholder="Ingresa tu número telefónico" value={formData.telefono} autoComplete="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx259">{t('perfil.telefono')}</label>
+              <input id="nb-fesrcpagesauthRegistertsx259" name="telefono" placeholder={t('auth.register.placeholderTelefono')} value={formData.telefono} autoComplete="tel" inputMode="numeric" pattern="[0-9]*" maxLength={10} onChange={handleChange} required disabled={loading} />
             </div>
 
             {/* Pareja 5: correo / confirmación de correo */}
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx265">Correo</label>
-              <input id="nb-fesrcpagesauthRegistertsx265" name="correo" type="email" placeholder="Ingresa tu correo" value={formData.correo} autoComplete="email" onChange={handleChange} required disabled={loading} />
+              <label htmlFor="nb-fesrcpagesauthRegistertsx265">{t('auth.register.correo')}</label>
+              <input id="nb-fesrcpagesauthRegistertsx265" name="correo" type="email" placeholder={t('auth.register.placeholderCorreo')} value={formData.correo} autoComplete="email" onChange={handleChange} required disabled={loading} />
             </div>
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx269">Confirmación de correo</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx269">{t('auth.register.confirmacionCorreo')}</label>
               <input id="nb-fesrcpagesauthRegistertsx269"
                 type="email"
-                placeholder="Confirma tu correo"
+                placeholder={t('auth.register.placeholderConfirmacionCorreo')}
                 value={confirmCorreo}
                 onChange={(e) => setConfirmCorreo(e.target.value)}
                 onCopy={allowClipboard}
@@ -282,12 +284,12 @@ const Register = () => {
             
             {/* Pareja 6: contraseña / confirmación de contraseña */}
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx285">Contraseña</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx285">{t('auth.register.contrasena')}</label>
               <div className="password-input-wrapper">
                 <input id="nb-fesrcpagesauthRegistertsx285"
                   name="contraseña"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Ingresa tu contraseña"
+                  placeholder={t('auth.register.placeholderContrasena')}
                   value={formData.contraseña}
                   autoComplete="new-password"
                   onChange={handleChange}
@@ -319,11 +321,11 @@ const Register = () => {
               </div>
             </div>
             <div className="input-group-block">
-              <label htmlFor="nb-fesrcpagesauthRegistertsx322">Confirmación de contraseña</label>
+              <label htmlFor="nb-fesrcpagesauthRegistertsx322">{t('auth.register.confirmacionContrasena')}</label>
               <div className="password-input-wrapper">
                 <input id="nb-fesrcpagesauthRegistertsx322"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirma tu contraseña"
+                  placeholder={t('auth.register.placeholderConfirmacionContrasena')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   onCopy={allowClipboard}
@@ -356,22 +358,22 @@ const Register = () => {
           </div>
 
           <div className="password-requirements">
-            <p className="requirement-title">La contraseña debe contener:</p>
+            <p className="requirement-title">{t('auth.register.reqTitulo')}</p>
             <ul>
               <li className={passwordErrors.length ? 'valid' : 'invalid'}>
-                {passwordErrors.length ? '✓' : '✗'} 8+ caracteres
+                {passwordErrors.length ? '✓' : '✗'} {t('perfil.password.req8')}
               </li>
               <li className={passwordErrors.uppercase ? 'valid' : 'invalid'}>
-                {passwordErrors.uppercase ? '✓' : '✗'} Una mayúscula
+                {passwordErrors.uppercase ? '✓' : '✗'} {t('auth.register.reqMayuscula')}
               </li>
               <li className={passwordErrors.lowercase ? 'valid' : 'invalid'}>
-                {passwordErrors.lowercase ? '✓' : '✗'} Una minúscula
+                {passwordErrors.lowercase ? '✓' : '✗'} {t('auth.register.reqMinuscula')}
               </li>
               <li className={passwordErrors.number ? 'valid' : 'invalid'}>
-                {passwordErrors.number ? '✓' : '✗'} Un número
+                {passwordErrors.number ? '✓' : '✗'} {t('auth.register.reqNumero')}
               </li>
               <li className={passwordErrors.special ? 'valid' : 'invalid'}>
-                {passwordErrors.special ? '✓' : '✗'} Carácter especial
+                {passwordErrors.special ? '✓' : '✗'} {t('perfil.password.reqEspecial')}
               </li>
             </ul>
           </div>
@@ -379,20 +381,20 @@ const Register = () => {
           <div className="legal-checkboxes">
             <label className="checkbox-row">
               <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} disabled={loading} />
-              <span>Acepto los <span className="gold-text">Términos de uso</span></span>
+              <span>{t('auth.register.aceptoTerminos')} <span className="gold-text">{t('auth.register.terminosUso')}</span></span>
             </label>
             <label className="checkbox-row">
               <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} disabled={loading} />
-              <span>Acepto la <span className="gold-text">Política de privacidad</span></span>
+              <span>{t('auth.register.aceptoPrivacidad')} <span className="gold-text">{t('auth.register.politicaPrivacidad')}</span></span>
             </label>
             <label className="checkbox-row">
               <input type="checkbox" checked={acceptCookies} onChange={(e) => setAcceptCookies(e.target.checked)} disabled={loading} />
-              <span>Acepto la <span className="gold-text">Política de cookies</span></span>
+              <span>{t('auth.register.aceptoCookies')} <span className="gold-text">{t('auth.register.politicaCookies')}</span></span>
             </label>
           </div>
           
           <button type="submit" className="btn-register-submit" disabled={!isFormComplete || loading}>
-            {loading ? 'Registrando...' : 'Registrarse'}
+            {loading ? t('auth.register.registrando') : t('nav.registrarse')}
           </button>
 
           {GOOGLE_LOGIN_HABILITADO && (
@@ -408,12 +410,12 @@ const Register = () => {
                       googleLogin(credentialResponse.credential)
                         .then(() => closeAuth())
                         .catch((err) => {
-                          setError(err.response?.data?.detail || 'Error al registrar con Google');
+                          setError(err.response?.data?.detail || t('auth.register.errorGoogle'));
                         });
                     }
                   }}
                   onError={() => {
-                    setError('No se pudo registrar con Google');
+                    setError(t('auth.register.errorGoogleRegistro'));
                   }}
                   theme="outline"
                   size="large"
@@ -426,8 +428,8 @@ const Register = () => {
           
           {/* Sección de Login Rediseñada */}
           <div className="links">
-            <span>¿Ya tienes una cuenta?</span>
-            <button type="button" className="login-accent-link" onClick={() => openAuth('ingresar')}>Iniciar Sesión</button>
+            <span>{t('auth.register.yaTienesCuenta')}</span>
+            <button type="button" className="login-accent-link" onClick={() => openAuth('ingresar')}>{t('auth.register.iniciarSesion')}</button>
           </div>
         </form>
     </>

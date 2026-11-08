@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FaChevronLeft, FaCircleCheck, FaCircleDot
 } from 'react-icons/fa6';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/legal.css';
 
 interface Tarjeta {
@@ -28,6 +29,8 @@ interface LegalPageProps {
 }
 
 const LegalPage = ({ icono, titulo, actualizacion, secciones, numeradas = true }: LegalPageProps) => {
+  const { t } = useIdioma();
+
   return (
     <div className="legal-page app-glass">
       <main className="legal-main">
@@ -36,7 +39,7 @@ const LegalPage = ({ icono, titulo, actualizacion, secciones, numeradas = true }
             <span className="legal-header-icon">{icono}</span>
             <h1 className="legal-title">{titulo}</h1>
             <p className="legal-update">
-              <FaCircleDot /> Última actualización: {actualizacion}
+              <FaCircleDot /> {t('legal.comun.actualizacion', { fecha: actualizacion })}
             </p>
           </header>
 
@@ -68,8 +71,8 @@ const LegalPage = ({ icono, titulo, actualizacion, secciones, numeradas = true }
 
                 {seccion.tarjetas && (
                   <div className="legal-cards">
-                    {seccion.tarjetas.map((tarjeta, t) => (
-                      <article key={t} className="legal-card-item">
+                    {seccion.tarjetas.map((tarjeta, k) => (
+                      <article key={k} className="legal-card-item">
                         <div className="legal-card-icon">{tarjeta.icono}</div>
                         <h3 className="legal-card-title">{tarjeta.titulo}</h3>
                         <p className="legal-card-valor">{tarjeta.valor}</p>
@@ -86,10 +89,10 @@ const LegalPage = ({ icono, titulo, actualizacion, secciones, numeradas = true }
 
           <footer className="legal-pie">
             <Link to="/" className="legal-volver">
-              <FaChevronLeft /> Volver al inicio
+              <FaChevronLeft /> {t('legal.comun.volverInicio')}
             </Link>
             <p className="legal-pie-copy">
-              © 2026 NEODOMUS. Todos los derechos reservados.
+              {t('legal.comun.derechos')}
             </p>
           </footer>
         </div>

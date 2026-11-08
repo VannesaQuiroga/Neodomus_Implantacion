@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/verifyCode.css';
 
 // Comunica con el backend mediante POST '/auth/verify-code', POST '/auth/forgot-password'.
 const VerifyCode = () => {
   const { email, openAuth } = useAuthModal();
+  const { t } = useIdioma();
 
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ const VerifyCode = () => {
     const fullCode = code.join('');
 
     if (fullCode.length !== 6) {
-      setError('Ingresa el código de 6 dígitos');
+      setError(t('perfil.emailCodigo6'));
       return;
     }
 
@@ -60,13 +62,13 @@ const VerifyCode = () => {
     } catch (err: any) {
       const status = err.response?.status;
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        setError('La verificación tardó demasiado. Inténtalo nuevamente.');
+        setError(t('auth.verifyCode.errorTimeout'));
       } else if (status === 429) {
-        setError('Demasiados intentos. Espera un momento antes de reintentar.');
+        setError(t('auth.verifyCode.errorIntentos'));
       } else {
         setError(
           err.response?.data?.detail ||
-            'Código inválido o expirado. Verifica el código e inténtalo de nuevo.'
+            t('auth.verifyCode.errorGeneral')
         );
       }
     } finally {
@@ -95,13 +97,13 @@ const VerifyCode = () => {
     } catch (err: any) {
       const status = err.response?.status;
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        setError('El reenvío tardó demasiado. Inténtalo nuevamente.');
+        setError(t('auth.verifyCode.errorReenvioTimeout'));
       } else if (status === 429) {
-        setError('Demasiadas solicitudes. Espera un minuto antes de reintentar.');
+        setError(t('auth.verifyCode.errorRate'));
       } else {
         setError(
           err.response?.data?.detail ||
-            'No fue posible reenviar el código. Inténtalo nuevamente.'
+            t('auth.verifyCode.errorReenvio')
         );
       }
     } finally {
@@ -113,10 +115,10 @@ const VerifyCode = () => {
     return (
       /* Tarjeta del formulario (se muestra dentro del modal sobre el catálogo) */
       <div className="verify-card">
-        <h2>Error</h2>
+        <h2>{t('auth.verifyCode.errorTitulo')}</h2>
 
         <p className="forgot-instruction-text">
-          No se proporcionó un correo electrónico válido.
+          {t('auth.verifyCode.errorEmail')}
         </p>
 
         <div className="forgot-back-to-login">
@@ -125,7 +127,7 @@ const VerifyCode = () => {
             onClick={() => openAuth('recuperar')}
             className="forgot-back-link"
           >
-            ← Volver
+            ← {t('common.volver')}
           </button>
         </div>
       </div>
@@ -173,10 +175,10 @@ const VerifyCode = () => {
           </div>
         </div>
 
-        <h2>Código de seguridad</h2>
+        <h2>{t('auth.verifyCode.titulo')}</h2>
 
         <p className="forgot-instruction-text">
-          Ingresa el código de 6 dígitos enviado a
+          {t('auth.verifyCode.instruccion')}
           <br />
           <span className="user-email">
             {email}
@@ -184,8 +186,7 @@ const VerifyCode = () => {
         </p>
 
         <p className="security-note">
-          Por seguridad, este código solo puede
-          utilizarse una vez.
+          {t('auth.verifyCode.nota')}
         </p>
 
         {error && (
@@ -258,7 +259,7 @@ const VerifyCode = () => {
           </svg>
 
           <span>
-            El código expirará en{' '}
+            {t('auth.verifyCode.expira')}{' '}
             <span className="brand-gold">
               {formatTime(countdown)}
             </span>
@@ -283,8 +284,8 @@ const VerifyCode = () => {
 
           <span>
             {loading
-              ? 'Confirmando...'
-              : 'Confirmar código'}
+              ? t('auth.verifyCode.confirmando')
+              : t('auth.verifyCode.confirmar')}
           </span>
 
           <span className="btn-arrow">
@@ -298,7 +299,7 @@ const VerifyCode = () => {
 
         <div className="resend-action-container">
           <p className="no-account-text">
-            ¿No recibiste el código?
+            {t('perfil.noRecibisteCodigo')}
           </p>
 
           <a
@@ -325,8 +326,8 @@ const VerifyCode = () => {
 
             <span>
               {resendLoading
-                ? 'Reenviando...'
-                : 'Reenviar código'}
+                ? t('auth.verifyCode.reenviando')
+                : t('perfil.reenviarCodigo')}
             </span>
           </a>
         </div>
@@ -337,7 +338,7 @@ const VerifyCode = () => {
             onClick={() => openAuth('ingresar')}
             className="forgot-back-link"
           >
-            ← Volver al inicio de sesión
+            ← {t('auth.verifyCode.volverLogin')}
           </button>
         </div>
       </form>

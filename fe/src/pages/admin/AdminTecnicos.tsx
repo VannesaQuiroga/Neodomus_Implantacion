@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminTecnicos de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { useIdioma } from '@i18n/IdiomaContext';
@@ -997,7 +998,7 @@ const AdminTecnicos = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo}`}>
           {toast.tipo === 'ok' ? <FaCircleCheck /> : <FaTriangleExclamation />}
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.section>

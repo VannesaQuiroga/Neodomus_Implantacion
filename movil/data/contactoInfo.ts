@@ -6,45 +6,47 @@
 
 export interface TarjetaContacto {
   icono: string;
-  titulo: string;
+  tituloClave: string;
   valor: string;
-  detalle: string;
+  valorClave?: string;
+  detalleClave: string;
   enlace: string | null;
 }
 
 export const INFO_CONTACTO: TarjetaContacto[] = [
   {
     icono: "envelope",
-    titulo: "Correo de soporte",
+    tituloClave: "contacto.correoTitulo",
     valor: "soporte@neodomus.com",
-    detalle: "Respondemos en 24h hábiles",
+    detalleClave: "contacto.correoDetalle",
     enlace: "mailto:soporte@neodomus.com",
   },
   {
     icono: "phone",
-    titulo: "Línea de atención",
+    tituloClave: "contacto.lineaTitulo",
     valor: "+57 601 123 4567",
-    detalle: "Lun-Vie 8:00 - 18:00",
+    detalleClave: "contacto.lineaDetalle",
     enlace: "tel:+576011234567",
   },
   {
     icono: "clock",
-    titulo: "Horario de atención",
-    valor: "Lunes a Viernes",
-    detalle: "8:00 AM - 6:00 PM",
+    tituloClave: "contacto.horarioTitulo",
+    valor: "",
+    valorClave: "contacto.horarioValor",
+    detalleClave: "contacto.horarioDetalle",
     enlace: null,
   },
   {
     icono: "location-dot",
-    titulo: "Oficina principal",
+    tituloClave: "contacto.oficinaTitulo",
     valor: "Cra 15 #93-47, Bogotá",
-    detalle: "Solo con cita previa",
+    detalleClave: "contacto.oficinaDetalle",
     enlace: null,
   },
 ];
 
 export const CANALES_ADICIONALES: string[] = [
-  "Chat en vivo (próximamente)",
-  "WhatsApp Business: +57 300 123 4567",
-  "Redes sociales: @NeodomusOficial",
+  "contacto.chatProximamente",
+  "contacto.whatsapp",
+  "contacto.redes",
 ];

@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // ─────────────────────────────────────────────────────────────
 // Novedades — panel de incidencias del técnico.
 // Flujo: Buscar cliente → Seleccionar pedido/cita → Registrar → Evidencia
@@ -21,6 +22,7 @@ import {
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useIdioma } from "@/contexts/IdiomaContext";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
 import EvidenciaImagen from "@/components/EvidenciaImagen";
@@ -117,6 +119,7 @@ type PasoFormulario = "cliente" | "origen" | "detalle" | "evidencia";
 
 // programa una actualización periódica.
 export default function NovedadesScreen() {
+  const { t } = useIdioma();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef(null);
   useScrollTopAlEntrar(scrollRef);
@@ -295,7 +298,7 @@ export default function NovedadesScreen() {
   const seleccionarFoto = async () => {
     const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permiso.granted) {
-      Alert.alert("Permiso requerido", "Necesitamos acceso a tu galería para adjuntar evidencia.");
+      Alert.alert(t("notify.permisoRequerido"), t("notify.permisoGaleria"));
       return;
     }
     const resultado = await ImagePicker.launchImageLibraryAsync({
@@ -314,7 +317,7 @@ export default function NovedadesScreen() {
   const tomarFoto = async () => {
     const permiso = await ImagePicker.requestCameraPermissionsAsync();
     if (!permiso.granted) {
-      Alert.alert("Permiso requerido", "Necesitamos acceso a tu cámara para tomar evidencia.");
+      Alert.alert(t("notify.permisoRequerido"), t("notify.permisoCamara"));
       return;
     }
     const resultado = await ImagePicker.launchCameraAsync({
@@ -469,7 +472,7 @@ export default function NovedadesScreen() {
       {/* Toast */}
       {toast && (
         <View style={[s.toast, toast.tipo === "ok" ? s.toastOk : s.toastErr]}>
-          <Text style={s.toastText}>{toast.msg}</Text>
+          <Text style={s.toastText}><LocalizedNotificationText message={toast.msg} /></Text>
         </View>
       )}
 
@@ -547,10 +550,10 @@ export default function NovedadesScreen() {
               <View style={s.cardTop}>
                 <Text style={s.cardId}>#{n.id_novedad}</Text>
                 <View style={[s.badge, { backgroundColor: COLOR_ESTADO[n.estado_novedad]?.bg || "#222", borderColor: COLOR_ESTADO[n.estado_novedad]?.border || "#444" }]}>
-                  <Text style={[s.badgeText, { color: C.oro }]}>{n.estado_novedad}</Text>
+                  <Text style={[s.badgeText, { color: C.oro }]}>{n.estado_novedad_label || n.estado_novedad}</Text>
                 </View>
               </View>
-              <Text style={s.cardTipo}>{n.tipo_novedad}</Text>
+              <Text style={s.cardTipo}>{n.tipo_novedad_label || n.tipo_novedad}</Text>
               <View style={s.cardMeta}>
                 {n.cliente_nombre && (
                   <View style={s.cardMetaItem}>
@@ -973,19 +976,19 @@ export default function NovedadesScreen() {
             <ScrollView style={s.modalBody} contentContainerStyle={{ paddingBottom: 40 }}>
               {/* Estado */}
               <View style={[s.badge, { backgroundColor: COLOR_ESTADO[detalle.estado_novedad]?.bg || "#222", borderColor: COLOR_ESTADO[detalle.estado_novedad]?.border || "#444", alignSelf: "flex-start" }]}>
-                <Text style={[s.badgeText, { color: C.oro }]}>{detalle.estado_novedad}</Text>
+                <Text style={[s.badgeText, { color: C.oro }]}>{detalle.estado_novedad_label || detalle.estado_novedad}</Text>
               </View>
 
               {/* Info */}
               <View style={s.detalleGrid}>
                 <View style={s.detalleItem}>
                   <Text style={s.detalleLabel}>Tipo</Text>
-                  <Text style={s.detalleValue}>{detalle.tipo_novedad}</Text>
+                  <Text style={s.detalleValue}>{detalle.tipo_novedad_label || detalle.tipo_novedad}</Text>
                 </View>
                 <View style={s.detalleItem}>
                   <Text style={s.detalleLabel}>Prioridad</Text>
                   <Text style={[s.detalleValue, { color: COLOR_PRIORIDAD[detalle.prioridad] || "#aaa" }]}>
-                    {detalle.prioridad}
+                    {detalle.prioridad_label || detalle.prioridad}
                   </Text>
                 </View>
                 {detalle.cliente_info && (

@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla TecnicoNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,15 +30,19 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import AuthImage from '@components/common/AuthImage';
+import { useIdioma } from '@i18n/IdiomaContext';
 
 // ── Interfaces ──────────────────────────────────────────────
 
 interface Novedad {
   id_novedad: number;
   tipo_novedad: string;
+  tipo_novedad_label?: string;
   descripcion_novedad: string;
   prioridad: string;
+  prioridad_label?: string;
   estado_novedad: string;
+  estado_novedad_label?: string;
   fecha_reporte: string | null;
   lugar_ocurrencia: string | null;
   evidencia_url: string | null;
@@ -159,6 +164,20 @@ const ICONO_PRIORIDAD: Record<string, string> = {
   urgente: '#ef4444', alta: '#f59e0b', normal: '#3b82f6', baja: '#6b7280',
 };
 
+const CLAVES_ESTADO_NOVEDAD: Record<string, string> = {
+  pendiente: 'novedades.status.pendiente',
+  'en revision': 'novedades.status.revision',
+  aprobada: 'novedades.status.aprobada',
+  rechazada: 'novedades.status.rechazada',
+  resuelta: 'novedades.status.resuelta',
+  cerrada: 'novedades.status.cerrada',
+};
+
+const novedadEstadoLabel = (estado: string, t: (key: string) => string) => {
+  const key = CLAVES_ESTADO_NOVEDAD[estado.toLocaleLowerCase()];
+  return key ? t(key) : estado;
+};
+
 const formatFecha = (f?: string | null) => {
   if (!f) return '—';
   return new Date(f).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
@@ -174,6 +193,7 @@ type PasoFormulario = 'cliente' | 'origen' | 'detalle' | 'evidencia';
 // ── Component ───────────────────────────────────────────────
 
 const TecnicoNovedades = () => {
+  const { t } = useIdioma();
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
@@ -454,10 +474,10 @@ const TecnicoNovedades = () => {
         <div>
           <h1 className="ap-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <FaShieldHalved style={{ color: '#d4a54b' }} />
-            Historial de novedades
+            {t('novedades.tecnico.titulo')}
           </h1>
           <p className="ap-subtitle">
-            Consulta y registra novedades de entregas, citas y devoluciones
+            {t('novedades.tecnico.subtitulo')}
           </p>
         </div>
         <div className="ap-header-right">
@@ -466,7 +486,7 @@ const TecnicoNovedades = () => {
             className="ap-btn ap-btn-primary"
             onClick={() => { resetForm(); setMostrarForm(true); }}
           >
-            <FaPlus /> Agregar novedad
+            <FaPlus /> {t('novedades.tecnico.agregar')}
           </button>
         </div>
       </div>
@@ -480,7 +500,7 @@ const TecnicoNovedades = () => {
             exit={{ opacity: 0, y: -10 }}
             className={`ap-toast ${toast.tipo}`}
           >
-            {toast.msg}
+            <LocalizedNotificationText message={toast.msg} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -492,7 +512,7 @@ const TecnicoNovedades = () => {
           className={`ap-pill ${filtroEstado === '' && !hayFiltros ? 'active' : ''}`}
           onClick={() => { limpiarFiltros(); }}
         >
-          Todas
+          {t('novedades.tecnico.todas')}
           <span className="ap-pill-count">{novedades.length}</span>
         </button>
         {Object.entries(contarPorEstado).map(([estado, count]) => (
@@ -502,7 +522,7 @@ const TecnicoNovedades = () => {
             className={`ap-pill ${filtroEstado === estado ? 'active' : ''}`}
             onClick={() => setFiltroEstado(filtroEstado === estado ? '' : estado)}
           >
-            {estado}
+            {novedadEstadoLabel(estado, t)}
             <span className="ap-pill-count">{count}</span>
           </button>
         ))}
@@ -514,22 +534,22 @@ const TecnicoNovedades = () => {
           <FaMagnifyingGlass />
           <input
             type="text"
-            placeholder="Buscar por tipo, cliente, pedido..."
+            placeholder={t('novedades.tecnico.buscar')}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
         </div>
 
         <select className="ap-filtro-estado" value={filtroPrioridad} onChange={(e) => setFiltroPrioridad(e.target.value)}>
-          <option value="">Todas las prioridades</option>
-          {PRIORIDADES.map((p) => <option key={p.valor} value={p.valor}>{p.label}</option>)}
+          <option value="">{t('novedades.tecnico.todasPrioridades')}</option>
+          {PRIORIDADES.map((p) => <option key={p.valor} value={p.valor}>{t(`novedades.prioridad.${p.valor}`)}</option>)}
         </select>
 
         <select className="ap-filtro-estado" value={filtroRelacion} onChange={(e) => setFiltroRelacion(e.target.value)}>
-          <option value="">Todos los origenes</option>
-          <option value="pedido">Solo Pedidos</option>
-          <option value="cita">Solo Citas</option>
-          <option value="devolucion">Solo Devoluciones</option>
+          <option value="">{t('novedades.tecnico.todosOrigenes')}</option>
+          <option value="pedido">{t('novedades.tecnico.soloPedidos')}</option>
+          <option value="cita">{t('novedades.tecnico.soloCitas')}</option>
+          <option value="devolucion">{t('novedades.tecnico.soloDevoluciones')}</option>
         </select>
 
         {hayFiltros && (
@@ -539,12 +559,12 @@ const TecnicoNovedades = () => {
             style={{ fontSize: '0.8rem', padding: '8px 14px' }}
             onClick={limpiarFiltros}
           >
-            <FaRotateLeft /> Limpiar
+            <FaRotateLeft /> {t('novedades.tecnico.limpiar')}
           </button>
         )}
 
         <span style={{ marginLeft: 'auto', color: '#8f8f8f', fontSize: '0.82rem' }}>
-          {filtradas.length} de {novedades.length} novedades
+          {t('novedades.tecnico.contador', { visibles: filtradas.length, total: novedades.length })}
         </span>
       </div>
 
@@ -560,7 +580,7 @@ const TecnicoNovedades = () => {
             <div className="ap-card" style={{ borderColor: 'rgba(212, 165, 75, 0.4)' }}>
               <div className="ap-card-head">
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0, fontSize: '1rem' }}>
-                  <FaPlus style={{ color: '#d4a54b' }} /> Agregar novedad
+                  <FaPlus style={{ color: '#d4a54b' }} /> {t('novedades.tecnico.agregar')}
                 </h3>
                 <button type="button" className="ap-modal-x" onClick={resetForm}>
                   <FaXmark />
@@ -1071,7 +1091,7 @@ const TecnicoNovedades = () => {
                 <tr key={n.id_novedad}>
                   <td style={{ fontWeight: 700, color: '#d4a54b' }}>{n.id_novedad}</td>
                   <td>
-                    <span style={{ fontSize: '0.85rem' }}>{n.tipo_novedad}</span>
+                    <span style={{ fontSize: '0.85rem' }}>{n.tipo_novedad_label || n.tipo_novedad}</span>
                   </td>
                   <td>
                     <span className={`ap-badge ${CLASE_PRIORIDAD[n.prioridad] || 'neutral'}`} style={{ fontSize: '0.7rem' }}>
@@ -1079,12 +1099,12 @@ const TecnicoNovedades = () => {
                         width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
                         background: ICONO_PRIORIDAD[n.prioridad] || '#6b7280',
                       }} />
-                      {n.prioridad}
+                      {n.prioridad_label || n.prioridad}
                     </span>
                   </td>
                   <td>
                     <span className={`ap-badge ${CLASE_ESTADO[n.estado_novedad] || 'neutral'}`}>
-                      {n.estado_novedad}
+                      {n.estado_novedad_label || n.estado_novedad}
                     </span>
                   </td>
                   <td>
@@ -1172,7 +1192,7 @@ const TecnicoNovedades = () => {
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
                     <span style={{ color: '#d4a54b' }}>Novedad #{detalle.id_novedad}</span>
                     <span className={`ap-badge ${CLASE_ESTADO[detalle.estado_novedad] || 'neutral'}`}>
-                      {detalle.estado_novedad}
+                      {detalle.estado_novedad_label || detalle.estado_novedad}
                     </span>
                   </h3>
                   <p style={{ margin: '4px 0 0', color: '#8f8f8f', fontSize: '0.82rem' }}>
@@ -1190,7 +1210,7 @@ const TecnicoNovedades = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 18 }}>
                   <div className="ap-def">
                     <div className="ap-def-label"><FaTag style={{ marginRight: 4 }} />Tipo</div>
-                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad}</div>
+                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad_label || detalle.tipo_novedad}</div>
                   </div>
                   <div className="ap-def">
                     <div className="ap-def-label">Prioridad</div>
@@ -1200,7 +1220,7 @@ const TecnicoNovedades = () => {
                           width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
                           background: ICONO_PRIORIDAD[detalle.prioridad] || '#6b7280',
                         }} />
-                        {detalle.prioridad}
+                        {detalle.prioridad_label || detalle.prioridad}
                       </span>
                     </div>
                   </div>

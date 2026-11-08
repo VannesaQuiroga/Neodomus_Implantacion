@@ -21,6 +21,9 @@ export default defineConfig({
     },
   },
   server: {
+    fs: {
+      allow: [__dirname, path.resolve(__dirname, '../shared')],
+    },
     port: 5173,
     host: true,
     // Autoriza únicamente el nombre virtual del proxy local de Caddy.

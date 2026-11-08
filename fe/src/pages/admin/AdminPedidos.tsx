@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminPedidos de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -240,7 +241,7 @@ const AdminPedidos = () => {
 
         {toast && (
           <p style={{ color: toast.tipo === 'ok' ? '#3d7a3d' : '#a33', fontWeight: 600 }}>
-            {toast.msg}
+            <LocalizedNotificationText message={toast.msg} />
           </p>
         )}
 

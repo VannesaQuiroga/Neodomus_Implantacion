@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { FaRegStar, FaStar, FaUserTie, FaBoxOpen, FaPlus, FaTrashCan } from 'react-icons/fa6';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import { getResenas, saveItem, PF_RESENAS_KEY, Resena } from '@utils/profileStorage';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
@@ -50,10 +51,17 @@ const productosSugeridos = [
   'Enchufe inteligente Wi-Fi',
 ];
 
-const formatearFecha = (fecha?: string | null) => {
+const PRODUCTO_CLAVE: Record<string, string> = {
+  'Kit domótica Neodomus Smart Home': 'perfil.resenas.productoSugerido.kit',
+  'Cámara IP 4K exterior': 'perfil.resenas.productoSugerido.camara',
+  'Sensor de movimiento Wi-Fi': 'perfil.resenas.productoSugerido.sensor',
+  'Enchufe inteligente Wi-Fi': 'perfil.resenas.productoSugerido.enchufe',
+};
+
+const formatearFecha = (fecha?: string | null, locale = 'es-CO') => {
   if (!fecha) return '';
   try {
-    return new Date(fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(fecha).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   } catch {
     return fecha;
   }
@@ -61,6 +69,8 @@ const formatearFecha = (fecha?: string | null) => {
 
 // Comunica con el backend mediante GET '/calificaciones/mis-dadas' y GET '/calificaciones/producto/mis-dadas'.
 const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () => void }) => {
+  const { t, idioma } = useIdioma();
+  const locale = idioma === 'en' ? 'en-US' : 'es-CO';
   const [seccion, setSeccion] = useState<'tecnicos' | 'productos'>('tecnicos');
   const [resenasProductos, setResenasProductos] = useState<ResenaProducto[]>([]);
   const [resenasTecnicos, setResenasTecnicos] = useState<ResenaTecnico[]>([]);
@@ -88,7 +98,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
     cargarResenasTecnicos()
       .catch((err) => {
         console.error(err);
-        notify('No se pudieron cargar tus reseñas de técnicos.', 'error');
+        notify(t('perfil.resenas.errorCargarTecnicos'), 'error');
       })
       .finally(() => setLoadingTecnicos(false));
 
@@ -105,7 +115,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
       .then((res) => setResenasProductos(res.data || []))
       .catch((err) => {
         console.error(err);
-        notify('No se pudieron cargar tus reseñas de productos.', 'error');
+        notify(t('perfil.resenas.errorCargarProductos'), 'error');
       })
       .finally(() => setLoadingProductos(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,7 +125,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
   const guardarCalificacionTecnico = async (cita: CitaPendiente) => {
     const nota = ratingPend[cita.id_cita] || 0;
     if (!nota) {
-      notify('Selecciona una cantidad de estrellas antes de guardar.', 'error');
+      notify(t('perfil.resenas.errorEstrellas'), 'error');
       return;
     }
     setGuardandoPend(cita.id_cita);
@@ -125,7 +135,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
         calificacion: nota,
         comentario: comentarioPend[cita.id_cita]?.trim() || undefined,
       });
-      notify('¡Gracias por calificar al técnico!', 'success');
+      notify(t('perfil.resenas.graciasTecnico'), 'success');
       setPendientes((prev) => prev.filter((c) => c.id_cita !== cita.id_cita));
       setRatingPend((prev) => {
         const next = { ...prev };
@@ -140,7 +150,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
       await cargarResenasTecnicos();
     } catch (err) {
       console.error(err);
-      notify('No se pudo enviar tu calificación.', 'error');
+      notify(t('perfil.resenas.errorEnviarCalificacion'), 'error');
     } finally {
       setGuardandoPend(null);
     }
@@ -149,7 +159,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
   const guardarResenaLocal = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!comentarioLocal.trim()) {
-      notify('Escribe un comentario para tu reseña', 'error');
+      notify(t('perfil.resenas.errorComentario'), 'error');
       return;
     }
     const nueva: Resena = {
@@ -158,29 +168,29 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
       productoImg: '/productos/1.jpg',
       calificacion: ratingLocal,
       comentario: comentarioLocal.trim(),
-      fecha: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
+      fecha: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }),
     };
     const siguiente = [nueva, ...resenasLocales];
     setResenasLocales(siguiente);
     saveItem(PF_RESENAS_KEY, siguiente);
     setComentarioLocal('');
     setMostrarFormLocal(false);
-    notify('Reseña guardada en este perfil.', 'success');
+    notify(t('perfil.resenas.guardadaLocal'), 'success');
   };
 
   const eliminarResenaLocal = (id: string) => {
     const siguiente = resenasLocales.filter((resena) => resena.id !== id);
     setResenasLocales(siguiente);
     saveItem(PF_RESENAS_KEY, siguiente);
-    notify('Reseña eliminada', 'info');
+    notify(t('perfil.resenas.eliminada'), 'info');
   };
 
   return (
     <div className="pf-tab">
       <SectionHeader
         icon={<FaStar />}
-        title="Mis reseñas"
-        subtitle="Las calificaciones que has dejado a los técnicos y tus reseñas de productos."
+        title={t('perfil.misResenas')}
+        subtitle={t('perfil.resenas.subtitulo')}
       />
 
       <div className="pf-resenas-toggle">
@@ -189,14 +199,14 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
           className={seccion === 'tecnicos' ? 'activo' : ''}
           onClick={() => setSeccion('tecnicos')}
         >
-          <FaUserTie /> Técnicos
+          <FaUserTie /> {t('nav.tecnicos')}
         </button>
         <button
           type="button"
           className={seccion === 'productos' ? 'activo' : ''}
           onClick={() => setSeccion('productos')}
         >
-          <FaStar /> Productos
+          <FaStar /> {t('carrito.productos')}
         </button>
       </div>
 
@@ -205,7 +215,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
           {pendientes.length > 0 && (
             <>
               <h3 className="pf-resenas-subtitulo">
-                <FaStar /> Técnicos por calificar
+                <FaStar /> {t('perfil.resenas.tecnicosPorCalificar')}
               </h3>
               <div className="pf-review-list">
                 {pendientes.map((cita) => (
@@ -215,7 +225,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                         {cita.tecnico_foto_url ? (
                           <img
                             src={cita.tecnico_foto_url}
-                            alt={cita.nombre_tecnico || 'Técnico'}
+                            alt={cita.nombre_tecnico || t('tec.tecnico')}
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
                         ) : (
@@ -225,11 +235,11 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                       <div className="pf-review-body">
                         <div className="pf-review-top">
                           <strong className="pf-review-producto">
-                            {cita.nombre_tecnico || 'Técnico'}
+                            {cita.nombre_tecnico || t('tec.tecnico')}
                             {cita.tipo_servicio ? ` · ${cita.tipo_servicio}` : ''}
                           </strong>
                           <span className="pf-review-fecha">
-                            {cita.fecha ? `${formatearFecha(cita.fecha)}${cita.hora ? ` · ${cita.hora}` : ''}` : ''}
+                            {cita.fecha ? `${formatearFecha(cita.fecha, locale)}${cita.hora ? ` · ${cita.hora}` : ''}` : ''}
                           </span>
                         </div>
                         <div className="pf-stars-picker">
@@ -237,7 +247,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                             <button
                               key={s}
                               type="button"
-                              aria-label={`${s} estrellas`}
+                              aria-label={t('perfil.resenas.estrellas', { n: s })}
                               className={(ratingPend[cita.id_cita] ?? 0) >= s ? 'on' : ''}
                               onClick={() =>
                                 setRatingPend((prev) => ({ ...prev, [cita.id_cita]: s }))
@@ -250,7 +260,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                         <input
                           type="text"
                           className="pf-resena-comentario"
-                          placeholder="Cuéntanos tu experiencia (opcional)"
+                          placeholder={t('perfil.resenas.experienciaPlaceholder')}
                           maxLength={500}
                           value={comentarioPend[cita.id_cita] || ''}
                           onChange={(e) =>
@@ -267,7 +277,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                             disabled={guardandoPend === cita.id_cita}
                             onClick={() => guardarCalificacionTecnico(cita)}
                           >
-                            {guardandoPend === cita.id_cita ? 'Guardando...' : 'Guardar calificación'}
+                            {guardandoPend === cita.id_cita ? t('citas.guardando') : t('perfil.resenas.guardarCalificacion')}
                           </button>
                         </div>
                       </div>
@@ -279,16 +289,16 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
           )}
 
           <h3 className="pf-resenas-subtitulo">
-            <FaUserTie /> Técnicos que atendieron tus citas
+            <FaUserTie /> {t('perfil.resenas.tecnicosAtendieron')}
           </h3>
           {loadingTecnicos ? (
-            <div className="pf-empty"><p>Cargando tus reseñas de técnicos...</p></div>
+            <div className="pf-empty"><p>{t('perfil.resenas.cargandoTecnicos')}</p></div>
           ) : resenasTecnicos.length === 0 ? (
             <div className="pf-empty">
               <span className="pf-empty-icon"><FaRegStar /></span>
-              <p>Aún no has calificado a ningún técnico.</p>
+              <p>{t('perfil.resenas.sinTecnicos')}</p>
               <p className="pf-empty-hint">
-                Cuando completes una cita, el técnico aparecerá aquí para que lo califiques.
+                {t('perfil.resenas.sinTecnicosHint')}
               </p>
             </div>
           ) : (
@@ -300,7 +310,7 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                       {resena.foto_tecnico ? (
                         <img
                           src={resena.foto_tecnico}
-                          alt={resena.nombre_tecnico || 'Técnico'}
+                          alt={resena.nombre_tecnico || t('tec.tecnico')}
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       ) : (
@@ -310,11 +320,11 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                     <div className="pf-review-body">
                       <div className="pf-review-top">
                         <strong className="pf-review-producto">
-                          {resena.nombre_tecnico || 'Técnico'}
+                          {resena.nombre_tecnico || t('tec.tecnico')}
                           {resena.tipo_servicio ? ` · ${resena.tipo_servicio}` : ''}
                         </strong>
                         <span className="pf-review-fecha">
-                          {resena.fecha_cita ? `${formatearFecha(resena.fecha_cita)}${resena.hora_cita ? ` · ${resena.hora_cita}` : ''}` : ''}
+                          {resena.fecha_cita ? `${formatearFecha(resena.fecha_cita, locale)}${resena.hora_cita ? ` · ${resena.hora_cita}` : ''}` : ''}
                         </span>
                       </div>
                       <div className="pf-stars">
@@ -335,13 +345,13 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
       ) : (
         <div className="pf-resenas-seccion">
           <div className="pf-resenas-cabecera">
-            <h3 className="pf-resenas-subtitulo">Productos</h3>
+            <h3 className="pf-resenas-subtitulo">{t('carrito.productos')}</h3>
             <div className="pf-resenas-acciones">
               <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setMostrarFormLocal((actual) => !actual)}>
-                <FaPlus /> {mostrarFormLocal ? 'Cerrar reseña' : 'Escribir reseña'}
+                <FaPlus /> {mostrarFormLocal ? t('perfil.resenas.cerrarForm') : t('perfil.resenas.escribir')}
               </button>
               <button type="button" className="pf-btn pf-btn-primary" onClick={onGoOrders}>
-                <FaBoxOpen /> Calificar desde mis pedidos
+                <FaBoxOpen /> {t('perfil.resenas.calificarDesdePedidos')}
               </button>
             </div>
           </div>
@@ -349,35 +359,35 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
             <form className="pf-review-form" onSubmit={guardarResenaLocal}>
               <div className="pf-form-grid">
                 <div className="pf-form-group">
-                  <label className="pf-form-label" htmlFor="pf-res-producto">Producto</label>
+                  <label className="pf-form-label" htmlFor="pf-res-producto">{t('perfil.resenas.producto')}</label>
                   <select id="pf-res-producto" className="pf-form-input" value={productoLocal} onChange={(e) => setProductoLocal(e.target.value)}>
-                    {productosSugeridos.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
+                    {productosSugeridos.map((nombre) => <option key={nombre} value={nombre}>{t(PRODUCTO_CLAVE[nombre] || nombre)}</option>)}
                   </select>
                 </div>
                 <div className="pf-form-group">
-                  <span className="pf-form-label">Calificación</span>
+                  <span className="pf-form-label">{t('perfil.resenas.calificacion')}</span>
                   <div className="pf-rating-input">
                     {[1, 2, 3, 4, 5].map((nota) => (
-                      <button key={nota} type="button" className={nota <= ratingLocal ? 'on' : ''} aria-label={`${nota} estrellas`} onClick={() => setRatingLocal(nota)}><FaStar /></button>
+                      <button key={nota} type="button" className={nota <= ratingLocal ? 'on' : ''} aria-label={t('perfil.resenas.estrellas', { n: nota })} onClick={() => setRatingLocal(nota)}><FaStar /></button>
                     ))}
                   </div>
                 </div>
                 <div className="pf-form-group pf-form-span">
-                  <label className="pf-form-label" htmlFor="pf-res-comentario">Tu experiencia</label>
-                  <textarea id="pf-res-comentario" className="pf-form-input pf-textarea" rows={3} value={comentarioLocal} onChange={(e) => setComentarioLocal(e.target.value)} placeholder="Cuéntanos qué te pareció el producto…" />
+                  <label className="pf-form-label" htmlFor="pf-res-comentario">{t('perfil.resenas.tuExperiencia')}</label>
+                  <textarea id="pf-res-comentario" className="pf-form-input pf-textarea" rows={3} value={comentarioLocal} onChange={(e) => setComentarioLocal(e.target.value)} placeholder={t('perfil.resenas.experienciaProductoPlaceholder')} />
                 </div>
               </div>
-              <div className="pf-form-actions"><button type="submit" className="pf-btn pf-btn-primary">Guardar reseña</button></div>
+              <div className="pf-form-actions"><button type="submit" className="pf-btn pf-btn-primary">{t('perfil.resenas.guardarResena')}</button></div>
             </form>
           )}
-          {resenasProductos.length > 0 && <h4 className="pf-resenas-subtitulo">Calificaciones de tus pedidos</h4>}
+          {resenasProductos.length > 0 && <h4 className="pf-resenas-subtitulo">{t('perfil.resenas.calificacionesPedidos')}</h4>}
           {loadingProductos ? (
-            <div className="pf-empty"><p>Cargando tus reseñas de productos...</p></div>
+            <div className="pf-empty"><p>{t('perfil.resenas.cargandoProductos')}</p></div>
           ) : resenasProductos.length === 0 ? (
             <div className="pf-empty">
               <span className="pf-empty-icon"><FaRegStar /></span>
-              <p>Aún no has calificado productos de tus pedidos.</p>
-              <p className="pf-empty-hint">Cuando un pedido sea entregado, podrás calificar sus productos desde Mis pedidos.</p>
+              <p>{t('perfil.resenas.sinProductos')}</p>
+              <p className="pf-empty-hint">{t('perfil.resenas.sinProductosHint')}</p>
             </div>
           ) : (
             <div className="pf-review-list">
@@ -399,9 +409,9 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                     <div className="pf-review-body">
                       <div className="pf-review-top">
                         <strong className="pf-review-producto">{resena.nombre_producto}</strong>
-                        <span className="pf-review-fecha">{formatearFecha(resena.created_at)}</span>
+                        <span className="pf-review-fecha">{formatearFecha(resena.created_at, locale)}</span>
                       </div>
-                      <span className="pf-review-fecha">Pedido #{resena.id_pedido}</span>
+                      <span className="pf-review-fecha">{t('perfil.resenas.pedidoNumero', { id: resena.id_pedido })}</span>
                       {resena.comentario && <p className="pf-review-comentario">{resena.comentario}</p>}
                     </div>
                   </div>
@@ -411,21 +421,21 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
           )}
           {resenasLocales.length > 0 && (
             <>
-              <h4 className="pf-resenas-subtitulo pf-resenas-locales-titulo">Reseñas guardadas en este perfil</h4>
-              <div className="pf-review-list pf-review-list-locales" aria-label="Reseñas guardadas en este perfil">
+              <h4 className="pf-resenas-subtitulo pf-resenas-locales-titulo">{t('perfil.resenas.guardadas')}</h4>
+              <div className="pf-review-list pf-review-list-locales" aria-label={t('perfil.resenas.guardadas')}>
                 {resenasLocales.map((resena) => (
                   <div className="pf-review-item" key={resena.id}>
                     <div className="pf-review-main">
                       <span className="pf-review-img">
-                        <img src={resena.productoImg} alt={resena.producto} onError={(e) => { e.currentTarget.style.opacity = '0.12'; }} />
+                        <img src={resena.productoImg} alt={t(PRODUCTO_CLAVE[resena.producto] || resena.producto)} onError={(e) => { e.currentTarget.style.opacity = '0.12'; }} />
                       </span>
                       <div className="pf-review-body">
-                        <div className="pf-review-top"><strong className="pf-review-producto">{resena.producto}</strong><span className="pf-review-fecha">{resena.fecha}</span></div>
+                        <div className="pf-review-top"><strong className="pf-review-producto">{t(PRODUCTO_CLAVE[resena.producto] || resena.producto)}</strong><span className="pf-review-fecha">{resena.fecha}</span></div>
                         <div className="pf-stars">{[1, 2, 3, 4, 5].map((nota) => <FaStar key={nota} className={nota <= resena.calificacion ? 'on' : 'off'} />)}</div>
                         <p className="pf-review-comentario">{resena.comentario}</p>
                       </div>
                     </div>
-                    <div className="pf-review-actions"><button type="button" className="pf-icon-btn danger" onClick={() => eliminarResenaLocal(resena.id)} title="Eliminar reseña local"><FaTrashCan /></button></div>
+                    <div className="pf-review-actions"><button type="button" className="pf-icon-btn danger" onClick={() => eliminarResenaLocal(resena.id)} title={t('perfil.resenas.eliminarLocal')}><FaTrashCan /></button></div>
                   </div>
                 ))}
               </div>

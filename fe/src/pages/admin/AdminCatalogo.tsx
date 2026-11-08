@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Presenta el catálogo desde la navegación del administrador.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -344,7 +345,7 @@ const AdminCatalogo = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo}`}>
           {toast.tipo === 'ok' ? <FaCircleCheck /> : <FaTriangleExclamation />}
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.section>

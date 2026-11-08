@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Dashboard Técnico — adaptación móvil de fe/src/pages/tecnico/TechnicianDashboard.tsx
 // Mantiene misma identidad, datos reales (/tecnicos/mis-citas, /tecnicos/mis-entregas, etc.),
 // estructura, tarjetas, modales y animaciones (press/scale).
@@ -445,8 +446,8 @@ export default function TecnicoDashboard() {
           ) : notificaciones.filter((n: any) => !n.leida).length === 0 ? (
             <View style={styles.empty}>
               <FontAwesome6 name="bell-slash" size={22} color="#5a5a5a" />
-              <Text style={styles.emptyTitle}>Todo al día</Text>
-              <Text style={styles.emptyHint}>No tienes notificaciones sin leer</Text>
+              <Text style={styles.emptyTitle}>{t("notif.todoAlDia")}</Text>
+              <Text style={styles.emptyHint}>{t("notif.sinLeer", { count: 0 })}</Text>
             </View>
           ) : (
             <>
@@ -473,8 +474,8 @@ export default function TecnicoDashboard() {
                         <FontAwesome6 name="bell" size={13} color={!leida ? "#f0c96f" : "#bdbdbd"} />
                       </View>
                       <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
-                        <Text style={styles.notifTitulo} numberOfLines={2} ellipsizeMode="tail">{titulo}</Text>
-                        {mensaje ? <Text style={styles.notifMensaje} numberOfLines={3} ellipsizeMode="tail">{mensaje}</Text> : null}
+                        <Text style={styles.notifTitulo} numberOfLines={2} ellipsizeMode="tail"><LocalizedNotificationText message={titulo} /></Text>
+                        {mensaje ? <Text style={styles.notifMensaje} numberOfLines={3} ellipsizeMode="tail"><LocalizedNotificationText message={mensaje} /></Text> : null}
                         {fechaTxt ? <Text style={styles.notifFecha}>{fechaTxt}</Text> : null}
                       </View>
                     </View>
@@ -580,7 +581,7 @@ export default function TecnicoDashboard() {
       {toast && (
         <View style={styles.toastWrap} pointerEvents="none">
           <View style={styles.toast}>
-            <Text style={styles.toastTxt}>{toast}</Text>
+            <Text style={styles.toastTxt}><LocalizedNotificationText message={toast} /></Text>
           </View>
         </View>
       )}

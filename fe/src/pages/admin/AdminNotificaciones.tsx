@@ -21,6 +21,8 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { useAdminNotificaciones, type TipoNotificacion } from '../../hooks/useAdminNotificaciones';
+import { ETIQUETA_TIPO } from '../../components/layout/NotificacionesBell';
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 
 const FILTROS: { id: 'todas' | TipoNotificacion; labelKey: string }[] = [
   { id: 'todas', labelKey: 'adm.notificaciones.filtroTodas' },
@@ -46,26 +48,6 @@ const ICONO_TIPO: Record<TipoNotificacion, React.ReactNode> = {
   asignacion: <FaCalendarCheck />,
   recordatorio_cita: <FaStar />,
   recordatorio_producto: <FaStar />,
-};
-
-const ETIQUETA_TIPO: Record<TipoNotificacion, string> = {
-  cuenta: 'adm.notificaciones.tipoCuenta',
-  registro: 'adm.notificaciones.tipoRegistro',
-  cita: 'adm.notificaciones.tipoCita',
-  pedido: 'adm.notificaciones.tipoPedido',
-  stock: 'adm.notificaciones.tipoStock',
-  sistema: 'adm.notificaciones.tipoSistema',
-  entrega: 'adm.notificaciones.tipoEntrega',
-  reembolso: 'Reembolso',
-  devolucion: 'Devolución',
-  recogida: 'Recogida',
-  producto: 'Producto nuevo',
-  promocion: 'Promoci��n',
-  novedad: 'Novedad',
-  cupon: 'Cup��n',
-  asignacion: 'Asignaci��n',
-  recordatorio_cita: 'Encuesta de servicio',
-  recordatorio_producto: 'Encuesta de productos',
 };
 
 const AdminNotificaciones = () => {
@@ -118,7 +100,7 @@ const AdminNotificaciones = () => {
             </div>
             <h3>{error}</h3>
             <button type="button" className="ap-btn ap-btn-ghost" onClick={() => void recargar()}>
-              Reintentar
+              {t('notif.reintentar')}
             </button>
           </div>
         </div>
@@ -183,12 +165,12 @@ const AdminNotificaciones = () => {
                 <div className={`an-icon ${notificacion.tipo}`}>{ICONO_TIPO[notificacion.tipo]}</div>
                 <div className="an-body">
                   <div className="an-top">
-                    <span className="an-type">{t(ETIQUETA_TIPO[notificacion.tipo])}</span>
+                  <span className="an-type">{t(ETIQUETA_TIPO[notificacion.tipo])}</span>
                     {!notificacion.leida && <span className="ap-badge warn">{t('adm.notificaciones.nueva')}</span>}
                     {notificacion.fecha && <span className="an-fecha">{notificacion.fecha}</span>}
                   </div>
-                  <h3 className="an-title">{notificacion.titulo}</h3>
-                  <p className="an-msg">{notificacion.mensaje}</p>
+                  <h3 className="an-title"><LocalizedNotificationText message={notificacion.titulo} /></h3>
+                  <p className="an-msg"><LocalizedNotificationText message={notificacion.mensaje} /></p>
                   {notificacion.accion && (
                     <div className="an-actions">
                       <Link
@@ -198,7 +180,7 @@ const AdminNotificaciones = () => {
                           if (!notificacion.leida) void marcarLeida(notificacion.id);
                         }}
                       >
-                        {notificacion.accion.label} <FaArrowRight />
+                        <LocalizedNotificationText message={notificacion.accion.label} /> <FaArrowRight />
                       </Link>
                     </div>
                   )}

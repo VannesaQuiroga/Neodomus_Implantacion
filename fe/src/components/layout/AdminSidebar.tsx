@@ -60,7 +60,7 @@ const AdminSidebar = ({ open, pendientes, onNavigate }: AdminSidebarProps) => {
       links: [
         { to: "/admin/consultas", icon: <FaEnvelopeOpenText />, label: t('adm.sidebar.solicitudes') },
         { to: "/admin/devoluciones", icon: <FaRotateLeft />, label: t('adm.sidebar.devoluciones') },
-        { to: "/admin/novedades", icon: <FaShieldHalved />, label: 'Historial de novedades' },
+        { to: "/admin/novedades", icon: <FaShieldHalved />, label: t('novedades.admin.titulo') },
         { to: "/admin/reportes", icon: <FaChartColumn />, label: t('adm.sidebar.reportes') },
       ],
     },

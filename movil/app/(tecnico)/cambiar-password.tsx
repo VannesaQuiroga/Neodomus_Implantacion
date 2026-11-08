@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Ruta móvil de cambio de contraseña. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useState } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
@@ -100,7 +101,7 @@ export default function CambiarPasswordTecnico() {
           {toast ? (
             <View style={[styles.toastInline, toast.ok ? styles.toastOk : styles.toastErr]}>
               <FontAwesome6 name={toast.ok ? "circle-check" : "circle-exclamation"} size={12} color={toast.ok ? "#7ee29a" : "#ff8f93"} />
-              <Text style={[styles.toastInlineTxt, toast.ok ? { color: "#7ee29a" } : { color: "#ff8f93" }]}>{toast.msg}</Text>
+              <Text style={[styles.toastInlineTxt, toast.ok ? { color: "#7ee29a" } : { color: "#ff8f93" }]}><LocalizedNotificationText message={toast.msg} /></Text>
             </View>
           ) : null}
         </View>

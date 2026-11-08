@@ -25,7 +25,8 @@ export type TipoNotificacion =
   | 'cupon'
   | 'asignacion'
   | 'recordatorio_cita'
-  | 'recordatorio_producto';
+  | 'recordatorio_producto'
+  | 'respuesta_soporte';
 
 export interface NotifAdmin {
   id: string;
@@ -88,6 +89,7 @@ const TIPOS_VALIDOS: TipoNotificacion[] = [
   'asignacion',
   'recordatorio_cita',
   'recordatorio_producto',
+  'respuesta_soporte',
 ];
 
 const ACCIONES_PLATAFORMA: Record<
@@ -133,6 +135,7 @@ const ACCIONES_PLATAFORMA: Record<
     recordatorio_producto: { to: '/tecnico/entregas', label: 'Ver mis entregas' },
   },
   cliente: {
+    respuesta_soporte: { to: '/ayuda', label: 'Ver respuesta de soporte' },
     devolucion: { to: '/perfil?tab=pedidos', label: 'Ver mis devoluciones' },
     reembolso: { to: '/perfil?tab=reembolsos', label: 'Ver mis reembolsos' },
     cita: { to: '/cliente/citas?vista=mis-citas', label: 'Ver mis citas' },
@@ -195,8 +198,15 @@ const normalizarTipo = (tipo: string): TipoNotificacion =>
     ? (tipo as TipoNotificacion)
     : 'sistema';
 
-const accionPlataforma = (rol: RolNotificaciones, tipo: string) =>
-  ACCIONES_PLATAFORMA[rol][tipo] ?? {
+const accionPlataforma = (rol: RolNotificaciones, tipo: string, titulo?: string) => {
+  if (rol === 'cliente' && tipo === 'respuesta_soporte') {
+    const idSolicitud = titulo?.match(/solicitud #(\d+)/i)?.[1];
+    const query = new URLSearchParams({ tab: 'mis-solicitudes' });
+    if (idSolicitud) query.set('id', idSolicitud);
+    return { to: `/ayuda?${query.toString()}`, label: 'Ver respuesta de soporte' };
+  }
+
+  return ACCIONES_PLATAFORMA[rol][tipo] ?? {
     to: rol === 'administrador'
       ? '/admin/notificaciones'
       : rol === 'tecnico'
@@ -204,6 +214,7 @@ const accionPlataforma = (rol: RolNotificaciones, tipo: string) =>
         : '/notificaciones',
     label: 'Ver notificación',
   };
+};
 
 const claveStorage = (rol: RolNotificaciones, cuenta: string) =>
   `notificaciones_leidas_${rol}_${cuenta}`;
@@ -289,7 +300,7 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
           fecha: formatoFecha(n.fecha_creacion),
           timestamp: Date.parse(n.fecha_creacion || '') || 0,
           leida: Boolean(n.leida),
-          accion: accionPlataforma(rol, n.tipo),
+          accion: accionPlataforma(rol, n.tipo, n.titulo),
         }));
 
         const agotados = productos.filter(
@@ -353,7 +364,7 @@ export const useNotificacionesRol = (rol: RolNotificaciones | null) => {
           fecha: formatoFecha(n.fecha_creacion),
           timestamp: Date.parse(n.fecha_creacion || '') || 0,
           leida: Boolean(n.leida),
-          accion: accionPlataforma(rol, n.tipo),
+          accion: accionPlataforma(rol, n.tipo, n.titulo),
         }));
       }
 

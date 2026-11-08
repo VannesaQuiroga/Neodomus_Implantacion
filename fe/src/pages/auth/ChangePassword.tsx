@@ -1,9 +1,11 @@
 // Pantalla ChangePassword de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect } from 'react';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/login.css'; // Reutiliza estilos del login (ajusta si quieres uno específico)
 
 const ChangePassword = () => {
+  const { t } = useIdioma();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,15 +35,15 @@ const ChangePassword = () => {
 
     // Validaciones adicionales
     if (newPassword !== confirmPassword) {
-      setError('Las nuevas contraseñas no coinciden');
+      setError(t('auth.changePassword.errorNoCoinciden'));
       return;
     }
     if (!/^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[^!@#$%^&*(),.?":{}|<>]*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(newPassword)) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial');
+      setError(t('auth.changePassword.errorRequisitos'));
       return;
     }
     if (currentPassword === newPassword) {
-      setError('La nueva contraseña debe ser diferente a la actual');
+      setError(t('perfil.password.diferenteActual'));
       return;
     }
 
@@ -51,13 +53,13 @@ const ChangePassword = () => {
         current_password: currentPassword,
         new_password: newPassword,
       });
-      setMessage('Contraseña actualizada correctamente');
+      setMessage(t('perfil.contrasenaActualizada'));
       // Limpiar formulario
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Error al cambiar contraseña';
+      const errorMsg = err.response?.data?.detail || t('auth.changePassword.errorGeneral');
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -68,14 +70,14 @@ const ChangePassword = () => {
     <>
       <div className="login-container">
         <form onSubmit={handleSubmit} className="login-form">
-          <h2>Cambiar contraseña</h2>
+          <h2>{t('perfil.cambiarContrasena')}</h2>
           {message && <div className="success">{message}</div>}
           {error && <div className="error">{error}</div>}
           
           <div className="login-input-wrapper">
             <input
               type={showCurrent ? 'text' : 'password'}
-              placeholder="Contraseña actual"
+              placeholder={t('perfil.contrasenaActual')}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
@@ -95,7 +97,7 @@ const ChangePassword = () => {
           <div className="login-input-wrapper">
             <input
               type={showNew ? 'text' : 'password'}
-              placeholder="Nueva contraseña"
+              placeholder={t('perfil.nuevaContrasena')}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
@@ -117,7 +119,7 @@ const ChangePassword = () => {
           <div className="login-input-wrapper">
             <input
               type={showConfirm ? 'text' : 'password'}
-              placeholder="Confirmar nueva contraseña"
+              placeholder={t('perfil.confirmarNuevaContrasena')}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -136,7 +138,7 @@ const ChangePassword = () => {
           </div>
           
           <button type="submit" disabled={loading}>
-            {loading ? 'Actualizando...' : 'Actualizar'}
+            {loading ? t('auth.changePassword.actualizando') : t('auth.changePassword.actualizar')}
           </button>
         </form>
       </div>

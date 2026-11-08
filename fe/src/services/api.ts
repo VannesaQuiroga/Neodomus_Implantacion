@@ -1,6 +1,8 @@
 // Cliente de comunicación con el backend y tratamiento compartido de las peticiones.
 import axios from 'axios';
 import { tabGet, tabRemove, tabSet } from '../utils/tabStorage';
+import { PF_IDIOMA_KEY } from '../utils/profileStorage';
+import { traducirMensajeNotificacion } from '../i18n/translations';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -83,6 +85,11 @@ api.interceptors.request.use((config) => {
   if (tabToken) {
     config.headers.Authorization = `Bearer ${tabToken}`;
   }
+  try {
+    config.headers['Accept-Language'] = localStorage.getItem(PF_IDIOMA_KEY) === 'en' ? 'en' : 'es';
+  } catch {
+    config.headers['Accept-Language'] = 'es';
+  }
   return config;
 });
 
@@ -159,7 +166,7 @@ export const descargarFactura = async (pdfUrl: string) => {
         /* noop */
       }
     }
-    window.alert(msg);
+    window.alert(traducirMensajeNotificacion(msg, localStorage.getItem(PF_IDIOMA_KEY) === 'en' ? 'en' : 'es'));
   }
 };
 
@@ -202,6 +209,6 @@ export const descargarReportePdf = async (
         /* noop */
       }
     }
-    window.alert(msg);
+    window.alert(traducirMensajeNotificacion(msg, localStorage.getItem(PF_IDIOMA_KEY) === 'en' ? 'en' : 'es'));
   }
 };

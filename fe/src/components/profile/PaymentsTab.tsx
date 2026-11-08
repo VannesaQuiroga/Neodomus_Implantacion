@@ -2,19 +2,20 @@
 import { useState } from 'react';
 import { FaPlus, FaTrashCan, FaPencil, FaCreditCard, FaRegCreditCard, FaCheck } from 'react-icons/fa6';
 import { getPagos, saveItem, PF_PAGOS_KEY, MetodoPago, TipoPago } from '@utils/profileStorage';
+import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
 
-const tipoLabel: Record<TipoPago, string> = {
-  tarjeta: 'Tarjeta',
-  nequi: 'Nequi',
-  pse: 'PSE',
+const tipoLabelKey: Record<TipoPago, string> = {
+  tarjeta: 'perfil.pagos.tipoTarjeta',
+  nequi: 'perfil.pagos.tipoNequi',
+  pse: 'perfil.pagos.tipoPse',
 };
 
 const marcaNombre = (numero: string): string => {
   if (/^4/.test(numero)) return 'Visa';
   if (/^5[1-5]/.test(numero)) return 'Mastercard';
-  return 'Tarjeta';
+  return 'perfil.pagos.tipoTarjeta';
 };
 
 const formatoNumero = (numero: string): string => {
@@ -30,6 +31,7 @@ interface PayFormProps {
 }
 
 const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
+  const { t } = useIdioma();
   const [tipo, setTipo] = useState<TipoPago>(metodo?.tipo || 'tarjeta');
   const [titular, setTitular] = useState(metodo?.titular || '');
   const [numero, setNumero] = useState(metodo?.numero || '');
@@ -40,11 +42,11 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
     e.preventDefault();
     const numeroLimpio = numero.replace(/\D/g, '');
     if (!titular.trim()) {
-      setError('Ingresa el titular del método de pago');
+      setError(t('perfil.pagos.errorTitular'));
       return;
     }
     if (numeroLimpio.length < 8) {
-      setError('El número ingresado es demasiado corto');
+      setError(t('perfil.pagos.errorNumeroCorto'));
       return;
     }
     onGuardar({ tipo, titular: titular.trim(), numero: numero.replace(/\s/g, ''), expiracion: expiracion || undefined });
@@ -54,39 +56,39 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
     <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={onClose}>
       <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal" onClick={(e) => e.stopPropagation()}>
         <div className="pf-modal-header">
-          <h3>{metodo ? 'Editar método de pago' : 'Agregar método de pago'}</h3>
-          <button type="button" className="pf-modal-close" onClick={onClose} aria-label="Cerrar">×</button>
+          <h3>{metodo ? t('perfil.pagos.editarTitulo') : t('perfil.pagos.agregarTitulo')}</h3>
+          <button type="button" className="pf-modal-close" onClick={onClose} aria-label={t('common.cerrar')}>×</button>
         </div>
         <form className="pf-form" onSubmit={submit}>
           <div className="pf-form-group">
-            <span className="pf-form-label">Tipo de método</span>
+            <span className="pf-form-label">{t('perfil.pagos.tipoMetodo')}</span>
             <div className="pf-pay-type-select">
-              {(Object.keys(tipoLabel) as TipoPago[]).map((t) => (
+              {(Object.keys(tipoLabelKey) as TipoPago[]).map((tipoKey) => (
                 <button
                   type="button"
-                  key={t}
-                  className={`pf-pay-type-btn ${tipo === t ? 'active' : ''}`}
-                  onClick={() => setTipo(t)}
+                  key={tipoKey}
+                  className={`pf-pay-type-btn ${tipo === tipoKey ? 'active' : ''}`}
+                  onClick={() => setTipo(tipoKey)}
                 >
-                  {tipoLabel[t]}
+                  {t(tipoLabelKey[tipoKey])}
                 </button>
               ))}
             </div>
           </div>
           <div className="pf-form-group">
-            <label className="pf-form-label" htmlFor="pf-pay-titular">Titular</label>
+            <label className="pf-form-label" htmlFor="pf-pay-titular">{t('perfil.pagos.titular')}</label>
             <input
               id="pf-pay-titular"
               className="pf-form-input"
               type="text"
               value={titular}
               onChange={(e) => setTitular(e.target.value)}
-              placeholder="Nombre como aparece en el método"
+              placeholder={t('perfil.pagos.placeholderTitular')}
             />
           </div>
           <div className="pf-form-group">
             <label className="pf-form-label" htmlFor="pf-pay-numero">
-              {tipo === 'tarjeta' ? 'Número de tarjeta' : tipo === 'nequi' ? 'Número de celular (Nequi)' : 'Cuenta bancaria'}
+              {tipo === 'tarjeta' ? t('perfil.pagos.numeroTarjeta') : tipo === 'nequi' ? t('perfil.pagos.numeroNequi') : t('perfil.pagos.cuentaBancaria')}
             </label>
             <input
               id="pf-pay-numero"
@@ -100,22 +102,22 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
           </div>
           {tipo === 'tarjeta' && (
             <div className="pf-form-group">
-              <label className="pf-form-label" htmlFor="pf-pay-exp">Fecha de vencimiento</label>
+              <label className="pf-form-label" htmlFor="pf-pay-exp">{t('perfil.pagos.fechaVencimiento')}</label>
               <input
                 id="pf-pay-exp"
                 className="pf-form-input"
                 type="text"
                 value={expiracion}
                 onChange={(e) => setExpiracion(e.target.value.replace(/[^\d/]/g, ''))}
-                placeholder="MM/AA"
+                placeholder={t('perfil.pagos.placeholderVencimiento')}
               />
             </div>
           )}
           {error && <div className="pf-message-error">{error}</div>}
           <div className="pf-form-actions">
-            <button type="button" className="pf-btn pf-btn-ghost" onClick={onClose}>Cancelar</button>
+            <button type="button" className="pf-btn pf-btn-ghost" onClick={onClose}>{t('common.cancelar')}</button>
             <button type="submit" className="pf-btn pf-btn-primary">
-              <FaCheck /> {metodo ? 'Guardar cambios' : 'Agregar método'}
+              <FaCheck /> {metodo ? t('perfil.guardarCambios') : t('perfil.pagos.agregarMetodo')}
             </button>
           </div>
         </form>
@@ -125,6 +127,7 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
 };
 
 const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
+  const { t } = useIdioma();
   const [pagos, setPagos] = useState<MetodoPago[]>(getPagos());
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<MetodoPago | null>(null);
@@ -136,11 +139,11 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
     let next: MetodoPago[];
     if (editando) {
       next = pagos.map((p) => (p.id === editando.id ? { ...editando, ...data } : p));
-      notify('Método de pago actualizado', 'success');
+      notify(t('perfil.pagos.actualizado'), 'success');
     } else {
       const nuevo: MetodoPago = { ...data, id: `pay-${Date.now()}`, predeterminado: pagos.length === 0 };
       next = [...pagos, nuevo];
-      notify('Método de pago agregado', 'success');
+      notify(t('perfil.pagos.agregado'), 'success');
     }
     setPagos(next);
     persistir(next);
@@ -155,25 +158,25 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
     setPagos(next);
     persistir(next);
     setEliminando(null);
-    notify('Método de pago eliminado', 'info');
+    notify(t('perfil.pagos.eliminado'), 'info');
   };
 
   const setPredeterminado = (id: string) => {
     const next = pagos.map((p) => ({ ...p, predeterminado: p.id === id }));
     setPagos(next);
     persistir(next);
-    notify('Método de pago predeterminado actualizado', 'success');
+    notify(t('perfil.pagos.predeterminadoActualizado'), 'success');
   };
 
   return (
     <div className="pf-tab">
       <SectionHeader
         icon={<FaCreditCard />}
-        title="Métodos de pago"
-        subtitle="Administra las tarjetas y cuentas asociadas a tu cuenta."
+        title={t('perfil.pagos.titulo')}
+        subtitle={t('perfil.pagos.subtitulo')}
         action={
           <button type="button" className="pf-btn pf-btn-primary" onClick={() => { setEditando(null); setModalAbierto(true); }}>
-            <FaPlus /> Agregar método
+            <FaPlus /> {t('perfil.pagos.agregarMetodo')}
           </button>
         }
       />
@@ -181,7 +184,7 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
       {pagos.length === 0 ? (
         <div className="pf-empty">
           <span className="pf-empty-icon"><FaRegCreditCard /></span>
-          <p>No tienes métodos de pago registrados.</p>
+          <p>{t('perfil.pagos.vacio')}</p>
         </div>
       ) : (
         <div className="pf-pay-list">
@@ -194,16 +197,16 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
                 <span className="pf-pay-titular">{pago.titular}</span>
                 <span className="pf-pay-numero">
                   {pago.tipo === 'tarjeta'
-                    ? `${marcaNombre(pago.numero)} ${formatoNumero(pago.numero)}`
-                    : `${tipoLabel[pago.tipo]} ${pago.numero}`}
+                    ? `${t(marcaNombre(pago.numero))} ${formatoNumero(pago.numero)}`
+                    : `${t(tipoLabelKey[pago.tipo])} ${pago.numero}`}
                 </span>
                 <span className="pf-pay-extra">
                   {pago.predeterminado ? (
-                    <span className="pf-pay-default">Predeterminado</span>
+                    <span className="pf-pay-default">{t('perfil.pagos.predeterminado')}</span>
                   ) : pago.expiracion ? (
-                    `Vence ${pago.expiracion}`
+                    t('perfil.pagos.vence', { fecha: pago.expiracion })
                   ) : (
-                    'Sin vencimiento'
+                    t('perfil.pagos.sinVencimiento')
                   )}
                 </span>
               </div>
@@ -211,7 +214,7 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
                 <button
                   type="button"
                   className="pf-icon-btn"
-                  title="Establecer como predeterminado"
+                  title={t('perfil.pagos.establecerPredeterminado')}
                   onClick={() => setPredeterminado(pago.id)}
                 >
                   <FaCheck className={pago.predeterminado ? 'on' : ''} />
@@ -219,7 +222,7 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
                 <button
                   type="button"
                   className="pf-icon-btn"
-                  title="Editar"
+                  title={t('common.editar')}
                   onClick={() => { setEditando(pago); setModalAbierto(true); }}
                 >
                   <FaPencil />
@@ -227,7 +230,7 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
                 <button
                   type="button"
                   className="pf-icon-btn danger"
-                  title="Eliminar"
+                  title={t('common.eliminar')}
                   onClick={() => setEliminando(pago)}
                 >
                   <FaTrashCan />
@@ -250,14 +253,14 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
         <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setEliminando(null)}>
           <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
-              <h3>Eliminar método de pago</h3>
-              <button type="button" className="pf-modal-close" onClick={() => setEliminando(null)} aria-label="Cerrar">×</button>
+              <h3>{t('perfil.pagos.eliminarTitulo')}</h3>
+              <button type="button" className="pf-modal-close" onClick={() => setEliminando(null)} aria-label={t('common.cerrar')}>×</button>
             </div>
-            <p className="pf-modal-text">¿Seguro que deseas eliminar este método de pago? Esta acción no se puede deshacer.</p>
+            <p className="pf-modal-text">{t('perfil.pagos.eliminarMsg')}</p>
             <div className="pf-form-actions">
-              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setEliminando(null)}>Cancelar</button>
+              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setEliminando(null)}>{t('common.cancelar')}</button>
               <button type="button" className="pf-btn pf-btn-danger" onClick={confirmarEliminar}>
-                <FaTrashCan /> Eliminar
+                <FaTrashCan /> {t('common.eliminar')}
               </button>
             </div>
           </div>

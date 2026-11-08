@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla Perfil de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -197,8 +198,8 @@ const Perfil = () => {
     setTimeout(() => setToast(null), 3200);
   };
 
-  const nombreCompleto = user?.nombre || 'Nombre Apellido';
-  const correoUsuario = user?.correo || 'correo@ejemplo.com';
+  const nombreCompleto = user?.nombre || t('perfil.datos.nombrePlaceholder');
+  const correoUsuario = user?.correo || t('perfil.datos.correoPlaceholder');
 
   const grupos: NavGroup[] = useMemo(
     () => [
@@ -251,7 +252,7 @@ const Perfil = () => {
   // Comunica con el backend mediante POST '/clients/me/cuenta-solicitud'.
   const handleSolicitarInhabilitacion = async () => {
     if (!motivoSolicitud.trim()) {
-      notify('Debes indicar el motivo de la inhabilitación', 'error');
+      notify(t('perfil.cuentaModal.motivoRequerido'), 'error');
       return;
     }
     setEnviandoSolicitud(true);
@@ -263,10 +264,10 @@ const Perfil = () => {
       setSolicitudEstado('pendiente');
       setConfirmarInhabilitar(false);
       setMotivoSolicitud('');
-      notify('Solicitud de inhabilitación enviada al administrador', 'success');
+      notify(t('perfil.cuentaModal.solicitudEnviada'), 'success');
     } catch (err: any) {
       console.error(err);
-      notify(err.response?.data?.detail || 'No se pudo enviar la solicitud', 'error');
+      notify(err.response?.data?.detail || t('perfil.cuentaModal.errorSolicitud'), 'error');
       setConfirmarInhabilitar(false);
     } finally {
       setEnviandoSolicitud(false);
@@ -278,7 +279,7 @@ const Perfil = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      notify('La imagen debe pesar menos de 5 MB', 'error');
+      notify(t('perfil.datos.fotoPesada'), 'error');
       return;
     }
     try {
@@ -293,9 +294,9 @@ const Perfil = () => {
         localStorage.setItem(PF_AVATAR_KEY, url);
         window.dispatchEvent(new CustomEvent('client-profile-updated'));
       }
-      notify('Foto de perfil actualizada', 'success');
+      notify(t('perfil.fotoActualizada'), 'success');
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'No se pudo subir la foto', 'error');
+      notify(err.response?.data?.detail || t('perfil.datos.errorSubirFoto'), 'error');
     }
   };
 
@@ -422,8 +423,8 @@ const Perfil = () => {
             valor: tipoDocumento,
             tipo: 'select',
             opciones: [
-              { valor: '1', etiqueta: 'CC - Cédula de ciudadanía' },
-              { valor: '2', etiqueta: 'CE - Cédula de extranjería' },
+              { valor: '1', etiqueta: t('perfil.datos.docCC') },
+              { valor: '2', etiqueta: t('perfil.datos.docCE') },
             ],
           },
           {
@@ -652,7 +653,7 @@ const Perfil = () => {
             exit={{ opacity: 0, y: -24, scale: 0.96 }}
           >
             {toast.tipo === 'error' ? <FaXmark /> : <FaCheck />}
-            <span>{toast.msg}</span>
+            <span><LocalizedNotificationText message={toast.msg} /></span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -662,28 +663,28 @@ const Perfil = () => {
         <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
           <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
-              <h3>Inhabilitar cuenta</h3>
-              <button type="button" className="pf-modal-close" onClick={() => setConfirmarInhabilitar(false)} aria-label="Cerrar" disabled={enviandoSolicitud}>×</button>
+              <h3>{t('perfil.inhabilitarCuenta')}</h3>
+              <button type="button" className="pf-modal-close" onClick={() => setConfirmarInhabilitar(false)} aria-label={t('common.cerrar')} disabled={enviandoSolicitud}>×</button>
             </div>
-            <p className="pf-modal-text">¿Deseas enviar una solicitud de inhabilitación a tu cuenta? Un administrador deberá aprobarla antes de que quede inhabilitada. Podrás solicitar su habilitación más adelante.</p>
+            <p className="pf-modal-text">{t('perfil.cuentaModal.mensaje')}</p>
             <div className="pf-form-group" style={{ marginTop: 4 }}>
               <label className="pf-form-label" htmlFor="pf-motivo">
-                Motivo de la inhabilitación *
+                {t('perfil.cuentaModal.motivoLabel')}
               </label>
               <textarea
                 id="pf-motivo"
                 className="pf-form-input pf-textarea"
                 value={motivoSolicitud}
                 onChange={(e) => setMotivoSolicitud(e.target.value)}
-                placeholder="Escribe el motivo por el cual deseas inhabilitar tu cuenta..."
+                placeholder={t('perfil.cuentaModal.motivoPlaceholder')}
                 required
                 disabled={enviandoSolicitud}
               />
             </div>
             <div className="pf-form-actions" style={{ marginTop: 16 }}>
-              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setConfirmarInhabilitar(false)} disabled={enviandoSolicitud}>Cancelar</button>
+              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setConfirmarInhabilitar(false)} disabled={enviandoSolicitud}>{t('common.cancelar')}</button>
               <button type="button" className="pf-btn pf-btn-danger" onClick={handleSolicitarInhabilitacion} disabled={enviandoSolicitud}>
-                <FaHourglassHalf /> {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
+                <FaHourglassHalf /> {enviandoSolicitud ? t('perfil.cuentaModal.enviando') : t('perfil.cuentaModal.enviarSolicitud')}
               </button>
             </div>
           </div>

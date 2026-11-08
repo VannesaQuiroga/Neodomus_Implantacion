@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,6 +29,7 @@ import api from '@services/api';
 import AuthImage from '@components/common/AuthImage';
 import { Paginacion } from '@components/common/Paginacion';
 import { usePaginacion } from '../../hooks/usePaginacion';
+import { useIdioma } from '@i18n/IdiomaContext';
 
 interface EvidenciaNovedad {
   id_evidencia_n: number;
@@ -39,9 +41,12 @@ interface EvidenciaNovedad {
 interface Novedad {
   id_novedad: number;
   tipo_novedad: string;
+  tipo_novedad_label?: string;
   descripcion_novedad: string;
   prioridad: string;
+  prioridad_label?: string;
   estado_novedad: string;
+  estado_novedad_label?: string;
   fecha_reporte: string | null;
   lugar_ocurrencia: string | null;
   evidencia_url: string | null;
@@ -109,18 +114,27 @@ const ICONO_PRIORIDAD: Record<string, string> = {
   urgente: '#ef4444', alta: '#f59e0b', normal: '#3b82f6', baja: '#6b7280',
 };
 
-const formatFecha = (f?: string | null) => {
+const formatFecha = (f: string | null | undefined, idioma: string) => {
   if (!f) return '—';
-  return new Date(f).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(f).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-const formatFechaCorta = (f?: string | null) => {
+const formatFechaCorta = (f: string | null | undefined, idioma: string) => {
   if (!f) return '—';
-  return new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(f).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 // Comunica con el backend mediante GET '/novedades', GET '/tecnicos', GET `/novedades/${id}` y otras peticiones de esta vista.
 const AdminNovedades = () => {
+  const { t, idioma } = useIdioma();
+  const traducirValor = (grupo: string, valor: string) => {
+    const clave = `novedades.admin.${grupo}.${valor}`;
+    const traduccion = t(clave);
+    return traduccion === clave ? valor : traduccion;
+  };
+  const traducirTipo = (tipo: string) => traducirValor('tipo', tipo);
+  const traducirEstado = (estado: string) => traducirValor('estado', estado);
+  const traducirPrioridad = (prioridad: string) => traducirValor('prioridad', prioridad);
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [tecnicos, setTecnicos] = useState<TecnicoSimple[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -181,7 +195,7 @@ const AdminNovedades = () => {
       setTecnicos(tecRes.data);
     } catch {
       if (!silencioso) setError(true);
-      else setToast({ msg: 'Error al cargar novedades', tipo: 'err' });
+      else setToast({ msg: t('novedades.admin.errorCargaToast'), tipo: 'err' });
     } finally {
       setCargando(false);
     }
@@ -268,7 +282,7 @@ const AdminNovedades = () => {
       setNuevoEstado(res.data.estado_novedad);
       setAccionDetalle('');
     } catch {
-      setToast({ msg: 'Error al cargar detalle', tipo: 'err' });
+      setToast({ msg: t('novedades.admin.detalleError'), tipo: 'err' });
     }
   };
 
@@ -280,18 +294,18 @@ const AdminNovedades = () => {
         nuevo_estado: nuevoEstado,
         accion_detalle: accionDetalle || undefined,
       });
-      setToast({ msg: 'Estado actualizado', tipo: 'ok' });
+      setToast({ msg: t('novedades.admin.estadoActualizado'), tipo: 'ok' });
       setDetalle(null);
       await cargar();
     } catch (err: any) {
-      setToast({ msg: err?.response?.data?.detail || 'Error', tipo: 'err' });
+      setToast({ msg: err?.response?.data?.detail || t('novedades.admin.errorGenerico'), tipo: 'err' });
     }
   };
 
   // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/cupon`.
   const generarCupon = async () => {
     if (!detalle || !cuponCodigo.trim() || !cuponValor || generandoCupon) {
-      setToast({ msg: 'Completa código y valor del cupón', tipo: 'err' });
+      setToast({ msg: t('novedades.admin.cuponCamposObligatorios'), tipo: 'err' });
       return;
     }
     setGenerandoCupon(true);
@@ -303,7 +317,7 @@ const AdminNovedades = () => {
         fecha_vencimiento: cuponVence || undefined,
         usos_maximos: Number.parseInt(cuponUsos) || 1,
       });
-      setToast({ msg: 'Cupón generado y cliente notificado', tipo: 'ok' });
+      setToast({ msg: t('novedades.admin.cuponGenerado'), tipo: 'ok' });
       setMostrarCupon(false);
       setCuponCodigo('');
       setCuponValor('');
@@ -311,7 +325,7 @@ const AdminNovedades = () => {
       await cargar();
       await abrirDetalle(detalle.id_novedad);
     } catch (err: any) {
-      setToast({ msg: err?.response?.data?.detail || 'Error al crear cupón', tipo: 'err' });
+      setToast({ msg: err?.response?.data?.detail || t('novedades.admin.errorCrearCupon'), tipo: 'err' });
     } finally {
       setGenerandoCupon(false);
     }
@@ -320,7 +334,7 @@ const AdminNovedades = () => {
   // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/responder`.
   const enviarRespuesta = async () => {
     if (!detalle || !respuestaAdmin.trim()) {
-      setToast({ msg: 'Escribe una respuesta', tipo: 'err' });
+      setToast({ msg: t('novedades.admin.escribeRespuesta'), tipo: 'err' });
       return;
     }
     setEnviandoRespuesta(true);
@@ -328,12 +342,12 @@ const AdminNovedades = () => {
       await api.post(`/novedades/${detalle.id_novedad}/responder`, {
         respuesta: respuestaAdmin.trim(),
       });
-      setToast({ msg: 'Respuesta enviada y técnico notificado', tipo: 'ok' });
+      setToast({ msg: t('novedades.admin.respuestaTecnicoNotificado'), tipo: 'ok' });
       setRespuestaAdmin('');
       await cargar();
       await abrirDetalle(detalle.id_novedad);
     } catch (err: any) {
-      setToast({ msg: err?.response?.data?.detail || 'Error al responder', tipo: 'err' });
+      setToast({ msg: err?.response?.data?.detail || t('novedades.admin.errorResponder'), tipo: 'err' });
     } finally {
       setEnviandoRespuesta(false);
     }
@@ -342,7 +356,7 @@ const AdminNovedades = () => {
   // Comunica con el backend mediante POST `/novedades/${detalle.id_novedad}/mensaje-cliente`.
   const enviarMensajeCliente = async () => {
     if (!detalle || !mensajeCliente.trim()) {
-      setToast({ msg: 'Escribe un mensaje para el cliente', tipo: 'err' });
+      setToast({ msg: t('novedades.admin.escribeMensajeCliente'), tipo: 'err' });
       return;
     }
     setEnviandoMensaje(true);
@@ -352,14 +366,14 @@ const AdminNovedades = () => {
         solucion_cliente: solucionCliente.trim() || undefined,
         cliente_visible: clienteVisible,
       });
-      setToast({ msg: 'Mensaje y solución enviados al cliente', tipo: 'ok' });
+      setToast({ msg: t('novedades.admin.solucionEnviada'), tipo: 'ok' });
       setMensajeCliente('');
       setSolucionCliente('');
       setClienteVisible(false);
       await abrirDetalle(detalle.id_novedad);
       await cargar();
     } catch (err: any) {
-      setToast({ msg: err?.response?.data?.detail || 'Error al enviar mensaje', tipo: 'err' });
+      setToast({ msg: err?.response?.data?.detail || t('novedades.admin.errorEnviarMensaje'), tipo: 'err' });
     } finally {
       setEnviandoMensaje(false);
     }
@@ -368,7 +382,7 @@ const AdminNovedades = () => {
   // Comunica con el backend mediante PUT `/novedades/${detalle.id_novedad}/cambiar-tecnico`.
   const cambiarTecnico = async () => {
     if (!detalle || !nuevoTecnicoId) {
-      setToast({ msg: 'Selecciona un técnico', tipo: 'err' });
+      setToast({ msg: t('novedades.admin.seleccionaTecnicoError'), tipo: 'err' });
       return;
     }
     setEnviandoCambio(true);
@@ -377,14 +391,14 @@ const AdminNovedades = () => {
         id_nuevo_tecnico: Number.parseInt(nuevoTecnicoId),
         motivo: motivoCambio.trim() || undefined,
       });
-      setToast({ msg: 'Técnico cambiado y notificaciones enviadas', tipo: 'ok' });
+      setToast({ msg: t('novedades.admin.tecnicoNotificado'), tipo: 'ok' });
       setMostrarCambioTecnico(false);
       setNuevoTecnicoId('');
       setMotivoCambio('');
       await cargar();
       await abrirDetalle(detalle.id_novedad);
     } catch (err: any) {
-      setToast({ msg: err?.response?.data?.detail || 'Error al cambiar técnico', tipo: 'err' });
+      setToast({ msg: err?.response?.data?.detail || t('novedades.admin.errorCambiarTecnico'), tipo: 'err' });
     } finally {
       setEnviandoCambio(false);
     }
@@ -402,15 +416,15 @@ const AdminNovedades = () => {
         <div>
           <h1 className="ap-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <FaShieldHalved style={{ color: '#d4a54b' }} />
-            Historial de novedades
+            {t('novedades.admin.titulo')}
           </h1>
           <p className="ap-subtitle">
-            Gestiona los reportes de los técnicos, responde y genera compensaciones
+            {t('novedades.admin.subtitulo')}
           </p>
         </div>
         <div className="ap-header-right">
           <span style={{ color: '#9f9f9f', fontSize: '0.85rem' }}>
-            {filtradas.length} de {novedades.length} novedades
+            {t('novedades.admin.contador', { visibles: filtradas.length, total: novedades.length })}
           </span>
         </div>
       </div>
@@ -424,7 +438,7 @@ const AdminNovedades = () => {
             exit={{ opacity: 0, y: -10 }}
             className={`ap-toast ${toast.tipo}`}
           >
-            {toast.msg}
+            <LocalizedNotificationText message={toast.msg} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -438,7 +452,7 @@ const AdminNovedades = () => {
             className={`ap-pill ${filtroEstado === e ? 'active' : ''}`}
             onClick={() => setFiltroEstado(filtroEstado === e ? '' : e)}
           >
-            {e}
+            {traducirEstado(e)}
             <span className="ap-pill-count">{contarPorEstado[e] || 0}</span>
           </button>
         ))}
@@ -450,24 +464,24 @@ const AdminNovedades = () => {
           <FaMagnifyingGlass />
           <input
             type="text"
-            placeholder="Buscar por técnico, cliente, tipo, descripción..."
+            placeholder={t('novedades.admin.buscarPlaceholder')}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
         </div>
 
         <select className="ap-filtro-estado" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
-          <option value="">Todos los tipos</option>
-          {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
+          <option value="">{t('novedades.admin.todosTipos')}</option>
+          {TIPOS.map((tipo) => <option key={tipo} value={tipo}>{traducirTipo(tipo)}</option>)}
         </select>
 
         <select className="ap-filtro-estado" value={filtroPrioridad} onChange={(e) => setFiltroPrioridad(e.target.value)}>
-          <option value="">Todas las prioridades</option>
-          {PRIORIDADES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+          <option value="">{t('novedades.admin.todasPrioridades')}</option>
+          {PRIORIDADES.map((p) => <option key={p} value={p}>{traducirPrioridad(p)}</option>)}
         </select>
 
         <select className="ap-filtro-estado" value={filtroTecnico} onChange={(e) => setFiltroTecnico(e.target.value)}>
-          <option value="">Todos los técnicos</option>
+          <option value="">{t('novedades.admin.todosTecnicos')}</option>
           {tecnicos.map((t) => (
             <option key={t.id_tecnico} value={t.id_tecnico}>
               {[t.first_name, t.last_name].filter(Boolean).join(' ')}
@@ -476,24 +490,24 @@ const AdminNovedades = () => {
         </select>
 
         <select className="ap-filtro-estado" value={filtroRelacion} onChange={(e) => setFiltroRelacion(e.target.value)}>
-          <option value="">Todos los origenes</option>
-          <option value="pedido">Solo Pedidos</option>
-          <option value="cita">Solo Citas</option>
-          <option value="pedido_cita">Pedido + Cita</option>
-          <option value="devolucion">Solo Devoluciones</option>
+          <option value="">{t('novedades.admin.todosOrigenes')}</option>
+          <option value="pedido">{t('novedades.admin.soloPedidos')}</option>
+          <option value="cita">{t('novedades.admin.soloCitas')}</option>
+          <option value="pedido_cita">{t('novedades.admin.pedidoCita')}</option>
+          <option value="devolucion">{t('novedades.admin.soloDevoluciones')}</option>
         </select>
 
         <select className="ap-filtro-estado" value={filtroConEvidencia} onChange={(e) => setFiltroConEvidencia(e.target.value)}>
-          <option value="">Todas las evidencias</option>
-          <option value="si">Con evidencia</option>
-          <option value="no">Sin evidencia</option>
+          <option value="">{t('novedades.admin.todasEvidencias')}</option>
+          <option value="si">{t('novedades.admin.conEvidencia')}</option>
+          <option value="no">{t('novedades.admin.sinEvidencia')}</option>
         </select>
 
         <div className="ap-search" style={{ maxWidth: 160 }}>
           <FaUser style={{ position: 'absolute', left: 12, color: '#8f8f8f', fontSize: '0.8rem', pointerEvents: 'none' }} />
           <input
             type="number"
-            placeholder="# Cliente"
+            placeholder={t('novedades.admin.buscarClienteId')}
             value={filtroCliente}
             onChange={(e) => setFiltroCliente(e.target.value)}
             style={{ paddingLeft: 34 }}
@@ -504,7 +518,7 @@ const AdminNovedades = () => {
           <FaFileInvoice style={{ position: 'absolute', left: 12, color: '#8f8f8f', fontSize: '0.8rem', pointerEvents: 'none' }} />
           <input
             type="number"
-            placeholder="# Pedido"
+            placeholder={t('novedades.admin.buscarPedidoId')}
             value={filtroPedido}
             onChange={(e) => setFiltroPedido(e.target.value)}
             style={{ paddingLeft: 34 }}
@@ -518,7 +532,7 @@ const AdminNovedades = () => {
             style={{ fontSize: '0.8rem', padding: '8px 14px' }}
             onClick={limpiarFiltros}
           >
-            <FaRotateLeft /> Limpiar
+            <FaRotateLeft /> {t('novedades.admin.limpiar')}
           </button>
         )}
       </div>
@@ -527,17 +541,17 @@ const AdminNovedades = () => {
       {cargando ? (
         <div className="ap-states">
           <div className="ap-loader" />
-          <p>Cargando novedades...</p>
+          <p>{t('novedades.admin.cargando')}</p>
         </div>
       ) : error ? (
         <div className="ap-states error">
           <div className="ap-states-icon">
             <FaCircleInfo />
           </div>
-          <h3>No se pudieron cargar las novedades</h3>
-          <p>Ocurrió un error al comunicarse con el servidor.</p>
+          <h3>{t('novedades.admin.errorCargaTitulo')}</h3>
+          <p>{t('novedades.admin.errorCargaDetalle')}</p>
           <button type="button" className="ap-btn ap-btn-primary" onClick={() => cargar()}>
-            <FaRotateLeft /> Reintentar
+            <FaRotateLeft /> {t('novedades.admin.reintentar')}
           </button>
         </div>
       ) : filtradas.length === 0 ? (
@@ -545,15 +559,15 @@ const AdminNovedades = () => {
           <div className="ap-states-icon">
             <FaShieldHalved />
           </div>
-          <h3>{hayFiltros ? 'Sin resultados' : 'Sin novedades aun'}</h3>
+          <h3>{hayFiltros ? t('novedades.admin.sinResultados') : t('novedades.admin.sinNovedades')}</h3>
           <p>
             {hayFiltros
-              ? 'No se encontraron novedades con los filtros seleccionados. Prueba ajustar la busqueda.'
-              : 'Aun no se han reportado novedades por los tecnicos.'}
+              ? t('novedades.admin.sinResultadosDetalle')
+              : t('novedades.admin.sinNovedadesDetalle')}
           </p>
           {hayFiltros && (
             <button type="button" className="ap-btn ap-btn-primary" onClick={limpiarFiltros}>
-              <FaRotateLeft /> Limpiar filtros
+              <FaRotateLeft /> {t('novedades.admin.limpiarFiltros')}
             </button>
           )}
         </div>
@@ -564,16 +578,16 @@ const AdminNovedades = () => {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Tipo</th>
-                <th>Tecnico</th>
-                <th>Cliente</th>
-                <th>Origen</th>
-                <th>Prioridad</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th>Mensaje</th>
-                <th>Solución</th>
-                <th>Acciones</th>
+                <th>{t('novedades.admin.col.tipo')}</th>
+                <th>{t('novedades.admin.col.tecnico')}</th>
+                <th>{t('novedades.admin.col.cliente')}</th>
+                <th>{t('novedades.admin.col.origen')}</th>
+                <th>{t('novedades.admin.col.prioridad')}</th>
+                <th>{t('novedades.admin.col.estado')}</th>
+                <th>{t('novedades.admin.col.fecha')}</th>
+                <th>{t('novedades.admin.col.mensaje')}</th>
+                <th>{t('novedades.admin.col.solucion')}</th>
+                <th>{t('novedades.admin.col.acciones')}</th>
               </tr>
             </thead>
             <tbody>
@@ -581,7 +595,7 @@ const AdminNovedades = () => {
                 <tr key={n.id_novedad}>
                   <td style={{ fontWeight: 700, color: '#d4a54b' }}>{numeroFila(idx)}</td>
                   <td>
-                    <span style={{ fontSize: '0.85rem' }}>{n.tipo_novedad}</span>
+                    <span style={{ fontSize: '0.85rem' }}>{n.tipo_novedad_label || traducirTipo(n.tipo_novedad)}</span>
                     <span style={{ display: 'block', fontSize: '0.7rem', color: '#8f8f8f' }}>ID {n.id_novedad}</span>
                   </td>
                   <td>
@@ -600,14 +614,14 @@ const AdminNovedades = () => {
                       </span>
                     ) : n.id_cita ? (
                       <span className="ap-badge proceso" style={{ fontSize: '0.7rem' }}>
-                        <FaCalendarCheck style={{ fontSize: '0.6rem' }} /> Cita #{n.id_cita}
+                        <FaCalendarCheck style={{ fontSize: '0.6rem' }} /> {t('novedades.admin.cita')} #{n.id_cita}
                       </span>
                     ) : n.id_devolucion ? (
                       <span className="ap-badge warn" style={{ fontSize: '0.7rem' }}>
-                        <FaBoxOpen style={{ fontSize: '0.6rem' }} /> Dev #{n.id_devolucion}
+                        <FaBoxOpen style={{ fontSize: '0.6rem' }} /> {t('novedades.admin.devolucion')} #{n.id_devolucion}
                       </span>
                     ) : (
-                      <span className="ap-badge neutral" style={{ fontSize: '0.7rem' }}>Sin origen</span>
+                      <span className="ap-badge neutral" style={{ fontSize: '0.7rem' }}>{t('novedades.admin.sinOrigen')}</span>
                     )}
                   </td>
                   <td>
@@ -616,16 +630,16 @@ const AdminNovedades = () => {
                         width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
                         background: ICONO_PRIORIDAD[n.prioridad] || '#6b7280',
                       }} />
-                      {n.prioridad}
+                      {n.prioridad_label || traducirPrioridad(n.prioridad)}
                     </span>
                   </td>
                   <td>
                     <span className={`ap-badge ${CLASE_ESTADO[n.estado_novedad] || 'neutral'}`}>
-                      {n.estado_novedad}
+                      {n.estado_novedad_label || traducirEstado(n.estado_novedad)}
                     </span>
                   </td>
                   <td style={{ fontSize: '0.82rem', color: '#9f9f9f', whiteSpace: 'nowrap' }}>
-                    {formatFechaCorta(n.fecha_reporte)}
+                    {formatFechaCorta(n.fecha_reporte, idioma)}
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
                     {n.mensaje_cliente ? (
@@ -648,7 +662,7 @@ const AdminNovedades = () => {
                       style={{ fontSize: '0.78rem', padding: '5px 12px' }}
                       onClick={() => abrirDetalle(n.id_novedad)}
                     >
-                      <FaEye /> Ver detalle
+                      <FaEye /> {t('novedades.admin.verDetalle')}
                     </button>
                   </td>
                 </tr>
@@ -682,13 +696,13 @@ const AdminNovedades = () => {
               <div className="ap-modal-head" style={{ padding: 0 }}>
                 <div>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
-                    <span style={{ color: '#d4a54b' }}>Novedad #{detalle.id_novedad}</span>
+                    <span style={{ color: '#d4a54b' }}>{t('novedades.admin.detalle', { id: detalle.id_novedad })}</span>
                     <span className={`ap-badge ${CLASE_ESTADO[detalle.estado_novedad] || 'neutral'}`}>
-                      {detalle.estado_novedad}
+                      {detalle.estado_novedad_label || traducirEstado(detalle.estado_novedad)}
                     </span>
                   </h3>
                   <p style={{ margin: '4px 0 0', color: '#8f8f8f', fontSize: '0.82rem' }}>
-                    {formatFecha(detalle.fecha_reporte)}
+                    {formatFecha(detalle.fecha_reporte, idioma)}
                   </p>
                 </div>
                 <button
@@ -705,44 +719,44 @@ const AdminNovedades = () => {
                 {/* Info cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 18 }}>
                   <div className="ap-def">
-                    <div className="ap-def-label"><FaTag style={{ marginRight: 4 }} />Tipo</div>
-                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad}</div>
+                    <div className="ap-def-label"><FaTag style={{ marginRight: 4 }} />{t('novedades.admin.col.tipo')}</div>
+                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad_label || traducirTipo(detalle.tipo_novedad)}</div>
                   </div>
                   <div className="ap-def">
-                    <div className="ap-def-label">Prioridad</div>
+                    <div className="ap-def-label">{t('novedades.admin.col.prioridad')}</div>
                     <div className="ap-def-value">
                       <span className={`ap-badge ${CLASE_PRIORIDAD[detalle.prioridad] || 'neutral'}`} style={{ fontSize: '0.75rem' }}>
                         <span style={{
                           width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
                           background: ICONO_PRIORIDAD[detalle.prioridad] || '#6b7280',
                         }} />
-                        {detalle.prioridad}
+                        {detalle.prioridad_label || traducirPrioridad(detalle.prioridad)}
                       </span>
                     </div>
                   </div>
                   <div className="ap-def">
-                    <div className="ap-def-label"><FaTruck style={{ marginRight: 4 }} />Tecnico</div>
+                    <div className="ap-def-label"><FaTruck style={{ marginRight: 4 }} />{t('novedades.admin.col.tecnico')}</div>
                     <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tecnico_nombre || '—'}</div>
                   </div>
                   <div className="ap-def">
-                    <div className="ap-def-label"><FaUser style={{ marginRight: 4 }} />Cliente</div>
+                    <div className="ap-def-label"><FaUser style={{ marginRight: 4 }} />{t('novedades.admin.col.cliente')}</div>
                     <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.cliente_nombre || '—'}</div>
                   </div>
                   {detalle.id_pedido && (
                     <div className="ap-def">
-                      <div className="ap-def-label"><FaFileInvoice style={{ marginRight: 4 }} />Pedido</div>
+                      <div className="ap-def-label"><FaFileInvoice style={{ marginRight: 4 }} />{t('novedades.admin.pedido')}</div>
                       <div className="ap-def-value" style={{ fontSize: '0.85rem', color: '#8ab4f8' }}>#{detalle.id_pedido}</div>
                     </div>
                   )}
                   {detalle.id_cita && (
                     <div className="ap-def">
-                      <div className="ap-def-label"><FaCalendarCheck style={{ marginRight: 4 }} />Cita</div>
+                      <div className="ap-def-label"><FaCalendarCheck style={{ marginRight: 4 }} />{t('novedades.admin.cita')}</div>
                       <div className="ap-def-value" style={{ fontSize: '0.85rem', color: '#c9a7ff' }}>#{detalle.id_cita}</div>
                     </div>
                   )}
                   {detalle.id_devolucion && (
                     <div className="ap-def">
-                      <div className="ap-def-label"><FaBoxOpen style={{ marginRight: 4 }} />Devolución</div>
+                      <div className="ap-def-label"><FaBoxOpen style={{ marginRight: 4 }} />{t('novedades.admin.devolucion')}</div>
                       <div className="ap-def-value" style={{ fontSize: '0.85rem', color: '#f59e0b' }}>#{detalle.id_devolucion}</div>
                     </div>
                   )}
@@ -759,7 +773,7 @@ const AdminNovedades = () => {
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <FaCircleInfo style={{ color: '#d4a54b', fontSize: '0.85rem' }} />
-                    <strong style={{ fontSize: '0.85rem', color: '#e6e6e6' }}>Descripcion</strong>
+                    <strong style={{ fontSize: '0.85rem', color: '#e6e6e6' }}>{t('novedades.admin.descripcion')}</strong>
                   </div>
                   <p style={{ margin: 0, color: '#bdbdbd', fontSize: '0.88rem', lineHeight: 1.65 }}>{detalle.descripcion_novedad}</p>
                 </div>
@@ -768,16 +782,16 @@ const AdminNovedades = () => {
                 {detalle.evidencias && detalle.evidencias.length > 0 && (
                   <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                     <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <FaCamera style={{ color: '#d4a54b' }} /> Evidencia ({detalle.evidencias.length})
+                      <FaCamera style={{ color: '#d4a54b' }} /> {t('novedades.admin.evidencia')} ({detalle.evidencias.length})
                     </h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {detalle.evidencias.map((ev) => (
                         <div key={ev.id_evidencia_n}
                           style={{ display: 'block', width: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <AuthImage src={ev.url} alt="Evidencia" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
+                          <AuthImage src={ev.url} alt={t('novedades.admin.evidencia')} style={{ width: '100%', height: 90, objectFit: 'cover' }} />
                           {ev.fecha_subida && (
                             <div style={{ padding: '3px 6px', fontSize: '0.65rem', color: '#8f8f8f', textAlign: 'center', background: 'rgba(0,0,0,0.4)' }}>
-                              {formatFechaCorta(ev.fecha_subida)}
+                              {formatFechaCorta(ev.fecha_subida, idioma)}
                             </div>
                           )}
                         </div>
@@ -791,7 +805,7 @@ const AdminNovedades = () => {
                   <div style={{ padding: '12px 14px', background: 'rgba(46, 160, 67, 0.08)', border: '1px solid rgba(46, 160, 67, 0.3)', borderRadius: 10, marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <FaCheck style={{ color: '#46d06f', fontSize: '0.8rem' }} />
-                      <strong style={{ fontSize: '0.82rem', color: '#46d06f' }}>Accion del admin</strong>
+                      <strong style={{ fontSize: '0.82rem', color: '#46d06f' }}>{t('novedades.admin.accionAdmin')}</strong>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9' }}>{detalle.accion_admin}</p>
                   </div>
@@ -802,16 +816,16 @@ const AdminNovedades = () => {
                   <div style={{ padding: '12px 14px', background: 'rgba(255, 200, 50, 0.08)', border: '1px solid rgba(255, 200, 50, 0.3)', borderRadius: 10, marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <FaPaperPlane style={{ color: '#f5c542', fontSize: '0.8rem' }} />
-                      <strong style={{ fontSize: '0.82rem', color: '#f5c542' }}>Mensaje al cliente</strong>
+                      <strong style={{ fontSize: '0.82rem', color: '#f5c542' }}>{t('novedades.admin.mensajeCliente')}</strong>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9', lineHeight: 1.5 }}>{detalle.mensaje_cliente}</p>
                     {detalle.solucion_cliente && (
                       <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(46, 160, 67, 0.06)', borderRadius: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                           <FaCheck style={{ color: '#46d06f', fontSize: '0.75rem' }} />
-                          <strong style={{ fontSize: '0.8rem', color: '#46d06f' }}>Solución</strong>
+                          <strong style={{ fontSize: '0.8rem', color: '#46d06f' }}>{t('novedades.admin.col.solucion')}</strong>
                           <span style={{ fontSize: '0.7rem', color: '#8f8f8f', marginLeft: 'auto' }}>
-                            {detalle.cliente_visible ? 'Visible para cliente' : 'Oculto'}
+                            {detalle.cliente_visible ? t('novedades.admin.visibleCliente') : t('novedades.admin.oculto')}
                           </span>
                         </div>
                         <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9', lineHeight: 1.5 }}>{detalle.solucion_cliente}</p>
@@ -822,12 +836,12 @@ const AdminNovedades = () => {
 
                 {detalle.cupon && (
                   <div style={{ padding: '12px 14px', background: 'rgba(212,165,75,.1)', border: '1px dashed rgba(212,165,75,.55)', borderRadius: 10, marginBottom: 18 }}>
-                    <strong style={{ color: '#f1d27b' }}>Cupón creado: {detalle.cupon.codigo}</strong>
+                    <strong style={{ color: '#f1d27b' }}>{t('novedades.admin.cuponCreado', { codigo: detalle.cupon.codigo })}</strong>
                     <p style={{ margin: '5px 0 0', color: '#ddd' }}>
                       {detalle.cupon.tipo_descuento === 'porcentaje'
-                        ? `${detalle.cupon.valor_descuento}% de descuento`
-                        : `${Number(detalle.cupon.valor_descuento).toLocaleString('es-CO')} COP de descuento`}
-                      {' · '}{detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos ? 'Disponible' : 'No disponible'}
+                        ? t('novedades.admin.descuento', { valor: detalle.cupon.valor_descuento })
+                        : t('novedades.admin.descuentoFijo', { valor: Number(detalle.cupon.valor_descuento).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CO') })}
+                      {' · '}{detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos ? t('novedades.admin.disponible') : t('novedades.admin.noDisponible')}
                     </p>
                   </div>
                 )}
@@ -835,7 +849,7 @@ const AdminNovedades = () => {
                 {/* Cambiar estado */}
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FaCheck style={{ color: '#d4a54b' }} /> Cambiar estado
+                    <FaCheck style={{ color: '#d4a54b' }} /> {t('novedades.admin.cambiarEstado')}
                   </h4>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     <select
@@ -844,12 +858,12 @@ const AdminNovedades = () => {
                       onChange={(e) => setNuevoEstado(e.target.value)}
                       style={{ minWidth: 160 }}
                     >
-                      {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+                      {ESTADOS.map((e) => <option key={e} value={e}>{traducirEstado(e)}</option>)}
                     </select>
                     <input
                       type="text"
                       className="ap-form-input"
-                      placeholder="Comentario o accion (opcional)"
+                      placeholder={t('novedades.admin.comentarioPlaceholder')}
                       value={accionDetalle}
                       onChange={(e) => setAccionDetalle(e.target.value)}
                       style={{ flex: 1, minWidth: 200, height: 40 }}
@@ -861,7 +875,7 @@ const AdminNovedades = () => {
                       onClick={guardarEstado}
                       style={{ height: 40 }}
                     >
-                      <FaCheck /> Guardar
+                      <FaCheck /> {t('novedades.admin.guardar')}
                     </button>
                   </div>
                 </div>
@@ -869,12 +883,12 @@ const AdminNovedades = () => {
                 {/* Responder novedad */}
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FaPaperPlane style={{ color: '#d4a54b' }} /> Responder novedad
+                    <FaPaperPlane style={{ color: '#d4a54b' }} /> {t('novedades.admin.responderNovedad')}
                   </h4>
                   <textarea
                     className="ap-form-textarea"
                     rows={2}
-                    placeholder="Escribe una respuesta o instrucción para el técnico..."
+                    placeholder={t('novedades.admin.respuestaPlaceholder')}
                     value={respuestaAdmin}
                     onChange={(e) => setRespuestaAdmin(e.target.value)}
                     style={{ marginBottom: 10 }}
@@ -886,19 +900,19 @@ const AdminNovedades = () => {
                     onClick={enviarRespuesta}
                     style={{ height: 36 }}
                   >
-                    <FaPaperPlane /> {enviandoRespuesta ? 'Enviando...' : 'Enviar respuesta'}
+                    <FaPaperPlane /> {enviandoRespuesta ? t('novedades.admin.enviando') : t('novedades.admin.enviarRespuesta')}
                   </button>
                 </div>
 
                 {/* Enviar mensaje/solución al cliente */}
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FaPaperPlane style={{ color: '#f5c542' }} /> Enviar solución al cliente
+                    <FaPaperPlane style={{ color: '#f5c542' }} /> {t('novedades.admin.enviarSolucion')}
                   </h4>
                   <textarea
                     className="ap-form-textarea"
                     rows={2}
-                    placeholder="Mensaje para el cliente (obligatorio)"
+                    placeholder={t('novedades.admin.mensajeObligatorio')}
                     value={mensajeCliente}
                     onChange={(e) => setMensajeCliente(e.target.value)}
                     style={{ marginBottom: 8 }}
@@ -906,7 +920,7 @@ const AdminNovedades = () => {
                   <textarea
                     className="ap-form-textarea"
                     rows={2}
-                    placeholder="Solución detallada (opcional)"
+                    placeholder={t('novedades.admin.solucionOpcional')}
                     value={solucionCliente}
                     onChange={(e) => setSolucionCliente(e.target.value)}
                     style={{ marginBottom: 10 }}
@@ -917,7 +931,7 @@ const AdminNovedades = () => {
                       checked={clienteVisible}
                       onChange={(e) => setClienteVisible(e.target.checked)}
                     />
-                    Hacer visible para el cliente
+                    {t('novedades.admin.hacerVisible')}
                   </label>
                   <button
                     type="button"
@@ -926,7 +940,7 @@ const AdminNovedades = () => {
                     disabled={enviandoMensaje || !mensajeCliente.trim()}
                     onClick={enviarMensajeCliente}
                   >
-                    <FaPaperPlane /> {enviandoMensaje ? 'Enviando...' : 'Enviar al cliente'}
+                    <FaPaperPlane /> {enviandoMensaje ? t('novedades.admin.enviando') : t('novedades.admin.enviarCliente')}
                   </button>
                 </div>
 
@@ -935,7 +949,7 @@ const AdminNovedades = () => {
                   <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                       <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <FaUserGear style={{ color: '#d4a54b' }} /> Cambiar técnico
+                        <FaUserGear style={{ color: '#d4a54b' }} /> {t('novedades.admin.cambiarTecnico')}
                       </h4>
                       <button
                         type="button"
@@ -943,7 +957,7 @@ const AdminNovedades = () => {
                         style={{ fontSize: '0.8rem', padding: '7px 14px' }}
                         onClick={() => setMostrarCambioTecnico(!mostrarCambioTecnico)}
                       >
-                        <FaUserGear /> {mostrarCambioTecnico ? 'Cancelar' : 'Cambiar técnico'}
+                        <FaUserGear /> {mostrarCambioTecnico ? t('novedades.admin.cancelar') : t('novedades.admin.cambiarTecnico')}
                       </button>
                     </div>
                     <AnimatePresence>
@@ -961,7 +975,7 @@ const AdminNovedades = () => {
                               onChange={(e) => setNuevoTecnicoId(e.target.value)}
                               style={{ height: 40 }}
                             >
-                              <option value="">Seleccionar técnico...</option>
+                              <option value="">{t('novedades.admin.seleccionarTecnico')}</option>
                               {tecnicos.map((t) => (
                                 <option key={t.id_tecnico} value={t.id_tecnico}>
                                   {[t.first_name, t.last_name].filter(Boolean).join(' ')}
@@ -971,7 +985,7 @@ const AdminNovedades = () => {
                             <input
                               type="text"
                               className="ap-form-input"
-                              placeholder="Motivo del cambio (opcional)"
+                              placeholder={t('novedades.admin.motivoCambio')}
                               value={motivoCambio}
                               onChange={(e) => setMotivoCambio(e.target.value)}
                               style={{ height: 40 }}
@@ -983,7 +997,7 @@ const AdminNovedades = () => {
                               onClick={cambiarTecnico}
                               style={{ height: 40 }}
                             >
-                              <FaUserGear /> {enviandoCambio ? 'Cambiando...' : 'Confirmar cambio'}
+                              <FaUserGear /> {enviandoCambio ? t('novedades.admin.cambiando') : t('novedades.admin.confirmarCambio')}
                             </button>
                           </div>
                         </motion.div>
@@ -997,7 +1011,7 @@ const AdminNovedades = () => {
                   <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                       <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <FaTicket style={{ color: '#d4a54b' }} /> Compensacion al cliente
+                        <FaTicket style={{ color: '#d4a54b' }} /> {t('novedades.admin.compensacion')}
                       </h4>
                       <button
                         type="button"
@@ -1005,7 +1019,7 @@ const AdminNovedades = () => {
                         style={{ fontSize: '0.8rem', padding: '7px 14px' }}
                         onClick={() => setMostrarCupon(!mostrarCupon)}
                       >
-                        <FaTicket /> {mostrarCupon ? 'Cancelar' : 'Generar cupon'}
+                        <FaTicket /> {mostrarCupon ? t('novedades.admin.cancelar') : t('novedades.admin.generarCupon')}
                       </button>
                     </div>
                     <AnimatePresence>
@@ -1020,19 +1034,19 @@ const AdminNovedades = () => {
                             <input
                               type="text"
                               className="ap-form-input"
-                              placeholder="Codigo (ej: DEMORA123)"
+                              placeholder={t('novedades.admin.codigoEjemplo')}
                               value={cuponCodigo}
                               onChange={(e) => setCuponCodigo(e.target.value.toUpperCase())}
                               style={{ height: 40 }}
                             />
                             <select className="ap-filtro-estado" value={cuponTipo} onChange={(e) => setCuponTipo(e.target.value)} style={{ height: 40 }}>
-                              <option value="porcentaje">Porcentaje (%)</option>
-                              <option value="fijo">Valor fijo (COP)</option>
+                              <option value="porcentaje">{t('novedades.admin.porcentaje')}</option>
+                              <option value="fijo">{t('novedades.admin.valorFijo')}</option>
                             </select>
                             <input
                               type="number"
                               className="ap-form-input"
-                              placeholder="Valor"
+                              placeholder={t('novedades.admin.valor')}
                               value={cuponValor}
                               onChange={(e) => setCuponValor(e.target.value)}
                               style={{ height: 40 }}
@@ -1047,14 +1061,14 @@ const AdminNovedades = () => {
                             <input
                               type="number"
                               className="ap-form-input"
-                              placeholder="Usos maximos"
+                              placeholder={t('novedades.admin.usosMaximos')}
                               value={cuponUsos}
                               onChange={(e) => setCuponUsos(e.target.value)}
                               min={1}
                               style={{ height: 40 }}
                             />
                             <button type="button" className="ap-btn ap-btn-primary" onClick={generarCupon} disabled={generandoCupon} style={{ height: 40 }}>
-                              <FaTicket /> {generandoCupon ? 'Creando…' : 'Crear cupón'}
+                              <FaTicket /> {generandoCupon ? t('novedades.admin.creando') : t('novedades.admin.crearCupon')}
                             </button>
                           </div>
                         </motion.div>
@@ -1067,7 +1081,7 @@ const AdminNovedades = () => {
                 {detalle.historial && detalle.historial.length > 0 && (
                   <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 6 }}>
                     <h4 style={{ margin: '0 0 14px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <FaClockRotateLeft style={{ color: '#d4a54b' }} /> Historial
+                      <FaClockRotateLeft style={{ color: '#d4a54b' }} /> {t('novedades.admin.historial')}
                     </h4>
                     <div className="ap-historial-list">
                       {detalle.historial.map((h, idx) => (
@@ -1083,14 +1097,14 @@ const AdminNovedades = () => {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                               <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#e6e6e6' }}>{h.accion}</span>
-                              <span style={{ fontSize: '0.75rem', color: '#8f8f8f' }}>por {h.usuario_nombre || 'Sistema'}</span>
+                              <span style={{ fontSize: '0.75rem', color: '#8f8f8f' }}>{t('novedades.admin.porSistema', { usuario: h.usuario_nombre || t('novedades.admin.sistema') })}</span>
                             </div>
                             {h.detalle && (
                               <p style={{ margin: 0, fontSize: '0.82rem', color: '#bdbdbd', lineHeight: 1.5 }}>{h.detalle}</p>
                             )}
                           </div>
                           <span style={{ fontSize: '0.75rem', color: '#8f8f8f', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {formatFecha(h.fecha)}
+                            {formatFecha(h.fecha, idioma)}
                           </span>
                         </div>
                       ))}

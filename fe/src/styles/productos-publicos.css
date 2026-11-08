@@ -154,6 +154,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
   background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%);
   border: 1px solid rgba(211, 172, 77, 0.35);
   border-radius: 20px;
@@ -171,8 +172,10 @@
 
 .img-contenedor {
   position: relative;
-  height: 260px;
-  background: radial-gradient(circle at 50% 35%, rgba(30, 30, 30, 0.95) 0%, rgba(10, 10, 10, 0.95) 75%);
+  flex: 0 0 auto;
+  width: 100%;
+  height: clamp(210px, 18vw, 260px);
+  background-color: #101010;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -194,18 +197,22 @@
   align-items: center;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   box-sizing: border-box;
   padding: 22px;
 }
 
 .img-producto-wrap > a {
   display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
 .img-producto {
@@ -214,7 +221,11 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center;
+  border-radius: 12px;
   filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.4));
   transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -316,6 +327,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  box-sizing: border-box;
   gap: 10px;
 }
 
@@ -358,6 +370,8 @@
   border: 1px solid rgba(211, 172, 77, 0.35);
   border-radius: 999px;
   padding: 3px 11px;
+  min-height: 23px;
+  box-sizing: border-box;
   margin-bottom: 2px;
 }
 
@@ -374,6 +388,8 @@
   border: 1px solid rgba(211, 172, 77, 0.25);
   border-radius: 999px;
   padding: 2px 10px;
+  min-height: 18px;
+  box-sizing: border-box;
   margin-bottom: 4px;
 }
 
@@ -403,6 +419,7 @@
   letter-spacing: 0.4px;
   text-transform: uppercase;
   line-height: 1.4;
+  min-height: 1.4em;
 }
 
 .precio-producto {
@@ -455,6 +472,8 @@
   font-weight: 700;
   letter-spacing: 0.3px;
   margin-top: 4px;
+  min-height: 2.4em;
+  line-height: 1.25;
 }
 
 .subtotal-detalle-valor {
@@ -590,7 +609,7 @@
   flex-direction: column;
   justify-content: flex-end;
   width: 100%;
-  min-height: 79px;
+  min-height: 82px;
   gap: 8px;
   margin-top: auto;
 }
@@ -811,11 +830,11 @@
 
 .btn-agregar--footer {
   width: 100%;
-  flex: none;
   height: 42px;
   min-height: 42px;
   align-self: stretch;
   margin-top: 0;
+  flex: 0 0 42px;
 }
 
 .btn-agregar:hover {

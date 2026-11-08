@@ -27,6 +27,7 @@ export interface VarianteProducto {
 export interface Producto {
   id_producto: number;
   nombre_producto: string;
+  nombre_producto_label?: string;
   marca?: string | null;
   venta_por_metros?: boolean;
   referencia_producto?: string | null;
@@ -34,8 +35,11 @@ export interface Producto {
   imagen_url?: string | null;
   id_cate_pr?: number | null;
   nombre_categoria?: string | null;
+  nombre_categoria_label?: string | null;
   descripcion_producto?: string | null;
+  descripcion_producto_label?: string | null;
   caracteristicas_producto?: string | null;
+  caracteristicas_producto_label?: string | null;
   estado_producto?: string;
   stock_producto?: number;
   stock_estado?: 'disponible' | 'bajo' | 'agotado';

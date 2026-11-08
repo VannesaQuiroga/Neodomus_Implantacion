@@ -8,7 +8,7 @@ import api from '@services/api';
 // Comunica con el backend mediante POST '/auth/change-password'.
 const PasswordResetModal = () => {
   const { user, setPasswordResetRequired, logout } = useAuth();
-  const { idioma, t } = useIdioma();
+  const { t } = useIdioma();
 
   const [pwdActual, setPwdActual] = useState('');
   const [pwdNueva, setPwdNueva] = useState('');
@@ -31,12 +31,12 @@ const PasswordResetModal = () => {
   const strengthPercent = (strength / 5) * 100;
   const strengthColor = strength <= 2 ? '#e74c3c' : strength <= 3 ? '#f39c12' : strength <= 4 ? '#3498db' : '#2ecc71';
   const strengthLabel = strength <= 2
-    ? (idioma === 'en' ? 'Weak' : 'Debil')
+    ? t('perfil.password.debil')
     : strength <= 3
-    ? (idioma === 'en' ? 'Fair' : 'Regular')
+    ? t('perfil.password.regular')
     : strength <= 4
-    ? (idioma === 'en' ? 'Good' : 'Buena')
-    : (idioma === 'en' ? 'Strong' : 'Fuerte');
+    ? t('perfil.password.buena')
+    : t('perfil.password.fuerte');
 
   const canSubmit = pwdActual && pwdNueva && pwdConfirmar && strength === 5 && passwordsMatch && !loading;
 
@@ -55,15 +55,11 @@ const PasswordResetModal = () => {
       return;
     }
     if (strength < 5) {
-      setError(idioma === 'en'
-        ? 'The password does not meet all requirements'
-        : 'La contraseña no cumple todos los requisitos');
+      setError(t('perfil.password.requisitos'));
       return;
     }
     if (pwdActual === pwdNueva) {
-      setError(idioma === 'en'
-        ? 'The new password must be different from the current one'
-        : 'La nueva contraseña debe ser diferente a la actual');
+      setError(t('perfil.password.diferenteActual'));
       return;
     }
 
@@ -73,9 +69,7 @@ const PasswordResetModal = () => {
         current_password: pwdActual,
         new_password: pwdNueva,
       });
-      setSuccess(idioma === 'en'
-        ? 'Password updated successfully!'
-        : 'Contraseña actualizada correctamente');
+      setSuccess(t('perfil.contrasenaActualizada'));
       setPasswordResetRequired(false);
     } catch (err: any) {
       setError(err.response?.data?.detail || t('perfil.errorCambiarContrasena'));
@@ -94,12 +88,10 @@ const PasswordResetModal = () => {
         </div>
 
         <h2 className="pwd-reset-title">
-          {idioma === 'en' ? 'Welcome,' : 'Bienvenido,'} {nombre}
+          {t('perfil.password.bienvenido', { nombre })}
         </h2>
         <p className="pwd-reset-subtitle">
-          {idioma === 'en'
-            ? 'For security, you must change your temporary password before continuing.'
-            : 'Por seguridad, debes cambiar tu contraseña temporal antes de continuar.'}
+          {t('perfil.password.subtitulo')}
         </p>
 
         <form onSubmit={handleSubmit} className="pwd-reset-form">
@@ -111,7 +103,7 @@ const PasswordResetModal = () => {
                 type={showActual ? 'text' : 'password'}
                 value={pwdActual}
                 onChange={(e) => setPwdActual(e.target.value)}
-                placeholder={idioma === 'en' ? 'Current password' : 'Contraseña actual'}
+                placeholder={t('perfil.contrasenaActual')}
                 autoComplete="current-password"
               />
               <button type="button" className="pwd-reset-toggle" onClick={() => setShowActual(!showActual)}>
@@ -128,7 +120,7 @@ const PasswordResetModal = () => {
                 type={showNueva ? 'text' : 'password'}
                 value={pwdNueva}
                 onChange={(e) => setPwdNueva(e.target.value)}
-                placeholder={idioma === 'en' ? 'New password' : 'Nueva contraseña'}
+                placeholder={t('perfil.nuevaContrasena')}
                 autoComplete="new-password"
               />
               <button type="button" className="pwd-reset-toggle" onClick={() => setShowNueva(!showNueva)}>
@@ -149,11 +141,11 @@ const PasswordResetModal = () => {
                 {strengthLabel} ({strength}/5)
               </span>
               <div className="pwd-reset-checklist">
-                <span className={hasMinLength ? 'ok' : ''}>{hasMinLength ? '✓' : '○'} {idioma === 'en' ? '8+ characters' : '8+ caracteres'}</span>
-                <span className={hasUpper ? 'ok' : ''}>{hasUpper ? '✓' : '○'} {idioma === 'en' ? 'Uppercase' : 'Mayúscula'}</span>
-                <span className={hasLower ? 'ok' : ''}>{hasLower ? '✓' : '○'} {idioma === 'en' ? 'Lowercase' : 'Minúscula'}</span>
-                <span className={hasNumber ? 'ok' : ''}>{hasNumber ? '✓' : '○'} {idioma === 'en' ? 'Number' : 'Número'}</span>
-                <span className={hasSpecial ? 'ok' : ''}>{hasSpecial ? '✓' : '○'} {idioma === 'en' ? 'Special char' : 'Carácter especial'}</span>
+                <span className={hasMinLength ? 'ok' : ''}>{hasMinLength ? '✓' : '○'} {t('perfil.password.req8')}</span>
+                <span className={hasUpper ? 'ok' : ''}>{hasUpper ? '✓' : '○'} {t('perfil.password.reqMayuscula')}</span>
+                <span className={hasLower ? 'ok' : ''}>{hasLower ? '✓' : '○'} {t('perfil.password.reqMinuscula')}</span>
+                <span className={hasNumber ? 'ok' : ''}>{hasNumber ? '✓' : '○'} {t('perfil.password.reqNumero')}</span>
+                <span className={hasSpecial ? 'ok' : ''}>{hasSpecial ? '✓' : '○'} {t('perfil.password.reqEspecial')}</span>
               </div>
             </div>
           )}
@@ -166,7 +158,7 @@ const PasswordResetModal = () => {
                 type={showConfirmar ? 'text' : 'password'}
                 value={pwdConfirmar}
                 onChange={(e) => setPwdConfirmar(e.target.value)}
-                placeholder={idioma === 'en' ? 'Confirm new password' : 'Confirmar nueva contraseña'}
+                placeholder={t('perfil.confirmarNuevaContrasena')}
                 autoComplete="new-password"
               />
               <button type="button" className="pwd-reset-toggle" onClick={() => setShowConfirmar(!showConfirmar)}>
@@ -180,7 +172,7 @@ const PasswordResetModal = () => {
             )}
             {pwdConfirmar && passwordsMatch && (
               <p className="pwd-reset-hint ok">
-                {idioma === 'en' ? '✓ Passwords match' : '✓ Las contraseñas coinciden'}
+                {t('perfil.password.coinciden')}
               </p>
             )}
           </div>
@@ -190,13 +182,13 @@ const PasswordResetModal = () => {
 
           <button type="submit" className="pwd-reset-btn" disabled={!canSubmit}>
             {loading
-              ? (idioma === 'en' ? 'Saving...' : 'Guardando...')
-              : (idioma === 'en' ? 'Save new password' : 'Guardar nueva contraseña')}
+              ? t('perfil.password.guardando')
+              : t('perfil.password.guardar')}
           </button>
         </form>
 
         <button type="button" className="pwd-reset-logout" onClick={logout}>
-          {idioma === 'en' ? 'Sign out' : 'Cerrar sesión'}
+          {t('nav.cerrarSesion')}
         </button>
       </div>
     </div>

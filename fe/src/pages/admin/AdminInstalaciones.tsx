@@ -1,4 +1,5 @@
-﻿// Pantalla AdminInstalaciones de Neodomus. Reúne el estado y las acciones de su vista.
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
+// Pantalla AdminInstalaciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -1333,7 +1334,7 @@ const AdminInstalaciones = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo}`}>
           {toast.tipo === 'ok' ? <FaCircleCheck /> : <FaTriangleExclamation />}
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.section>

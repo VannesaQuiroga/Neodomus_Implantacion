@@ -602,6 +602,13 @@
   border-color: rgba(212, 165, 75, 0.28);
 }
 
+.scu-asunto {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
 .scu-card-top {
   display: flex;
   align-items: center;
@@ -651,6 +658,12 @@
   border: 1px solid rgba(61, 220, 132, 0.35);
 }
 
+.scu-estado.resuelta {
+  color: #3ddc84;
+  background: rgba(61, 220, 132, 0.1);
+  border: 1px solid rgba(61, 220, 132, 0.35);
+}
+
 .scu-datos {
   display: flex;
   flex-direction: column;
@@ -691,6 +704,35 @@
 
 .scu-acciones .solicitud-btn {
   padding: 10px 18px;
+}
+
+.scu-card-ayuda .scu-soporte-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 2px 0 18px;
+}
+
+.scu-card-ayuda .scu-soporte-acciones .solicitud-btn,
+.scu-card-ayuda .scu-respuesta-guardar .solicitud-btn {
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  gap: 6px;
+}
+
+.scu-card-ayuda .scu-respuesta-editor {
+  margin-bottom: 0;
+}
+
+.scu-card-ayuda .scu-respuesta-editor textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.scu-card-ayuda .scu-respuesta-guardar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 /* ── Responsive ───────────────────────────────────────────── */

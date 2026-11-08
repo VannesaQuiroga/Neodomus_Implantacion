@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla ClienteNovedades de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -34,9 +35,12 @@ interface EvidenciaNovedad {
 interface Novedad {
   id_novedad: number;
   tipo_novedad: string;
+  tipo_novedad_label?: string;
   descripcion_novedad: string;
   prioridad: string;
+  prioridad_label?: string;
   estado_novedad: string;
+  estado_novedad_label?: string;
   fecha_reporte: string | null;
   lugar_ocurrencia: string | null;
   evidencia_url: string | null;
@@ -203,7 +207,7 @@ const ClienteNovedades = () => {
             exit={{ opacity: 0, y: -10 }}
             className={`ap-toast ${toast.tipo}`}
           >
-            {toast.msg}
+            <LocalizedNotificationText message={toast.msg} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -314,16 +318,16 @@ const ClienteNovedades = () => {
               {filtradas.map((n) => (
                 <tr key={n.id_novedad}>
                   <td style={{ fontWeight: 700, color: '#d4a54b' }}>{n.id_novedad}</td>
-                  <td style={{ fontSize: '0.85rem' }}>{n.tipo_novedad}</td>
+                  <td style={{ fontSize: '0.85rem' }}>{n.tipo_novedad_label || n.tipo_novedad}</td>
                   <td style={{ fontSize: '0.85rem' }}>{n.tecnico_nombre || '—'}</td>
                   <td>
                     <span className={`ap-badge ${CLASE_ESTADO[n.estado_novedad] || 'neutral'}`}>
-                      {n.estado_novedad}
+                      {n.estado_novedad_label || n.estado_novedad}
                     </span>
                   </td>
                   <td>
                     <span className={`ap-badge ${CLASE_PRIORIDAD[n.prioridad] || 'neutral'}`} style={{ fontSize: '0.7rem' }}>
-                      {n.prioridad}
+                      {n.prioridad_label || n.prioridad}
                     </span>
                   </td>
                   <td style={{ fontSize: '0.82rem', color: '#9f9f9f' }}>{formatFechaCorta(n.fecha_reporte)}</td>
@@ -381,7 +385,7 @@ const ClienteNovedades = () => {
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
                     <span style={{ color: '#d4a54b' }}>Novedad #{detalle.id_novedad}</span>
                     <span className={`ap-badge ${CLASE_ESTADO[detalle.estado_novedad] || 'neutral'}`}>
-                      {detalle.estado_novedad}
+                      {detalle.estado_novedad_label || detalle.estado_novedad}
                     </span>
                   </h3>
                   <p style={{ margin: '4px 0 0', color: '#8f8f8f', fontSize: '0.82rem' }}>
@@ -397,7 +401,7 @@ const ClienteNovedades = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 18 }}>
                   <div className="ap-def">
                     <div className="ap-def-label"><FaTag style={{ marginRight: 4 }} />Tipo</div>
-                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad}</div>
+                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad_label || detalle.tipo_novedad}</div>
                   </div>
                   <div className="ap-def">
                     <div className="ap-def-label"><FaUser style={{ marginRight: 4 }} />Técnico</div>

@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // ─────────────────────────────────────────────────────────────
 // Pantalla Ayuda (Centro de Ayuda) — adaptación móvil de la
 // AyudaPage WEB. Compartida por el TAB Ayuda y la ruta apilada /ayuda.
@@ -6,7 +7,7 @@
 // /faq como la web, que cae al fallback), contactos literales.
 // ─────────────────────────────────────────────────────────────
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -27,6 +28,7 @@ import {
 } from "@/data/contactoInfo";
 import { apiFetch } from "@/services/api";
 import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
+import { useIdioma } from "@/contexts/IdiomaContext";
 type TabAyuda = "faq" | "asistente" | "contacto" | "consulta";
 
 interface FAQ {
@@ -37,34 +39,51 @@ interface FAQ {
 }
 
 // Fallback literal de la WEB (faqsMock en AyudaPage.tsx).
-const FAQS_MOCK: FAQ[] = [
-  { id: 1, pregunta: "¿Cómo realizo un pedido?", respuesta: 'Navega a la sección Productos, selecciona los items que deseas, ajusta cantidades y haz clic en "Agregar al carrito". Luego ve a tu carrito y completa el checkout.', categoria: "Pedidos" },
-  { id: 2, pregunta: "¿Cuáles son los métodos de pago?", respuesta: "Aceptamos tarjetas de crédito/débito (Visa, Mastercard), PSE, Nequi y Daviplata. Todos los pagos son procesados de forma segura.", categoria: "Pagos" },
-  { id: 3, pregunta: "¿Cómo agendo una cita con un técnico?", respuesta: 'Ve a la sección "Citas" en el menú, selecciona el tipo de servicio, fecha, hora y describe tu necesidad. Opcionalmente elige un técnico preferido.', categoria: "Citas" },
-  { id: 4, pregunta: "¿Puedo cancelar o modificar mi cita?", respuesta: 'Sí, puedes cancelar o reprogramar desde tu perfil en la sección "Mis citas" con al menos 2 horas de antelación.', categoria: "Citas" },
-  { id: 5, pregunta: "¿Cómo agrego productos a favoritos?", respuesta: 'En la página de productos, haz clic en el ícono de corazón en la tarjeta del producto. Luego ve a "Mi perfil > Mis favoritos" para verlos.', categoria: "Cuenta" },
-  { id: 6, pregunta: "¿Cuál es el tiempo de entrega?", respuesta: "Envíos a ciudades principales: 2-3 días hábiles. Otras zonas: 4-6 días hábiles. Recibirás notificaciones de seguimiento.", categoria: "Envíos" },
-  { id: 7, pregunta: "¿Ofrecen garantía en instalaciones?", respuesta: "Sí, todas nuestras instalaciones tienen garantía de 12 meses en mano de obra y la garantía del fabricante en equipos.", categoria: "Servicios" },
-  { id: 8, pregunta: "¿Cómo contacto a soporte?", respuesta: "Puedes usar el formulario en esta página, escribir a soporte@neodomus.com o llamar al +57 601 123 4567 en horario laboral.", categoria: "Contacto" },
-];
+const clavesFaq = [
+  ["publico.pregunta1", "publico.respuesta1", "publico.catPedidos"],
+  ["publico.pregunta2", "publico.respuesta2", "publico.catPagos"],
+  ["publico.pregunta3", "publico.respuesta3", "publico.catCitas"],
+  ["publico.pregunta4", "publico.respuesta4", "publico.catCitas"],
+  ["publico.pregunta5", "publico.respuesta5", "publico.catCuenta"],
+  ["publico.pregunta6", "publico.respuesta6", "publico.catEnvios"],
+  ["publico.pregunta7", "publico.respuesta7", "publico.catServicios"],
+  ["publico.pregunta8", "publico.respuesta8", "publico.catContacto"],
+] as const;
 
-const TABS: { id: TabAyuda; texto: string; icono: string }[] = [
-  { id: "faq", texto: "Preguntas frecuentes", icono: "circle-question" },
-  { id: "asistente", texto: "Asistente virtual", icono: "robot" },
-  { id: "contacto", texto: "Contacto", icono: "headset" },
-  { id: "consulta", texto: "Enviar consulta", icono: "paper-plane" },
+const TABS: { id: TabAyuda; clave: string; icono: string }[] = [
+  { id: "faq", clave: "publico.tabFaq", icono: "circle-question" },
+  { id: "asistente", clave: "publico.asistenteVirtual", icono: "robot" },
+  { id: "contacto", clave: "publico.contacto", icono: "headset" },
+  { id: "consulta", clave: "publico.enviarConsulta", icono: "paper-plane" },
 ];
 
 // Comunica con el backend mediante API "/faq".
 export default function PantallaAyuda() {
+  const { t } = useIdioma();
   const scrollRef = useRef<ScrollView | null>(null);
   // Entrar a Ayuda desde otra sección → empezar arriba.
   useScrollTopAlEntrar(scrollRef);
   const [tabActivo, setTabActivo] = useState<TabAyuda>("faq");
-  const [faqs, setFaqs] = useState<FAQ[]>(FAQS_MOCK);
+  const faqsMock = useMemo(
+    () =>
+      clavesFaq.map(([pregunta, respuesta, categoria], index) => ({
+        id: index + 1,
+        pregunta: t(pregunta),
+        respuesta: t(respuesta),
+        categoria,
+      })),
+    [t],
+  );
+  const [faqs, setFaqs] = useState<FAQ[]>(faqsMock);
+  const [faqsRemotos, setFaqsRemotos] = useState(false);
   const [cargandoFaqs, setCargandoFaqs] = useState(true);
   const [faqAbierta, setFaqAbierta] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; tipo: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    if (!faqsRemotos) setFaqs(faqsMock);
+    // El fallback sigue el idioma activo; las FAQs recibidas del servidor conservan su contenido.
+  }, [faqsMock, faqsRemotos]);
 
   useEffect(() => {
     let activo = true;
@@ -73,7 +92,10 @@ export default function PantallaAyuda() {
       .then((datos) => {
         if (!activo) return;
         const lista = Array.isArray(datos) ? datos : (datos.data ?? []);
-        if (lista.length > 0) setFaqs(lista);
+        if (lista.length > 0) {
+          setFaqs(lista);
+          setFaqsRemotos(true);
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -91,14 +113,19 @@ export default function PantallaAyuda() {
   }, [toast]);
 
   const categorias = [...new Set(faqs.map((faq) => faq.categoria))];
+  const etiquetaCategoria = (categoria: string) => {
+    const clave = clavesFaq.find(
+      ([, , categoriaClave]) => t(categoriaClave) === categoria,
+    )?.[2];
+    return (clave ? t(clave) : categoria).toUpperCase();
+  };
 
   return (
     <PublicScreen scrollRef={scrollRef}>
       <View style={styles.contenedor}>
-        <Text style={styles.titulo}>Centro de Ayuda</Text>
+        <Text style={styles.titulo}>{t("publico.centroAyuda")}</Text>
         <Text style={styles.subtitulo}>
-          Encuentra respuestas rápidas o escríbenos directamente, sin necesidad
-          de iniciar sesión
+          {t("publico.ayudaDescripcion")}
         </Text>
 
         {/* Tabs internos */}
@@ -124,7 +151,7 @@ export default function PantallaAyuda() {
                   tabActivo === tab.id && styles.tabTextoActivo,
                 ]}
               >
-                {tab.texto}
+                {t(tab.clave)}
               </Text>
             </Pressable>
           ))}
@@ -135,14 +162,16 @@ export default function PantallaAyuda() {
           cargandoFaqs ? (
             <View style={styles.centro}>
               <ActivityIndicator color={C.oro} />
-              <Text style={styles.cargandoTexto}>Cargando preguntas...</Text>
+              <Text style={styles.cargandoTexto}>
+                {t("publico.cargandoPreguntas")}
+              </Text>
             </View>
           ) : (
             <View style={styles.seccion}>
               {categorias.map((categoria) => (
                 <View key={categoria} style={styles.grupoFaq}>
                   <Text style={styles.categoriaTitulo}>
-                    {categoria.toUpperCase()}
+                    {etiquetaCategoria(categoria)}
                   </Text>
                   {faqs
                     .filter((faq) => faq.categoria === categoria)
@@ -178,7 +207,7 @@ export default function PantallaAyuda() {
 
               <View style={styles.ctaFaq}>
                 <Text style={styles.ctaFaqTitulo}>
-                  ¿No encontraste tu respuesta?
+                  {t("publico.noRespuesta")}
                 </Text>
                 <Pressable
                   style={({ pressed }) => [
@@ -188,7 +217,7 @@ export default function PantallaAyuda() {
                   onPress={() => setTabActivo("consulta")}
                 >
                   <Text style={styles.textoBotonPrimario}>
-                    Enviar una pregunta
+                    {t("publico.enviarPregunta")}
                   </Text>
                 </Pressable>
               </View>
@@ -204,7 +233,7 @@ export default function PantallaAyuda() {
           <View style={styles.seccion}>
             {INFO_CONTACTO.map((item) => (
               <Pressable
-                key={item.titulo}
+                key={item.tituloClave}
                 disabled={!item.enlace}
                 onPress={() =>
                   item.enlace && Linking.openURL(item.enlace).catch(() => {})
@@ -219,9 +248,11 @@ export default function PantallaAyuda() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.contactoTitulo}>{item.titulo}</Text>
-                  <Text style={styles.contactoValor}>{item.valor}</Text>
-                  <Text style={styles.contactoDetalle}>{item.detalle}</Text>
+                  <Text style={styles.contactoTitulo}>{t(item.tituloClave)}</Text>
+                  <Text style={styles.contactoValor}>
+                    {item.valorClave ? t(item.valorClave) : item.valor}
+                  </Text>
+                  <Text style={styles.contactoDetalle}>{t(item.detalleClave)}</Text>
                 </View>
                 {!!item.enlace && (
                   <FontAwesome6
@@ -234,10 +265,14 @@ export default function PantallaAyuda() {
             ))}
 
             <View style={styles.canalesAdicionales}>
-              <Text style={styles.canalesTitulo}>Canales adicionales</Text>
-              {CANALES_ADICIONALES.map((canal) => (
-                <Text key={canal} style={styles.canalLinea}>
-                  {canal}
+              <Text style={styles.canalesTitulo}>{t("publico.canalesAdicionales")}</Text>
+              {CANALES_ADICIONALES.map((canalClave) => (
+                <Text key={canalClave} style={styles.canalLinea}>
+                  {canalClave === "contacto.whatsapp"
+                    ? `${t(canalClave)}: +57 300 123 4567`
+                    : canalClave === "contacto.redes"
+                      ? `${t(canalClave)}: @NeodomusOficial`
+                      : t(canalClave)}
                 </Text>
               ))}
             </View>
@@ -260,7 +295,7 @@ export default function PantallaAyuda() {
               toast.tipo === "success" ? styles.toastExito : styles.toastError,
             ]}
           >
-            <Text style={styles.toastTexto}>{toast.msg}</Text>
+            <Text style={styles.toastTexto}><LocalizedNotificationText message={toast.msg} /></Text>
           </View>
         </View>
       )}

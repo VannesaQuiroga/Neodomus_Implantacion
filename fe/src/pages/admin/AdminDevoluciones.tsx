@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminDevoluciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -889,7 +890,7 @@ const AdminDevoluciones = () => {
 
       {toast && (
         <div className={`ap-toast ${toast.tipo}`} role="status">
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.div>

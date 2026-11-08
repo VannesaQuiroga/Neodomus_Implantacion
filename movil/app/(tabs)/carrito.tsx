@@ -24,6 +24,7 @@ import PublicScreen from "@/components/public/PublicScreen";
 import ProductCard from "@/components/public/ProductCard";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIdioma } from "@/contexts/IdiomaContext";
 import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
 import {
   claveItemCarrito,
@@ -49,6 +50,7 @@ export default function CarritoScreen() {
     clearCart,
   } = useCart();
   const { autenticado, userType } = useAuth();
+  const { t } = useIdioma();
   const [avisoLoginVisible, setAvisoLoginVisible] = useState(false);
   const scrollRef = useRef<import("react-native").ScrollView | null>(null);
   // Entrar al carrito desde otra sección → empezar arriba.
@@ -70,8 +72,8 @@ export default function CarritoScreen() {
     }
 
     Alert.alert(
-      "Cuenta no válida",
-      "Para finalizar tu compra necesitas una cuenta de cliente Neodomus.",
+      t("notify.cuentaNoValida"),
+      t("notify.compraCuentaCliente"),
     );
   };
 
@@ -114,9 +116,9 @@ export default function CarritoScreen() {
               <Pressable
                 style={({ pressed }) => [styles.vaciar, pressed && styles.presionado]}
                 onPress={() =>
-                  Alert.alert("Vaciar carrito", "¿Seguro que deseas vaciar el carrito?", [
-                    { text: "Cancelar", style: "cancel" },
-                    { text: "Vaciar", style: "destructive", onPress: () => clearCart() },
+                  Alert.alert(t("notify.vaciarCarritoTitulo"), t("notify.vaciarCarritoConfirmar"), [
+                    { text: t("common.cancelar"), style: "cancel" },
+                    { text: t("notify.vaciarAccion"), style: "destructive", onPress: () => clearCart() },
                   ])
                 }
               >

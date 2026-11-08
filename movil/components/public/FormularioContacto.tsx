@@ -16,15 +16,16 @@ import {
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { enviarConsulta } from "@/services/contacto.service";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIdioma } from "@/contexts/IdiomaContext";
 
 const CATEGORIAS = [
-  { valor: "consulta-general", label: "Consulta general" },
-  { valor: "soporte-tecnico", label: "Soporte técnico" },
-  { valor: "pedido", label: "Pedido" },
-  { valor: "pago", label: "Pago" },
-  { valor: "reembolso", label: "Reembolso" },
-  { valor: "reclamo", label: "Reclamo" },
-  { valor: "otro", label: "Otro" },
+  { valor: "consulta-general", asunto: "Consulta general", clave: "form.opcion.consultaGeneral" },
+  { valor: "soporte-tecnico", asunto: "Soporte técnico", clave: "form.opcion.soporteTecnico" },
+  { valor: "pedido", asunto: "Pedido", clave: "form.opcion.pedido" },
+  { valor: "pago", asunto: "Pago", clave: "form.opcion.pago" },
+  { valor: "reembolso", asunto: "Reembolso", clave: "form.opcion.reembolso" },
+  { valor: "reclamo", asunto: "Reclamo", clave: "form.opcion.reclamo" },
+  { valor: "otro", asunto: "Otro", clave: "form.opcion.otro" },
 ];
 
 interface FormularioContactoProps {
@@ -33,6 +34,7 @@ interface FormularioContactoProps {
 
 export default function FormularioContacto({ alEnviado }: FormularioContactoProps) {
   const { usuario } = useAuth();
+  const { t } = useIdioma();
   const [nombre, setNombre] = useState(usuario?.nombre ?? "");
   const [email, setEmail] = useState(usuario?.correo ?? "");
   const [categoria, setCategoria] = useState("");
@@ -48,15 +50,15 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
 
   const enviar = async () => {
     if (!nombre.trim() || !email.trim() || !mensaje.trim()) {
-      alEnviado?.("Completa todos los campos", "error");
+      alEnviado?.(t("form.completaCampos"), "error");
       return;
     }
     if (!email.includes("@")) {
-      alEnviado?.("Email inválido", "error");
+      alEnviado?.(t("form.emailInvalido"), "error");
       return;
     }
     if (!categoria) {
-      alEnviado?.("Selecciona la clasificación de tu consulta", "error");
+      alEnviado?.(t("form.seleccionaCategoria"), "error");
       return;
     }
 
@@ -65,20 +67,18 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
       await enviarConsulta({
         nombre: nombre.trim(),
         email: email.trim(),
-        asunto:
-          CATEGORIAS.find((item) => item.valor === categoria)?.label ??
-          "Consulta",
+        asunto: CATEGORIAS.find((item) => item.valor === categoria)?.asunto ?? "Consulta",
         mensaje: mensaje.trim(),
         categoria,
       });
       alEnviado?.(
-        "Tu consulta ha sido enviada. Te responderemos pronto.",
+        t("form.exito"),
         "success",
       );
       setCategoria("");
       setMensaje("");
     } catch {
-      alEnviado?.("Error al enviar. Intenta de nuevo.", "error");
+      alEnviado?.(t("form.errorEnvio"), "error");
     } finally {
       setEnviando(false);
     }
@@ -86,20 +86,20 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
 
   return (
     <View style={styles.form}>
-      <Text style={styles.label}>Nombre completo *</Text>
+      <Text style={styles.label}>{t("form.nombre")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ingresa tu nombre completo"
+        placeholder={t("form.nombrePlaceholder")}
         placeholderTextColor="#8a8a8a"
         value={nombre}
         onChangeText={setNombre}
         editable={!enviando}
       />
 
-      <Text style={styles.label}>Correo electrónico *</Text>
+      <Text style={styles.label}>{t("form.email")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="tucorreo@ejemplo.com"
+        placeholder={t("form.emailPlaceholder")}
         placeholderTextColor="#8a8a8a"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -108,7 +108,7 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
         editable={!enviando}
       />
 
-      <Text style={styles.label}>Motivo de la consulta *</Text>
+      <Text style={styles.label}>{t("form.motivo")}</Text>
       <View style={styles.categoriasWrap}>
         {CATEGORIAS.map((item) => (
           <Pressable
@@ -123,16 +123,16 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
                 categoria === item.valor && styles.chipCategoriaTextoActivo,
               ]}
             >
-              {item.label}
+              {t(item.clave)}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.label}>Mensaje *</Text>
+      <Text style={styles.label}>{t("form.mensaje")}</Text>
       <TextInput
         style={[styles.input, styles.textarea]}
-        placeholder="Describe tu consulta, problema o sugerencia con el mayor detalle posible..."
+        placeholder={t("form.mensajePlaceholder")}
         placeholderTextColor="#8a8a8a"
         value={mensaje}
         onChangeText={setMensaje}
@@ -141,7 +141,7 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
         editable={!enviando}
         maxLength={2000}
       />
-      <Text style={styles.hint}>Mínimo 30 caracteres</Text>
+      <Text style={styles.hint}>{t("form.minimoCaracteres")}</Text>
 
       <Pressable
         style={({ pressed }) => [
@@ -153,7 +153,7 @@ export default function FormularioContacto({ alEnviado }: FormularioContactoProp
         disabled={enviando}
       >
         <Text style={styles.textoBoton}>
-          {enviando ? "Enviando..." : "Enviar consulta"}
+          {enviando ? t("form.enviando") : t("publico.enviarConsulta")}
         </Text>
       </Pressable>
     </View>
