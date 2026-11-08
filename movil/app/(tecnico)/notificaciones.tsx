@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Ruta móvil de notificaciones. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
@@ -55,14 +56,14 @@ export default function TecnicoNotificacionesScreen() {
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.contenido, { paddingBottom: insets.bottom + 72 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.titulo}>{t("notificaciones.titulo")}</Text>
-            <Text style={styles.sub}>{noLeidas >0 ? `${noLeidas} sin leer` : t("notificaciones.todasAlDia")}</Text>
+        <Text style={styles.titulo}>{t("notificaciones.titulo")}</Text>
+            <Text style={styles.sub}>{noLeidas >0 ? t("notif.sinLeer", { count: noLeidas }) : t("notificaciones.todasAlDia")}</Text>
           </View>
           <View style={styles.headerBtns}>
             {notifs.length > 0 && (
               <Pressable onPress={() => setMostrarTodas(!mostrarTodas)} style={styles.btnToggle}>
                 <FontAwesome6 name={mostrarTodas ? "eye-slash" : "eye"} size={11} color="#141414" />
-                <Text style={styles.btnMarcarTxt}>{mostrarTodas ? "No leídas" : "Ver todas"}</Text>
+                <Text style={styles.btnMarcarTxt}>{mostrarTodas ? t("notif.noLeidas") : t("notif.verTodas")}</Text>
               </Pressable>
             )}
             {notifs.length>0 && (
@@ -83,8 +84,8 @@ export default function TecnicoNotificacionesScreen() {
         ) : notifsVisibles.length===0 ? (
           <View style={styles.empty}>
             <FontAwesome6 name="bell-slash" size={24} color="#5a5a5a" />
-            <Text style={styles.emptyTitle}>{mostrarTodas ? "Sin notificaciones" : "Todo al día"}</Text>
-            <Text style={styles.emptyHint}>{mostrarTodas ? "No hay notificaciones" : "No tienes notificaciones sin leer"}</Text>
+            <Text style={styles.emptyTitle}>{mostrarTodas ? t("notif.sinNotificaciones") : t("notif.todoAlDia")}</Text>
+            <Text style={styles.emptyHint}>{mostrarTodas ? t("notif.sinNotificaciones") : t("notif.sinLeer", { count: noLeidas })}</Text>
           </View>
         ) : (
           notifsVisibles.map((n:any)=> {
@@ -100,8 +101,8 @@ export default function TecnicoNotificacionesScreen() {
                     <FontAwesome6 name="bell" size={13} color={!leida ? "#f0c96f" : "#bdbdbd"} />
                   </View>
                   <View style={{ flex:1, gap:3, minWidth:0 }}>
-                    <Text style={styles.notifTitulo} numberOfLines={2}>{titulo}</Text>
-                    {mensaje ? <Text style={styles.notifMensaje} numberOfLines={3}>{mensaje}</Text> : null}
+                    <Text style={styles.notifTitulo} numberOfLines={2}><LocalizedNotificationText message={titulo} /></Text>
+                    {mensaje ? <Text style={styles.notifMensaje} numberOfLines={3}><LocalizedNotificationText message={mensaje} /></Text> : null}
                     {fechaTxt ? <Text style={styles.notifFecha}>{fechaTxt}</Text> : null}
                   </View>
                 </View>
@@ -111,7 +112,7 @@ export default function TecnicoNotificacionesScreen() {
           })
         )}
       </ScrollView>
-      {toast && <View style={styles.toastWrap} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastTxt}>{toast}</Text></View></View>}
+      {toast && <View style={styles.toastWrap} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastTxt}><LocalizedNotificationText message={toast} /></Text></View></View>}
     </View>
   );
 }

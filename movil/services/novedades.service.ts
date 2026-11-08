@@ -59,9 +59,12 @@ export interface CitaCliente {
 export interface Novedad {
   id_novedad: number;
   tipo_novedad: string;
+  tipo_novedad_label?: string;
   descripcion_novedad: string;
   prioridad: string;
+  prioridad_label?: string;
   estado_novedad: string;
+  estado_novedad_label?: string;
   fecha_reporte: string | null;
   lugar_ocurrencia: string | null;
   evidencia_url: string | null;
@@ -78,17 +81,17 @@ export interface Novedad {
   cliente_visible: boolean;
   fecha_resolucion: string | null;
   evidencias: EvidenciaNovedad[];
-  pedido_info: { id_pedido: number; estado: string | null; fecha_entrega: string | null } | null;
-  cita_info: { id_cita: number; tipo_servicio: string; fecha: string | null; hora: string; estado: string } | null;
-  devolucion_info: { id_devolucion: number; estado: string | null; motivo: string | null } | null;
+  pedido_info: { id_pedido: number; estado: string | null; estado_label?: string; fecha_entrega: string | null } | null;
+  cita_info: { id_cita: number; tipo_servicio: string; fecha: string | null; hora: string; estado: string; estado_label?: string } | null;
+  devolucion_info: { id_devolucion: number; estado: string | null; estado_label?: string; motivo: string | null } | null;
 }
 
 export interface NovedadDetalle extends Novedad {
   historial: NovedadHistorial[];
   cliente_info: { id_cliente: number; nombre: string; email: string; telefono: number | null; documento: number | null; direccion: string | null } | null;
-  pedido_info_completo: { id_pedido: number; estado: string | null; fecha_pedido: string | null; total: number | null; fecha_entrega: string | null; hora_entrega: string | null; estado_entrega: string | null; nombre_tecnico: string | null } | null;
-  cita_info_completo: { id_cita: number; tipo_servicio: string; fecha: string | null; hora: string; estado: string; direccion: string; especialidad: string | null } | null;
-  devolucion_info_completo: { id_devolucion: number; estado: string | null; motivo: string | null; descripcion: string | null; fecha_solicitud: string | null } | null;
+  pedido_info_completo: { id_pedido: number; estado: string | null; estado_label?: string; fecha_pedido: string | null; total: number | null; fecha_entrega: string | null; hora_entrega: string | null; estado_entrega: string | null; estado_entrega_label?: string; nombre_tecnico: string | null } | null;
+  cita_info_completo: { id_cita: number; tipo_servicio: string; fecha: string | null; hora: string; estado: string; estado_label?: string; direccion: string; especialidad: string | null } | null;
+  devolucion_info_completo: { id_devolucion: number; estado: string | null; estado_label?: string; motivo: string | null; descripcion: string | null; fecha_solicitud: string | null } | null;
   mensaje_cliente: string | null;
   solucion_cliente: string | null;
   cliente_visible: boolean;

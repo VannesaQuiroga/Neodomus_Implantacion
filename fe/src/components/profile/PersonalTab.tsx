@@ -89,7 +89,7 @@ const PersonalTab = ({ notify, onProfileChanged }: PersonalTabProps) => {
       }
       notify(t('perfil.fotoActualizada'), 'success');
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'No se pudo subir la foto', 'error');
+      notify(err.response?.data?.detail || t('perfil.datos.errorSubirFoto'), 'error');
     }
   };
 

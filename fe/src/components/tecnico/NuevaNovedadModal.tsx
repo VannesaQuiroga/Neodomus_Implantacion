@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Componente reutilizable NuevaNovedadModal para componer la interfaz de Neodomus.
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -233,7 +234,7 @@ const NuevaNovedadModal = ({
                 className={`ap-toast ${toast.tipo}`}
                 style={{ margin: '10px 16px' }}
               >
-                {toast.msg}
+                <LocalizedNotificationText message={toast.msg} />
               </motion.div>
             )}
           </AnimatePresence>

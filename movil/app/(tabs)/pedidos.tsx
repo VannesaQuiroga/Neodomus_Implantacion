@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Mis pedidos — réplica de OrdersTab (WEB):
 // GET /pedidos/mis-pedidos, acordeón de detalle, confirmar pago
 // pendiente, rastrear pedido y descargar factura PDF real.
@@ -198,7 +199,7 @@ export default function PedidosScreen() {
 
       {toast && (
         <View style={S.toastFijo}>
-          <Text style={S.toastTexto}>{toast}</Text>
+          <Text style={S.toastTexto}><LocalizedNotificationText message={toast} /></Text>
         </View>
       )}
     </AppScreen>

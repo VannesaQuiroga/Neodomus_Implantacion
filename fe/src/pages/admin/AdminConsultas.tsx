@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminConsultas de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -20,7 +21,21 @@ import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import type { ClienteAdmin, SolicitudCuenta, SolicitudEmpleado, TecnicoAdmin } from '../../types';
 
-type Vista = 'solicitudes' | 'cuentas';
+type Vista = 'solicitudes' | 'ayuda' | 'cuentas';
+
+interface SolicitudAyuda {
+  id: number;
+  nombre_usuario: string;
+  email_usuario: string;
+  asunto: string;
+  mensaje: string;
+  categoria?: string | null;
+  categoria_label?: string | null;
+  estado: 'pendiente' | 'en_proceso' | 'resuelta' | 'respondida';
+  estado_label?: string;
+  respuesta?: string | null;
+  created_at?: string | null;
+}
 
 type SolicitudCombinada =
   | { fuente: 'cliente'; data: SolicitudCuenta }
@@ -33,6 +48,9 @@ const AdminConsultas = () => {
   const [vista, setVista] = useState<Vista>('solicitudes');
   const [solicitudes, setSolicitudes] = useState<SolicitudCuenta[]>([]);
   const [solicitudesEmpleados, setSolicitudesEmpleados] = useState<SolicitudEmpleado[]>([]);
+  const [solicitudesAyuda, setSolicitudesAyuda] = useState<SolicitudAyuda[]>([]);
+  const [filtroAyuda, setFiltroAyuda] = useState('todos');
+  const [respuestasAyuda, setRespuestasAyuda] = useState<Record<number, string>>({});
   const [clientes, setClientes] = useState<ClienteAdmin[]>([]);
   const [tecnicos, setTecnicos] = useState<TecnicoAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -73,9 +91,18 @@ const AdminConsultas = () => {
     }
   };
 
+  const cargarSolicitudesAyuda = async () => {
+    try {
+      const response = await api.get<SolicitudAyuda[]>('/admin/consultas');
+      setSolicitudesAyuda(response.data || []);
+    } catch {
+      setSolicitudesAyuda([]);
+    }
+  };
+
   const cargarTodo = async () => {
     setCargando(true);
-    await Promise.all([cargarSolicitudes(), cargarCuentas()]);
+    await Promise.all([cargarSolicitudes(), cargarCuentas(), cargarSolicitudesAyuda()]);
     setCargando(false);
   };
 
@@ -87,6 +114,7 @@ const AdminConsultas = () => {
     const intervalo = window.setInterval(() => {
       void cargarSolicitudes();
       void cargarCuentas();
+      void cargarSolicitudesAyuda();
     }, 30000);
     return () => window.clearInterval(intervalo);
   }, []);
@@ -169,6 +197,24 @@ const AdminConsultas = () => {
     }
   };
 
+  const gestionarAyuda = async (solicitud: SolicitudAyuda, estado: SolicitudAyuda['estado']) => {
+    setResolviendo(`ayuda-${solicitud.id}`);
+    try {
+      const respuesta = respuestasAyuda[solicitud.id]?.trim();
+      await api.put(`/admin/consultas/${solicitud.id}`, {
+        estado,
+        ...(respuesta ? { respuesta } : {}),
+      });
+      await cargarSolicitudesAyuda();
+      setRespuestasAyuda((prev) => ({ ...prev, [solicitud.id]: '' }));
+      notify(t('adm.consultas.ayudaActualizada'));
+    } catch {
+      notify(t('adm.consultas.ayudaError'), 'err');
+    } finally {
+      setResolviendo(null);
+    }
+  };
+
   const solicitudesCombinadas: SolicitudCombinada[] = [
     ...solicitudes.map((s) => ({ fuente: 'cliente' as const, data: s })),
     ...solicitudesEmpleados.map((s) => ({ fuente: 'empleado' as const, data: s })),
@@ -203,6 +249,12 @@ const AdminConsultas = () => {
   const pendientesCuenta =
     solicitudes.filter((s) => s.estado === 'pendiente').length +
     solicitudesEmpleados.filter((s) => s.estado === 'pendiente').length;
+
+  const ayudasVisibles = solicitudesAyuda.filter((solicitud) =>
+    filtroAyuda === 'todos' || solicitud.estado === filtroAyuda ||
+    (filtroAyuda === 'resuelta' && solicitud.estado === 'respondida'),
+  );
+  const pendientesAyuda = solicitudesAyuda.filter((solicitud) => solicitud.estado === 'pendiente').length;
 
   const clientesInhabilitados = clientes.filter((c) => !c.is_active);
   const tecnicosInhabilitados = tecnicos.filter((t) => !t.is_active);
@@ -327,6 +379,74 @@ const AdminConsultas = () => {
     );
   };
 
+  const renderSolicitudAyuda = (solicitud: SolicitudAyuda) => {
+    const keyEstado: Record<string, string> = {
+      pendiente: 'adm.consultas.ayudaPendiente',
+      en_proceso: 'adm.consultas.ayudaEnProceso',
+      resuelta: 'adm.consultas.ayudaResuelta',
+      respondida: 'adm.consultas.ayudaResuelta',
+    };
+    const estadoKey = keyEstado[solicitud.estado] || 'adm.consultas.ayudaPendiente';
+    const pendiente = solicitud.estado === 'pendiente';
+    const enProceso = solicitud.estado === 'en_proceso';
+    const guardando = resolviendo === `ayuda-${solicitud.id}`;
+
+    return (
+      <article className="scu-card scu-card-ayuda" key={`ayuda-${solicitud.id}`}>
+        <div className="scu-card-top">
+          <span className="scu-tipo"><FaEnvelope /> {solicitud.categoria_label || solicitud.categoria || t('adm.consultas.ayudaCategoria')}</span>
+          <span className={`scu-estado ${pendiente ? 'pendiente' : enProceso ? 'activa' : 'resuelta'}`}>
+            {t(estadoKey)}
+          </span>
+        </div>
+        <div className="scu-datos">
+          <span className="scu-dato"><FaUser /> {solicitud.nombre_usuario}</span>
+          <span className="scu-dato"><FaEnvelope /> {solicitud.email_usuario}</span>
+          <span className="scu-dato"><FaCalendarDays /> {fechaLegible(solicitud.created_at)}</span>
+        </div>
+        <h3 className="scu-asunto">{solicitud.asunto}</h3>
+        <p className="scu-motivo">{solicitud.mensaje}</p>
+        {solicitud.respuesta && (
+          <p className="scu-motivo"><strong>{t('adm.consultas.ayudaRespuesta')}:</strong> {solicitud.respuesta}</p>
+        )}
+        <div className="scu-soporte-acciones">
+          {pendiente && (
+            <button type="button" className="solicitud-btn ok" disabled={guardando} onClick={() => void gestionarAyuda(solicitud, 'en_proceso')}>
+              {t('adm.consultas.ayudaIniciar')}
+            </button>
+          )}
+          {(pendiente || enProceso) && (
+            <button type="button" className="solicitud-btn ok" disabled={guardando} onClick={() => void gestionarAyuda(solicitud, 'resuelta')}>
+              <FaCircleCheck /> {t('adm.consultas.ayudaResolver')}
+            </button>
+          )}
+          {solicitud.estado === 'resuelta' || solicitud.estado === 'respondida' ? (
+            <button type="button" className="solicitud-btn no" disabled={guardando} onClick={() => void gestionarAyuda(solicitud, 'pendiente')}>
+              {t('adm.consultas.ayudaReabrir')}
+            </button>
+          ) : null}
+        </div>
+        <label className="ap-form-group scu-respuesta-editor">
+          <span className="ap-form-label">{t('adm.consultas.ayudaRespuesta')}</span>
+          <textarea
+            className="ap-form-input"
+            rows={3}
+            value={respuestasAyuda[solicitud.id] || ''}
+            onChange={(event) => setRespuestasAyuda((prev) => ({ ...prev, [solicitud.id]: event.target.value }))}
+            placeholder={t('adm.consultas.ayudaRespuestaPlaceholder')}
+          />
+        </label>
+        {respuestasAyuda[solicitud.id]?.trim() && (
+          <div className="scu-respuesta-guardar">
+            <button type="button" className="solicitud-btn ok" disabled={guardando} onClick={() => void gestionarAyuda(solicitud, solicitud.estado)}>
+              {t('adm.consultas.ayudaGuardarRespuesta')}
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  };
+
   const renderTarjetaCuentaInhabilitada = (
     id: number,
     nombre: string,
@@ -368,12 +488,14 @@ const AdminConsultas = () => {
       <div className="ap-header">
         <div>
           <h1 className="ap-title">
-            {vista === 'cuentas' ? t('adm.consultas.tituloCuentas') : t('adm.consultas.titulo')}
+            {vista === 'cuentas'
+              ? t('adm.consultas.tituloCuentas')
+              : vista === 'ayuda' ? t('adm.consultas.ayudaTitulo') : t('adm.consultas.titulo')}
           </h1>
           <p className="ap-subtitle">
             {vista === 'cuentas'
               ? t('adm.consultas.subtituloCuentas')
-              : t('adm.consultas.subtitulo')}
+              : vista === 'ayuda' ? t('adm.consultas.ayudaSubtitulo') : t('adm.consultas.subtitulo')}
           </p>
         </div>
         <div className="ap-header-right">
@@ -406,6 +528,16 @@ const AdminConsultas = () => {
         <button
           type="button"
           role="tab"
+          aria-selected={vista === 'ayuda'}
+          className={`ap-tab ${vista === 'ayuda' ? 'active' : ''}`}
+          onClick={() => setVista('ayuda')}
+        >
+          <FaEnvelope /> {t('adm.consultas.tabAyuda')}
+          {pendientesAyuda > 0 && <span className="ap-pill-count">{pendientesAyuda}</span>}
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={vista === 'cuentas'}
           className={`ap-tab ${vista === 'cuentas' ? 'active' : ''}`}
           onClick={() => setVista('cuentas')}
@@ -415,7 +547,26 @@ const AdminConsultas = () => {
         </button>
       </div>
 
-      {vista === 'solicitudes' ? (
+      {vista === 'ayuda' ? (
+        <>
+          <div className="ap-toolbar">
+            <select className="ap-form-select" value={filtroAyuda} onChange={(event) => setFiltroAyuda(event.target.value)}>
+              <option value="todos">{t('adm.consultas.ayudaFiltroTodos')}</option>
+              <option value="pendiente">{t('adm.consultas.ayudaPendiente')}</option>
+              <option value="en_proceso">{t('adm.consultas.ayudaEnProceso')}</option>
+              <option value="resuelta">{t('adm.consultas.ayudaResuelta')}</option>
+            </select>
+            <span className="ap-subtitle">{t('adm.consultas.ayudaConteo', { n: solicitudesAyuda.length })}</span>
+          </div>
+          {cargando ? (
+            <div className="ap-card"><div className="ap-states"><span className="ap-loader" /><h3>{t('adm.consultas.ayudaCargando')}</h3></div></div>
+          ) : ayudasVisibles.length ? (
+            <div className="solicitudes-list">{ayudasVisibles.map(renderSolicitudAyuda)}</div>
+          ) : (
+            <div className="ap-card"><div className="ap-states"><h3>{t('adm.consultas.ayudaVacia')}</h3><p>{t('adm.consultas.ayudaVaciaSub')}</p></div></div>
+          )}
+        </>
+      ) : vista === 'solicitudes' ? (
         <>
           {cargando ? (
             <div className="ap-card">
@@ -589,7 +740,7 @@ const AdminConsultas = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo}`}>
           {toast.tipo === 'ok' ? <FaCircleCheck /> : <FaTriangleExclamation />}
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.section>

@@ -5,9 +5,12 @@ import blog1 from '@assets/images/blog1.jpeg';
 import blog2 from '@assets/images/blog2.jpeg';
 import blog3 from '@assets/images/blog3.jpeg';
 import { FaShieldHalved, FaLightbulb, FaAward, FaHouseChimneyWindow } from 'react-icons/fa6';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/info_pages.css';
 
 const InfoSectionsContainer = () => {
+  const { t } = useIdioma();
+
   return (
     <>
       <div className="landing-sections-wrapper app-glass">
@@ -20,46 +23,46 @@ const InfoSectionsContainer = () => {
         <section className="info-section info-section--sobre">
           <div className="about-layout">
             <div className="about-image-container">
-              <img src={sobreImg} alt="Sobre Neodomus" />
-              <span className="about-image-badge"><FaHouseChimneyWindow /> Hogar inteligente</span>
+              <img src={sobreImg} alt={t('home.about.alt')} />
+              <span className="about-image-badge"><FaHouseChimneyWindow /> {t('home.about.badge')}</span>
             </div>
             <div className="about-text-block">
-              <span className="about-kicker">Más que tecnología, una evolución</span>
-              <h1>Sobre Nosotros</h1>
+              <span className="about-kicker">{t('home.about.kicker')}</span>
+              <h1>{t('home.about.titulo')}</h1>
               <p className="about-lead">
-                En <strong>Neodomus</strong> ofrecemos soluciones innovadoras y confiables que generan valor real a nuestros clientes.
+                {t('home.about.leadAntes')} <strong>Neodomus</strong> {t('home.about.leadDespues')}
               </p>
               <p>
-                Nos enfocamos en la calidad, la tecnología y la confianza, brindando servicios eficientes que se adaptan a cada necesidad. Transformamos ideas en resultados y nos consolidamos como un aliado estratégico que impulsa tu evolución.
+                {t('home.about.parrafo1')}
               </p>
               <div className="about-features">
                 <div className="about-feature">
                   <span className="about-feature-icon"><FaShieldHalved /></span>
                   <div>
-                    <strong>Nuestra misión</strong>
-                    <span>Transformar ideas en resultados tangibles con tecnología confiable.</span>
+                    <strong>{t('home.about.misionTitulo')}</strong>
+                    <span>{t('home.about.misionTexto')}</span>
                   </div>
                 </div>
                 <div className="about-feature">
                   <span className="about-feature-icon"><FaLightbulb /></span>
                   <div>
-                    <strong>Nuestra visión</strong>
-                    <span>Ser el aliado estratégico que impulse el crecimiento inteligente.</span>
+                    <strong>{t('home.about.visionTitulo')}</strong>
+                    <span>{t('home.about.visionTexto')}</span>
                   </div>
                 </div>
               </div>
               <div className="about-stats">
                 <div className="about-stat">
                   <strong>100%</strong>
-                  <span>Compromiso</span>
+                  <span>{t('home.about.statCompromiso')}</span>
                 </div>
                 <div className="about-stat">
                   <strong>24/7</strong>
-                  <span>Soporte</span>
+                  <span>{t('home.about.statSoporte')}</span>
                 </div>
                 <div className="about-stat">
                   <strong>+500</strong>
-                  <span>Clientes</span>
+                  <span>{t('home.about.statClientes')}</span>
                 </div>
               </div>
             </div>
@@ -69,24 +72,24 @@ const InfoSectionsContainer = () => {
         {/* SECCIÓN POR QUÉ CONTRATAR — tarjetas con ícono */}
         <section className="info-section info-section--why">
           <div className="why-title-container">
-            <h1>Porque contratar NEODOMUS</h1>
-            <p className="why-subtitle">Tres razones para confiar tu hogar a la innovación.</p>
+            <h1>{t('home.info.whyTitulo')}</h1>
+            <p className="why-subtitle">{t('home.info.whySubtitulo')}</p>
           </div>
           <div className="why-custom-grid">
             <article className="card-gold-base card-gold-style">
               <span className="why-card-icon"><FaShieldHalved /></span>
-              <h3>Confianza y seriedad</h3>
-              <p>Trabajamos con transparencia y compromiso en cada proyecto, garantizando seguridad en cada instalación.</p>
+              <h3>{t('home.info.cardConfianzaTitulo')}</h3>
+              <p>{t('home.info.cardConfianzaTexto')}</p>
             </article>
             <article className="card-gold-base card-dark-style">
               <span className="why-card-icon"><FaLightbulb /></span>
-              <h3>Innovación real</h3>
-              <p>Soluciones modernas y personalizadas que se adaptan a tu rutina y evolucionan contigo.</p>
+              <h3>{t('home.info.cardInnovacionTitulo')}</h3>
+              <p>{t('home.info.cardInnovacionTexto')}</p>
             </article>
             <article className="card-gold-base card-gold-style">
               <span className="why-card-icon"><FaAward /></span>
-              <h3>Calidad garantizada</h3>
-              <p>Resultados eficientes y duraderos, con materiales certificados y garantía Neodomus.</p>
+              <h3>{t('home.info.cardCalidadTitulo')}</h3>
+              <p>{t('home.info.cardCalidadTexto')}</p>
             </article>
           </div>
         </section>
@@ -94,32 +97,32 @@ const InfoSectionsContainer = () => {
         {/* SECCIÓN BLOG — 3 tarjetas alineadas horizontalmente, mismo tamaño */}
         <section className="info-section info-section--blog">
           <div className="blog-title-container">
-            <h1>Blog</h1>
-            <p className="blog-subtitle">Ideas, tendencias y consejos para un hogar más inteligente.</p>
+            <h1>{t('home.blog.titulo')}</h1>
+            <p className="blog-subtitle">{t('home.blog.subtitulo')}</p>
           </div>
           <div className="blog-custom-grid">
             <article className="blog-item-box">
-              <div className="blog-img-wrapper"><img src={blog1} alt="Hogar inteligente hoy" /></div>
+              <div className="blog-img-wrapper"><img src={blog1} alt={t('home.blog.alt1')} /></div>
               <div className="blog-text-wrapper">
-                <span className="blog-category">Domótica</span>
-                <h3 className="blog-item-title">Automatización al alcance</h3>
-                <p>La automatización del hogar ya no es cosa del futuro: en Neodomus hacemos posible que vivas en una casa inteligente hoy mismo.</p>
+                <span className="blog-category">{t('home.blog.categoria1')}</span>
+                <h3 className="blog-item-title">{t('home.blog.titulo1')}</h3>
+                <p>{t('home.blog.parrafo1')}</p>
               </div>
             </article>
             <article className="blog-item-box">
-              <div className="blog-img-wrapper"><img src={blog2} alt="Confort y ahorro" /></div>
+              <div className="blog-img-wrapper"><img src={blog2} alt={t('home.blog.alt2')} /></div>
               <div className="blog-text-wrapper">
-                <span className="blog-category">Confort & Ahorro</span>
-                <h3 className="blog-item-title">Confort, seguridad y ahorro</h3>
-                <p>Confort, seguridad y ahorro de energía en un solo lugar. Así es la experiencia que solo Neodomus puede ofrecerte.</p>
+                <span className="blog-category">{t('home.blog.categoria2')}</span>
+                <h3 className="blog-item-title">{t('home.blog.titulo2')}</h3>
+                <p>{t('home.blog.parrafo2')}</p>
               </div>
             </article>
             <article className="blog-item-box">
-              <div className="blog-img-wrapper"><img src={blog3} alt="Pioneros en domótica" /></div>
+              <div className="blog-img-wrapper"><img src={blog3} alt={t('home.blog.alt3')} /></div>
               <div className="blog-text-wrapper">
-                <span className="blog-category">Innovación · Colombia</span>
-                <h3 className="blog-item-title">Pioneros en Colombia</h3>
-                <p>Neodomus es pionera en llevar la domótica a los hogares de Colombia, referente de innovación y tecnología.</p>
+                <span className="blog-category">{t('home.blog.categoria3')}</span>
+                <h3 className="blog-item-title">{t('home.blog.titulo3')}</h3>
+                <p>{t('home.blog.parrafo3')}</p>
               </div>
             </article>
           </div>

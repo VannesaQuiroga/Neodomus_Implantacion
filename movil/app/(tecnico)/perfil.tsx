@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Ruta móvil de perfil. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState } from "react";
 import {
@@ -560,7 +561,7 @@ export default function TecnicoPerfilScreen() {
       {toast ? (
         <View style={styles.toastWrap} pointerEvents="none">
           <View style={styles.toast}>
-            <Text style={styles.toastTxt}>{toast}</Text>
+            <Text style={styles.toastTxt}><LocalizedNotificationText message={toast} /></Text>
           </View>
         </View>
       ) : null}

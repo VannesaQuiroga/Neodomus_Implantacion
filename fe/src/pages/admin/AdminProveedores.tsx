@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminProveedores de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -364,7 +365,7 @@ const AdminProveedores = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo}`}>
           {toast.tipo === 'ok' ? <FaCircleCheck /> : <FaTriangleExclamation />}
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.section>

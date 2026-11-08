@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminProductoDetalle de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -1503,7 +1504,7 @@ const AdminProductoDetalle = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo}`}>
           {toast.tipo === 'ok' ? <FaCircleInfo /> : <FaTriangleExclamation />}
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
     </motion.section>

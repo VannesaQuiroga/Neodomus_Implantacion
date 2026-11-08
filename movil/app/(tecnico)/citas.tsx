@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Ruta móvil de citas. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -226,7 +227,7 @@ export default function TecnicoCitasScreen() {
         </View>
       </Modal>
 
-      {toast && <View style={styles.toastWrap} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastTxt}>{toast}</Text></View></View>}
+      {toast && <View style={styles.toastWrap} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastTxt}><LocalizedNotificationText message={toast} /></Text></View></View>}
     </View>
   );
 }

@@ -7,10 +7,12 @@ import ForgotPassword from '@pages/auth/ForgotPassword';
 import VerifyCode from '@pages/auth/VerifyCode';
 import ResetPassword from '@pages/auth/ResetPassword';
 import VerifyEmail from '@pages/auth/VerifyEmail';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/auth-modal.css';
 
 const AuthModalHost = () => {
   const { step, closeAuth } = useAuthModal();
+  const { t } = useIdioma();
 
   useEffect(() => {
     if (!step) return;
@@ -31,7 +33,7 @@ const AuthModalHost = () => {
           e.stopPropagation();
           closeAuth();
         }}
-        aria-label="Cerrar"
+        aria-label={t('auth.modal.cerrar')}
       >
         <span aria-hidden="true">&times;</span>
       </button>

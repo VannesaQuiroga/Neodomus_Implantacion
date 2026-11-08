@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.database import get_db
+from app.utils.database_values_i18n import language_from_request, translate_database_value
 from app.models.roles_usuario import RolesUsuario
 from app.models.user import User
 from app.services.auth_service import (
@@ -165,7 +166,11 @@ def logout(response: Response):
 
 
 @router.get("/session")
-def session_actual(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+def session_actual(
+    request: Request,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Tipo y rol de la cuenta de la sesión actual.
     Prioriza el header Authorization (cada pestaña envía su propio token
     desde localStorage). Si no hay header, cae a la cookie HttpOnly
@@ -194,6 +199,7 @@ def session_actual(current_user = Depends(get_current_user), db: Session = Depen
     return {
         "user_type": user_type,
         "rol": rol,
+        "rol_label": translate_database_value(rol, "role", language_from_request(request)),
         "uid": str(uid),
     }
 

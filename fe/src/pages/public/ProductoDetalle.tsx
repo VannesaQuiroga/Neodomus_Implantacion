@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 import { MetrosSelect } from '@components/common/MetrosSelect';
 // Pantalla ProductoDetalle de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -20,6 +21,7 @@ import '@styles/producto-detalle.css';
 interface Producto {
   id_producto: number;
   nombre_producto: string;
+  nombre_producto_label?: string;
   marca?: string | null;
   colores_producto?: string | null;
   color_hex?: string | null;
@@ -29,6 +31,7 @@ interface Producto {
   imagen_url?: string | null;
   id_cate_pr?: number;
   nombre_categoria?: string;
+  nombre_categoria_label?: string;
   stock_producto?: number;
   stock_disponible?: number;
   disponible?: boolean;
@@ -39,7 +42,9 @@ interface Producto {
   es_nuevo?: boolean;
   tecnicos_requeridos?: number;
   descripcion_producto?: string | null;
+  descripcion_producto_label?: string | null;
   caracteristicas_producto?: string | null;
+  caracteristicas_producto_label?: string | null;
   variantes?: {
     id: number;
     nombre: string;
@@ -81,74 +86,74 @@ const COLOR_HEX: Record<string, string> = {
 
 const CARACTERISTICAS: Record<number, string[]> = {
   1: [
-    'Detección precisa de movimiento',
-    'Alcance de hasta 8 metros',
-    'Ángulo de detección de 90° a 110°',
-    'Alimentación de bajo consumo',
-    'Fácil instalación sin obras',
+    'productos.caracteristica.sensor.precision',
+    'productos.caracteristica.sensor.alcance',
+    'productos.caracteristica.sensor.angulo',
+    'productos.caracteristica.sensor.consumo',
+    'productos.caracteristica.sensor.instalacion',
   ],
   2: [
-    'Control central de todos tus dispositivos',
-    'Compatibilidad con protocolos Wi-Fi y Zigbee',
-    'App móvil para gestión remota',
-    'Escenas y rutinas programables',
-    'Actualizaciones de firmware automáticas',
+    'productos.caracteristica.controlador.central',
+    'productos.caracteristica.controlador.protocolos',
+    'productos.caracteristica.controlador.app',
+    'productos.caracteristica.controlador.escenas',
+    'productos.caracteristica.controlador.actualizaciones',
   ],
   3: [
-    'Iluminación regulable y personalizable',
-    'Colores RGB y tonos de blanco',
-    'Control por app y asistentes de voz',
-    'Bajo consumo energético',
-    'Larga vida útil de los LEDs',
+    'productos.caracteristica.iluminacion.personalizable',
+    'productos.caracteristica.iluminacion.colores',
+    'productos.caracteristica.iluminacion.asistentes',
+    'productos.caracteristica.iluminacion.consumo',
+    'productos.caracteristica.iluminacion.vida',
   ],
   4: [
-    'Automatización completa del hogar',
-    'Programación de escenas por horarios',
-    'Integración con sensores y cámaras',
-    'Control por voz (Alexa, Google Home)',
-    'Instalación guiada paso a paso',
+    'productos.caracteristica.automatizacion.completa',
+    'productos.caracteristica.automatizacion.horarios',
+    'productos.caracteristica.automatizacion.integracion',
+    'productos.caracteristica.automatizacion.voz',
+    'productos.caracteristica.automatizacion.instalacion',
   ],
   5: [
-    'Conectividad de alto rendimiento',
-    'Transmisión de datos estable y rápida',
-    'Material de alta durabilidad',
-    'Compatibilidad con routers estándar',
-    'Presentaciones y longitudes variadas',
+    'productos.caracteristica.conectividad.rendimiento',
+    'productos.caracteristica.conectividad.datos',
+    'productos.caracteristica.conectividad.durabilidad',
+    'productos.caracteristica.conectividad.router',
+    'productos.caracteristica.conectividad.longitudes',
   ],
   6: [
-    'Control de encendido y apagado remoto',
-    'Monitoreo de consumo eléctrico',
-    'Programación de horarios',
-    'Protección contra sobrecargas',
-    'Compatibilidad con asistentes de voz',
+    'productos.caracteristica.energia.remoto',
+    'productos.caracteristica.energia.monitoreo',
+    'productos.caracteristica.energia.horarios',
+    'productos.caracteristica.energia.proteccion',
+    'productos.caracteristica.energia.asistentes',
   ],
   7: [
-    'Salida de voltaje estable',
-    'Protección contra sobrevoltaje',
-    'Alta eficiencia energética',
-    'Conexión segura de terminales',
-    'Uso continuo y confiable',
+    'productos.caracteristica.fuente.estable',
+    'productos.caracteristica.fuente.sobrevoltaje',
+    'productos.caracteristica.fuente.eficiencia',
+    'productos.caracteristica.fuente.terminales',
+    'productos.caracteristica.fuente.continuo',
   ],
   8: [
-    'Vigilancia y monitoreo 24/7',
-    'Notificaciones en tiempo real',
-    'Visión nocturna',
-    'Grabación de alta definición',
-    'Fácil configuración desde la app',
+    'productos.caracteristica.seguridad.vigilancia',
+    'productos.caracteristica.seguridad.notificaciones',
+    'productos.caracteristica.seguridad.nocturna',
+    'productos.caracteristica.seguridad.grabacion',
+    'productos.caracteristica.seguridad.configuracion',
   ],
   9: [
-    'Control de temperatura inteligente',
-    'Programación por horarios y zonas',
-    'Ahorro energético automático',
-    'Control remoto desde la app',
-    'Compatibilidad con asistentes de voz',
+    'productos.caracteristica.clima.temperatura',
+    'productos.caracteristica.clima.horarios',
+    'productos.caracteristica.clima.ahorro',
+    'productos.caracteristica.clima.remoto',
+    'productos.caracteristica.energia.asistentes',
   ],
   10: [
-    'Panel de control táctil intuitivo',
-    'Gestión central de todo el hogar',
-    'Pantalla de alta resolución',
-    'Escenas personalizadas',
-    'Interfaz en español',
+    'productos.caracteristica.interfaz.panel',
+    'productos.caracteristica.interfaz.gestion',
+    'productos.caracteristica.interfaz.pantalla',
+    'productos.caracteristica.interfaz.escenas',
+    'productos.caracteristica.interfaz.idioma',
   ],
 };
 
@@ -388,58 +393,59 @@ const ProductoDetalle = () => {
     }
   }, [producto, searchParams]);
 
-  if (loading) return <div className="detalle-loading">Cargando producto...</div>;
+  if (loading) return <div className="detalle-loading">{t('productos.cargandoDetalle')}</div>;
   if (error || !producto)
     return (
       <div className="detalle-error">
-        <p>{error || 'Producto no encontrado'}</p>
+        <p>{error || t('productos.noEncontrado')}</p>
         <button type="button" className="detalle-back-btn" onClick={() => navigate('/productos')}>
-          <FaArrowLeft /> Volver a productos
+          <FaArrowLeft /> {t('productos.volverCatalogo')}
         </button>
       </div>
     );
 
   const paleta = paletaDe();
-  const caracteristicas = (producto.caracteristicas_producto || '')
+  const caracteristicas = (producto.caracteristicas_producto_label || producto.caracteristicas_producto || '')
     .split('\n')
     .map((c) => c.replace(/^[-*\s]+/, '').trim())
     .filter(Boolean);
   const caracteristicasFinal = caracteristicas.length
     ? caracteristicas
     : CARACTERISTICAS[producto.id_cate_pr ?? 0] || CARACTERISTICAS[1];
-  const categoria = producto.nombre_categoria || 'Producto';
+  const nombreVisible = producto.nombre_producto_label || producto.nombre_producto;
+  const categoria = producto.nombre_categoria_label || producto.nombre_categoria || t('productos.producto');
 
-  const descripcion = producto.descripcion_producto || `El ${producto.nombre_producto} pertenece a la categoría de ${categoria}. Diseñado para integrarse a la perfección en tu hogar inteligente, combina tecnología confiable con una instalación sencilla, garantizando el mejor rendimiento y la máxima comodidad para tu espacio.`;
+  const descripcion = producto.descripcion_producto_label || producto.descripcion_producto || t('productos.descripcionGenerica', { nombre: nombreVisible, categoria });
 
   const esFav = producto ? esFavorito(producto.id_producto) : false;
 
   const handleToggleFavorito = () => {
     if (!producto) return;
     toggleFavorito(producto.id_producto);
-    showToast(esFav ? 'Producto eliminado de favoritos' : 'Producto agregado a favoritos');
+    showToast(t(esFav ? 'productos.favoritoQuitado' : 'productos.favoritoAgregado'));
   };
 
   const handleAgregarAlCarrito = () => {
     if (stockDisponible <= 0) {
-      showToast('No hay stock disponible para esta combinación de color/tamaño');
+      showToast(t('productos.colorTallaSinStock'));
       return;
     }
     if (usaTamanos && !tamano) {
-      showToast('Selecciona un tamaño disponible');
+      showToast(t('productos.seleccionaTalla'));
       return;
     }
     if (producto.venta_por_metros) {
       if (!metros || metros <= 0) {
-        showToast('Ingresa una cantidad de metros válida');
+        showToast(t('productos.cantidadMetrosInvalida'));
         return;
       }
       if (!unidadesMetros || unidadesMetros < 1) {
-        showToast('Ingresa una cantidad de unidades válida');
+        showToast(t('productos.cantidadUnidadesInvalida'));
         return;
       }
       const totalSolicitado = metros * unidadesMetros;
       if (totalSolicitado > stockDisponible) {
-        showToast(`Stock insuficiente: solo hay ${stockDisponible} m disponibles`);
+        showToast(t('productos.stockInsuficienteMetros', { count: stockDisponible }));
         return;
       }
       if (editarKey) removeItem(editarKey);
@@ -465,7 +471,7 @@ const ProductoDetalle = () => {
       if (editarKey) {
         navigate('/carrito');
       } else {
-        showToast(`${unidadesMetros} × ${metros} m (${totalSolicitado} m) — ${producto.nombre_producto} ${t('productos.agregadoAlCarrito')}`);
+        showToast(`${unidadesMetros} × ${metros} m (${totalSolicitado} m) — ${nombreVisible} ${t('productos.agregadoAlCarrito')}`);
       }
       return;
     }
@@ -490,13 +496,13 @@ const ProductoDetalle = () => {
     if (editarKey) {
       navigate('/carrito');
     } else {
-      showToast(`${cantidadFinal} x ${producto.nombre_producto} ${t('productos.agregadoAlCarrito')}`);
+      showToast(`${cantidadFinal} × ${nombreVisible} ${t('productos.agregadoAlCarrito')}`);
     }
   };
 
   return (
     <div className="detalle-page app-glass">
-      {toast && <div className="detalle-toast">{toast}</div>}
+      {toast && <div className="detalle-toast"><LocalizedNotificationText message={toast} /></div>}
       <main className="detalle-main">
         <button type="button" className="detalle-back-btn" onClick={() => navigate(editarKey ? '/carrito' : '/productos')}>
           <FaArrowLeft /> {editarKey ? 'Volver al carrito' : t('carrito.volverProductos')}
@@ -507,7 +513,7 @@ const ProductoDetalle = () => {
           <span className="detalle-breadcrumb-sep">/</span>
           <span className="detalle-breadcrumb-cat">{categoria}</span>
           <span className="detalle-breadcrumb-sep">/</span>
-          <span>{producto.nombre_producto}</span>
+          <span>{nombreVisible}</span>
         </nav>
 
         <div className="detalle-layout">
@@ -515,7 +521,7 @@ const ProductoDetalle = () => {
             <div className="detalle-imagen-card">
               <div className="detalle-corner-badges">
                 {tieneDescuento && (
-                  <span className="detalle-promo-corner">Promoción -{producto.descuento_activo}%</span>
+                  <span className="detalle-promo-corner">{t('productos.promocionDetalle', { discount: producto.descuento_activo ?? 0 })}</span>
                 )}
               </div>
               <button
@@ -529,7 +535,7 @@ const ProductoDetalle = () => {
               </button>
               <img
                 src={imagen}
-                alt={producto.nombre_producto}
+                alt={nombreVisible}
                 onError={(e) => (e.currentTarget.src = '/productos/default.png')}
               />
             </div>
@@ -566,9 +572,9 @@ const ProductoDetalle = () => {
 
           <div className="detalle-info">
             <span className="detalle-categoria">{categoria}</span>
-            <h1 className="detalle-nombre">{producto.nombre_producto}</h1>
-            {producto.marca && <span className="detalle-marca">Marca: {producto.marca}</span>}
-            {producto.tamaño && <span className="detalle-marca">Tamaño: {producto.tamaño}</span>}
+            <h1 className="detalle-nombre">{nombreVisible}</h1>
+            {producto.marca && <span className="detalle-marca">{t('productos.marca')} {producto.marca}</span>}
+            {producto.tamaño && <span className="detalle-marca">{t('productos.tamano')} {producto.tamaño}</span>}
 
             <div className={`detalle-precio ${producto.venta_por_metros ? 'detalle-precio--metros' : ''}`}>
               {producto.venta_por_metros ? (
@@ -613,19 +619,26 @@ const ProductoDetalle = () => {
               {stockDisponible > 0 ? <FaCheck /> : <FaRotateLeft />}
               {stockDisponible > 0
                 ? producto.venta_por_metros
-                  ? `Disponible · ${stockDisponible} m${variantes.length ? ' en esta combinación' : ''} · ${totalMetros} m seleccionados`
-                  : `Disponible · ${stockDisponible} u.${variantes.length ? ' en esta combinación' : ''}`
-                : 'Sin stock en esta combinación'}
+                  ? t('productos.detalleDisponibleMetros', {
+                      count: stockDisponible,
+                      combination: variantes.length ? t('productos.enEstaCombinacion') : '',
+                      selected: totalMetros,
+                    })
+                  : t('productos.detalleDisponibleUnidades', {
+                      count: stockDisponible,
+                      combination: variantes.length ? t('productos.enEstaCombinacion') : '',
+                    })
+                : t('productos.sinStockCombinacion')}
             </div>
 
             <p className="detalle-descripcion">{descripcion}</p>
 
             <div className="detalle-caracteristicas">
-              <h3>Características principales</h3>
+              <h3>{t('productos.caracteristicasPrincipales')}</h3>
               <ul>
                 {caracteristicasFinal.map(f => (
                   <li key={f}>
-                    <FaCheck /> {f}
+                    <FaCheck /> {f.startsWith('productos.caracteristica.') ? t(f) : f}
                   </li>
                 ))}
               </ul>
@@ -634,7 +647,7 @@ const ProductoDetalle = () => {
             <div className="detalle-compra">
               {usaTamanos && (
                 <div className="detalle-metros">
-                  <span className="detalle-metros-titulo">Elige la medida:</span>
+                  <span className="detalle-metros-titulo">{t('productos.eligeMedida')}</span>
                   <div className="detalle-metros-opciones">
                     {tamanosDisponibles.map(t => {
                       const variantesTamano = variantes.filter(
@@ -690,7 +703,7 @@ const ProductoDetalle = () => {
               )}
 
               <div className="detalle-colores">
-                <span className="detalle-label">Color: <strong>{color}</strong></span>
+                <span className="detalle-label">{t('productos.colorLabel')} <strong>{color}</strong></span>
                 <div className="detalle-colores-swatches">
                   {paleta.map(c => {
                     const esColorPrincipal = c === colorPrincipal;
@@ -753,7 +766,7 @@ const ProductoDetalle = () => {
                   <div className="detalle-metros-bloque">
                     <div className="detalle-metros-controles">
                       <div className="detalle-metros-campo">
-                        <span className="detalle-metros-label">Metros por unidad</span>
+                        <span className="detalle-metros-label">{t('productos.metrosPorUnidad')}</span>
                         <div className="detalle-metros-select-wrap">
                           <MetrosSelect className="detalle-metros-select" value={metros} max={stockDisponible / Math.max(1, unidadesMetros)}
                             aria-label="Metros por unidad" onChange={(nuevo) => {
@@ -766,7 +779,7 @@ const ProductoDetalle = () => {
 
                       </div>
                       <div className="detalle-metros-campo detalle-unidades-campo">
-                        <span className="detalle-metros-label">Unidades</span>
+                        <span className="detalle-metros-label">{t('productos.unidadesDetalle')}</span>
                         <div className="detalle-cantidad detalle-cantidad--compact">
                           <button
                             type="button"
@@ -819,18 +832,18 @@ const ProductoDetalle = () => {
                     </div>
                     <div className="detalle-precio-desglose">
                       <div className="detalle-precio-desglose-fila">
-                        <span>Precio por metro</span>
+                        <span>{t('productos.precioPorMetroDetalle')}</span>
                         <strong>${precioUnitario.toLocaleString()} COP</strong>
                       </div>
                       <div className="detalle-precio-desglose-fila">
-                        <span>Selección</span>
-                        <span>{metros} m × {unidadesMetros} {unidadesMetros === 1 ? 'unidad' : 'unidades'}</span>
+                        <span>{t('productos.seleccion')}</span>
+                        <span>{metros} m × {unidadesMetros} {t(unidadesMetros === 1 ? 'productos.unidad' : 'productos.unidades')}</span>
                       </div>
                       <div className="detalle-precio-desglose-fila detalle-precio-desglose-total">
-                        <span>Total</span>
+                        <span>{t('productos.total')}</span>
                         <strong>${subtotalLinea(precioUnitario, unidadesMetros, metros).toLocaleString()} COP</strong>
                       </div>
-                      <span className="detalle-precio-desglose-meta">{totalMetros} m en total · ${precioUnitario.toLocaleString()} / m</span>
+                      <span className="detalle-precio-desglose-meta">{t('productos.totalMetros', { count: totalMetros, price: precioUnitario.toLocaleString() })}</span>
                     </div>
                   </div>
                 ) : (
@@ -884,7 +897,7 @@ const ProductoDetalle = () => {
                 )}
 
                 <button type="button" className="detalle-agregar-btn" onClick={handleAgregarAlCarrito} disabled={!puedeAgregar}>
-                  Agregar al carrito
+                  {t('productos.agregarCarrito')}
                 </button>
 
                 <button
@@ -960,11 +973,11 @@ const ProductoDetalle = () => {
             <div className="detalle-beneficios">
               <div className="detalle-beneficio">
                 <FaTruckFast />
-                <span>Envío seguro a todo el país</span>
+                <span>{t('productos.envioSeguro')}</span>
               </div>
               <div className="detalle-beneficio">
                 <FaShieldHalved />
-                <span>Garantía oficial Neodomus</span>
+                <span>{t('productos.garantiaOficial')}</span>
               </div>
               <div className="detalle-beneficio">
                 <FaUsers />
@@ -981,7 +994,7 @@ const ProductoDetalle = () => {
         {/* Recomendados — mismo diseño premium que la página de productos */}
         {recomendados.length > 0 && (
           <div className="detalle-recomendados">
-            <h3 className="detalle-recomendados-titulo">También te puede interesar</h3>
+            <h3 className="detalle-recomendados-titulo">{t('productos.recomendadosTitulo')}</h3>
             <div className="detalle-recomendados-carousel-wrap">
               <button
                 className="carousel-flecha carousel-flecha-izq"

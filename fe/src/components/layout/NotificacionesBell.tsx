@@ -17,6 +17,8 @@ import {
   FaUserSlash,
 } from 'react-icons/fa6';
 import type { NotifAdmin, TipoNotificacion } from '../../hooks/useAdminNotificaciones';
+import { useIdioma } from '@i18n/IdiomaContext';
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 import '@styles/admin-navbar.css';
 
 export const ICONO_TIPO: Record<TipoNotificacion, React.ReactNode> = {
@@ -37,26 +39,28 @@ export const ICONO_TIPO: Record<TipoNotificacion, React.ReactNode> = {
   asignacion: <FaCalendarCheck />,
   recordatorio_cita: <FaStar />,
   recordatorio_producto: <FaStar />,
+  respuesta_soporte: <FaCircleInfo />,
 };
 
 export const ETIQUETA_TIPO: Record<TipoNotificacion, string> = {
-  cuenta: 'Solicitud de cuenta',
-  registro: 'Nuevo registro',
-  cita: 'Cita e instalación',
-  pedido: 'Pedido',
-  stock: 'Stock agotado',
-  sistema: 'Sistema',
-  entrega: 'Entrega',
-  reembolso: 'Reembolso',
-  devolucion: 'Devolución',
-  recogida: 'Recogida',
-  producto: 'Producto nuevo',
-  promocion: 'Promoci��n',
-  novedad: 'Novedad',
-  cupon: 'Cup��n',
-  asignacion: 'Asignaci��n',
-  recordatorio_cita: 'Encuesta de servicio',
-  recordatorio_producto: 'Encuesta de productos',
+  cuenta: 'notif.tipo.cuenta',
+  registro: 'notif.tipo.registro',
+  cita: 'notif.tipo.cita',
+  pedido: 'notif.tipo.pedido',
+  stock: 'notif.tipo.stock',
+  sistema: 'notif.tipo.sistema',
+  entrega: 'notif.tipo.entrega',
+  reembolso: 'notif.tipo.reembolso',
+  devolucion: 'notif.tipo.devolucion',
+  recogida: 'notif.tipo.recogida',
+  producto: 'notif.tipo.producto',
+  promocion: 'notif.tipo.promocion',
+  novedad: 'notif.tipo.novedad',
+  cupon: 'notif.tipo.cupon',
+  asignacion: 'notif.tipo.asignacion',
+  recordatorio_cita: 'notif.tipo.recordatorioCita',
+  recordatorio_producto: 'notif.tipo.recordatorioProducto',
+  respuesta_soporte: 'notif.tipo.respuestaSoporte',
 };
 
 interface NotificacionesBellProps {
@@ -85,6 +89,7 @@ const NotificacionesBell = ({
   error = null,
   onRetry,
 }: NotificacionesBellProps) => {
+  const { t } = useIdioma();
   const [open, setOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -106,8 +111,8 @@ const NotificacionesBell = ({
       <button
         type="button"
         className={`${buttonClassName} ${open ? 'active' : ''}`}
-        aria-label={ariaLabel}
-        title={ariaLabel}
+        aria-label={ariaLabel === 'Notificaciones' ? t('notif.verTodasNotif') : ariaLabel}
+        title={ariaLabel === 'Notificaciones' ? t('notif.verTodasNotif') : ariaLabel}
         aria-expanded={open}
         onClick={() => setOpen(v => !v)}
       >
@@ -118,20 +123,20 @@ const NotificacionesBell = ({
       <div className={`anr-notif-panel ${open ? 'open' : ''}`}>
         <div className="anr-notif-head">
           <div>
-            <strong>{titulo}</strong>
-            {noLeidas > 0 && <span className="anr-notif-unread">{noLeidas} sin leer</span>}
+            <strong>{titulo === 'Notificaciones' ? t('notif.title') : titulo}</strong>
+            {noLeidas > 0 && <span className="anr-notif-unread">{t('notif.sinLeer', { count: noLeidas })}</span>}
           </div>
           <Link to={verTodasTo} className="anr-notif-ver" onClick={() => setOpen(false)}>
-            Ver todas
+            {t('notif.verTodas')}
           </Link>
         </div>
 
         {error && (
           <div className="anr-notif-empty" role="alert">
-            <span>{error}</span>
+            <span><LocalizedNotificationText message={error} /></span>
             {onRetry && (
               <button type="button" className="anr-notif-ver" onClick={() => void onRetry()}>
-                Reintentar
+                {t('notif.reintentar')}
               </button>
             )}
           </div>
@@ -139,12 +144,12 @@ const NotificacionesBell = ({
 
         <div className="anr-notif-list">
           {cargando ? (
-            <div className="anr-notif-empty">Cargando...</div>
+            <div className="anr-notif-empty">{t('notif.cargando')}</div>
           ) : recientes.length === 0 ? (
             error ? null : (
               <div className="anr-notif-empty">
                 <FaBell />
-                No hay notificaciones
+                {t('notif.vacio')}
               </div>
             )
           ) : (
@@ -160,9 +165,10 @@ const NotificacionesBell = ({
               >
                 <span className={`anr-notif-ico ${n.tipo}`}>{ICONO_TIPO[n.tipo]}</span>
                 <span className="anr-notif-info">
-                  <span className="anr-notif-tag">{ETIQUETA_TIPO[n.tipo]}</span>
-                  <span className="anr-notif-titulo">{n.titulo}</span>
-                  <span className="anr-notif-msg">{n.mensaje}</span>
+                  <span className="anr-notif-tag">{t(ETIQUETA_TIPO[n.tipo])}</span>
+                  <span className="anr-notif-titulo"><LocalizedNotificationText message={n.titulo} /></span>
+                  <span className="anr-notif-msg"><LocalizedNotificationText message={n.mensaje} /></span>
+                  {n.accion?.label && <span className="anr-notif-msg"><LocalizedNotificationText message={n.accion.label} /></span>}
                   {n.fecha && <span className="anr-notif-fecha">{n.fecha}</span>}
                 </span>
                 {!n.leida && <span className="anr-notif-dot" />}
@@ -172,7 +178,7 @@ const NotificacionesBell = ({
         </div>
 
         <Link to={verTodasTo} className="anr-notif-footer" onClick={() => setOpen(false)}>
-          Ver todas las notificaciones <FaArrowRight />
+          {t('notif.verTodasNotif')} <FaArrowRight />
         </Link>
       </div>
     </div>

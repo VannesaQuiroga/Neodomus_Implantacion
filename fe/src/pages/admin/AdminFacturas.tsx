@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla AdminFacturas de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useState } from 'react';
 import { FaFileInvoice, FaFilePdf, FaEnvelope } from 'react-icons/fa6';
@@ -100,7 +101,7 @@ const AdminFacturas = () => {
     <div className="ap-container">
       {toast && (
         <div className={`ap-toast ${toast.tipo === 'ok' ? 'ap-toast-ok' : 'ap-toast-err'}`}>
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
 

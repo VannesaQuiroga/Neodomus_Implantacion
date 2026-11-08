@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import String, func, or_, select
@@ -26,9 +26,32 @@ from app.models.roles_usuario import RolesUsuario
 from app.models.tecnico import Tecnico
 from app.models.user import User
 from app.utils.security import get_current_client, get_current_employee, get_current_user
+from app.utils.database_values_i18n import (
+    Language,
+    add_database_value_labels,
+    language_from_request,
+    translate_database_value,
+)
 from app.services import novedades_service, minio_service
 
 router = APIRouter(prefix="/novedades", tags=["Novedades"])
+
+_CAMPOS_NOVEDAD_TRADUCIBLES = {
+    "tipo_novedad": "novelty_type",
+    "prioridad": "priority",
+    "estado_novedad": "novelty_status",
+    "pedido_info": {"estado": "order_status"},
+    "pedido_info_completo": {"estado": "order_status", "estado_entrega": "delivery_status"},
+    "cita_info": {"estado": "appointment_status"},
+    "cita_info_completo": {"estado": "appointment_status"},
+    "devolucion_info": {"estado": "return_status"},
+    "devolucion_info_completo": {"estado": "return_status"},
+    "cupon": {"tipo_descuento": "discount_type"},
+}
+
+
+def _etiquetas_catalogo(valores: list[str], dominio: str, idioma: Language) -> dict[str, str]:
+    return {valor: translate_database_value(valor, dominio, idioma) for valor in valores}
 
 
 def _url_evidencia_novedad(evidencia_id: int) -> str:
@@ -104,6 +127,26 @@ def estados_novedad():
 @router.get("/prioridades")
 def prioridades_novedad():
     return novedades_service.PRIORIDADES
+
+
+@router.get("/catalogos")
+def catalogos_novedad(request: Request):
+    """Return canonical filter values alongside labels for the requested language."""
+    idioma = language_from_request(request)
+    return {
+        "tipos": [
+            {"value": value, "label": translate_database_value(value, "novelty_type", idioma)}
+            for value in novedades_service.TIPOS_NOVEDAD
+        ],
+        "estados": [
+            {"value": value, "label": translate_database_value(value, "novelty_status", idioma)}
+            for value in novedades_service.ESTADOS_NOVEDAD
+        ],
+        "prioridades": [
+            {"value": value, "label": translate_database_value(value, "priority", idioma)}
+            for value in novedades_service.PRIORIDADES
+        ],
+    }
 
 
 # ── Técnico: buscar clientes ────────────────────────────────────────
@@ -513,18 +556,20 @@ def listar_evidencias_novedad(
 
 @router.get("/mis-novedades")
 def mis_novedades(
+    request: Request,
     user_info: tuple = Depends(_tecnico),
     db: Session = Depends(get_db),
 ):
     _, id_tecnico = user_info
     novedades = novedades_service.listar_novedades_tecnico(db, id_tecnico)
-    return _serializar_novedades(novedades, db)
+    return _serializar_novedades(novedades, db, language_from_request(request))
 
 
 # ── Admin: listar, cambiar estado, cupones ──────────────────────────
 
 @router.get("")
 def listar_novedades_admin(
+    request: Request,
     id_pedido: Optional[int] = None,
     id_tecnico: Optional[int] = None,
     id_cliente: Optional[int] = None,
@@ -567,11 +612,12 @@ def listar_novedades_admin(
         elif tipo_origen == "devolucion":
             novedades = [n for n in novedades if n.id_devolucion]
 
-    return _serializar_novedades(novedades, db)
+    return _serializar_novedades(novedades, db, language_from_request(request))
 
 
 @router.get("/admin/filtros")
 def filtros_admin_novedades(
+    request: Request,
     _admin_user: User = Depends(_admin),
     db: Session = Depends(get_db),
 ):
@@ -612,12 +658,18 @@ def filtros_admin_novedades(
         for c in clientes_rows
     ]
 
+    idioma = language_from_request(request)
     return {
         "tecnicos": tecnicos_list,
         "clientes": clientes_list,
         "tipos": novedades_service.TIPOS_NOVEDAD,
         "estados": novedades_service.ESTADOS_NOVEDAD,
         "prioridades": novedades_service.PRIORIDADES,
+        "etiquetas": {
+            "tipos": _etiquetas_catalogo(novedades_service.TIPOS_NOVEDAD, "novelty_type", idioma),
+            "estados": _etiquetas_catalogo(novedades_service.ESTADOS_NOVEDAD, "novelty_status", idioma),
+            "prioridades": _etiquetas_catalogo(novedades_service.PRIORIDADES, "priority", idioma),
+        },
     }
 
 
@@ -625,12 +677,13 @@ def filtros_admin_novedades(
 
 @router.get("/cliente/novedades")
 def novedades_cliente(
+    request: Request,
     current_user: Cliente = Depends(get_current_client),
     db: Session = Depends(get_db),
 ):
     """Lista las novedades visibles para el cliente autenticado."""
     novedades = novedades_service.listar_novedades_cliente(db, current_user.id_cliente)
-    return _serializar_novedades(novedades, db)
+    return _serializar_novedades(novedades, db, language_from_request(request))
 
 
 # ── Admin/Técnico: escribir mensaje/solución para el cliente ──
@@ -731,6 +784,7 @@ def mis_cupones_cliente(
 @router.get("/{novedad_id}")
 def obtener_novedad(
     novedad_id: int,
+    request: Request,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -752,7 +806,7 @@ def obtener_novedad(
         elif role not in ("admin", "administrador"):
             raise HTTPException(403, "Sin permisos")
 
-    return _serializar_novedad_detalle(novedad, db)
+    return _serializar_novedad_detalle(novedad, db, language_from_request(request))
 
 
 # Agrupa los campos de CambiarEstadoRequest: nuevo_estado, accion_detalle.
@@ -1015,7 +1069,7 @@ def crear_cupon_novedad(
 # ── Helpers de serialización ────────────────────────────────────────
 
 # Consulta TecnicoModel.
-def _serializar_novedades(novedades, db):
+def _serializar_novedades(novedades, db, idioma: Language = "es"):
     from app.models.tecnico import Tecnico as TecnicoModel
     result = []
     for n in novedades:
@@ -1119,11 +1173,11 @@ def _serializar_novedades(novedades, db):
             "devolucion_info": devolucion_info,
             "cupon": cupon_info,
         })
-    return result
+    return add_database_value_labels(result, _CAMPOS_NOVEDAD_TRADUCIBLES, idioma)
 
 
-def _serializar_novedad_detalle(novedad, db):
-    items = _serializar_novedades([novedad], db)
+def _serializar_novedad_detalle(novedad, db, idioma: Language = "es"):
+    items = _serializar_novedades([novedad], db, idioma)
     item = items[0] if items else {}
 
     # Historial
@@ -1196,4 +1250,4 @@ def _serializar_novedad_detalle(novedad, db):
             "fecha_solicitud": dv.created_at.isoformat() if dv.created_at else None,
         }
 
-    return item
+    return add_database_value_labels(item, _CAMPOS_NOVEDAD_TRADUCIBLES, idioma)

@@ -1,11 +1,14 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Reúne las opciones de ayuda y contacto para el cliente.
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
+import { useAuthModal } from '@contexts/AuthModalContext';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { useSearchParams } from 'react-router-dom';
 import {
   FaEnvelope, FaPhone, FaClock, FaLocationDot,
   FaArrowRight, FaPaperPlane, FaLifeRing, FaBook, FaHeadset, FaCircleCheck,
-  FaQuestion, FaRobot, FaMessage
+  FaQuestion, FaRobot, FaMessage, FaChevronDown, FaCircleExclamation,
 } from 'react-icons/fa6';
 import '@styles/ayuda.css';
 import api from '@services/api';
@@ -27,14 +30,57 @@ interface ConsultaForm {
   categoria: string;
 }
 
+interface SolicitudCliente {
+  id: number;
+  asunto: string;
+  mensaje: string;
+  categoria?: string | null;
+  estado: string;
+  respuesta?: string | null;
+  created_at?: string | null;
+  responded_at?: string | null;
+  respuesta_no_leida: boolean;
+}
+
+type TabAyuda = 'faq' | 'chat' | 'contacto' | 'formulario' | 'misSolicitudes';
+
+const CLAVES_CATEGORIA_CONSULTA: Record<string, string> = {
+  'consulta-general': 'ayuda.form.opcionConsultaGeneral',
+  'soporte-tecnico': 'ayuda.form.opcionSoporteTecnico',
+  pedido: 'ayuda.form.opcionPedido',
+  pago: 'ayuda.form.opcionPago',
+  reembolso: 'ayuda.form.opcionReembolso',
+  reclamo: 'ayuda.form.opcionReclamo',
+  otro: 'ayuda.form.opcionOtro',
+};
+
+const CLAVES_SUGERENCIAS_BOT = [
+  'ayuda.faq.sug1',
+  'ayuda.faq.sug2',
+  'ayuda.faq.sug3',
+  'ayuda.faq.sug4',
+  'ayuda.faq.sug5',
+  'ayuda.faq.sug6',
+];
+
 // Comunica con el backend mediante GET '/faq', POST '/contacto'.
 const AyudaPage = () => {
   const { user, isAuthenticated } = useAuth();
-  const { t } = useIdioma();
+  const { openAuth } = useAuthModal();
+  const { t, idioma } = useIdioma();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabSolicitudesSolicitado = ['mis-solicitudes', 'misSolicitudes'].includes(searchParams.get('tab') || '');
+  const etiquetaCategoria = (categoria: string) => {
+    const clave = CLAVES_CATEGORIA_CONSULTA[categoria];
+    return clave ? t(clave) : CATEGORIAS_CONSULTA[categoria];
+  };
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loadingFAQs, setLoadingFAQs] = useState(true);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'faq' | 'chat' | 'contacto' | 'formulario'>('faq');
+  const [activeTab, setActiveTab] = useState<TabAyuda>(tabSolicitudesSolicitado ? 'misSolicitudes' : 'faq');
+  const [misSolicitudes, setMisSolicitudes] = useState<SolicitudCliente[]>([]);
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
+  const [solicitudExpandida, setSolicitudExpandida] = useState<number | null>(null);
   const [consulta, setConsulta] = useState<ConsultaForm>({
     nombre: user?.nombre || '',
     email: user?.correo || '',
@@ -55,26 +101,93 @@ const AyudaPage = () => {
   } = useBotChat();
   const chatInputRef = useRef<HTMLInputElement>(null);
 
+  const cambiarTab = (tab: TabAyuda) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams);
+    if (tab === 'misSolicitudes') {
+      params.set('tab', 'mis-solicitudes');
+      if (activeTab !== 'misSolicitudes') params.delete('id');
+    } else {
+      params.delete('tab');
+      params.delete('id');
+    }
+    setSearchParams(params, { replace: true });
+  };
+
+  const cargarMisSolicitudes = async () => {
+    if (!isAuthenticated) return;
+    setCargandoSolicitudes(true);
+    try {
+      const response = await api.get<SolicitudCliente[]>('/contacto/mias');
+      setMisSolicitudes(response.data || []);
+    } catch {
+      showToast(t('ayuda.solicitudes.errorCarga'), 'error');
+    } finally {
+      setCargandoSolicitudes(false);
+    }
+  };
+
+  const abrirSolicitud = async (solicitud: SolicitudCliente) => {
+    const seAbre = solicitudExpandida !== solicitud.id;
+    setSolicitudExpandida(seAbre ? solicitud.id : null);
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', 'mis-solicitudes');
+    if (seAbre) params.set('id', String(solicitud.id));
+    else params.delete('id');
+    setSearchParams(params, { replace: true });
+    if (seAbre && solicitud.respuesta_no_leida) {
+      try {
+        await api.patch(`/contacto/mias/${solicitud.id}/respuesta/leida`);
+        setMisSolicitudes((prev) => prev.map((item) => item.id === solicitud.id
+          ? { ...item, respuesta_no_leida: false }
+          : item));
+      } catch {
+        showToast(t('ayuda.solicitudes.errorLeida'), 'error');
+      }
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'chat' && !chatEscribiendo) chatInputRef.current?.focus();
   }, [activeTab, chatEscribiendo]);
+
+  useEffect(() => {
+    if (tabSolicitudesSolicitado) setActiveTab('misSolicitudes');
+    else if (activeTab === 'misSolicitudes') setActiveTab('faq');
+  }, [tabSolicitudesSolicitado]);
 
   useEffect(() => {
     // Las FAQ son el contenido local del proyecto (no existe un endpoint /faq
     // en el backend); se cargan directo para no generar 404 en consola.
     setFaqs(faqsBase);
     setLoadingFAQs(false);
-  }, []);
+  }, [t]);
+
+  useEffect(() => {
+    if (isAuthenticated) void cargarMisSolicitudes();
+  }, [activeTab, isAuthenticated]);
+
+  useEffect(() => {
+    const idSolicitud = Number(searchParams.get('id'));
+    if (
+      activeTab === 'misSolicitudes' &&
+      Number.isInteger(idSolicitud) &&
+      idSolicitud > 0 &&
+      misSolicitudes.some((solicitud) => solicitud.id === idSolicitud)
+    ) {
+      setSolicitudExpandida(idSolicitud);
+    }
+  }, [activeTab, misSolicitudes, searchParams]);
 
   const faqsBase: FAQ[] = [
-    { id: 1, pregunta: '¿Cómo realizo un pedido?', respuesta: 'Navega a la sección Productos, selecciona los items que deseas, ajusta cantidades y haz clic en "Agregar al carrito". Luego ve a tu carrito y completa el checkout.', categoria: 'Pedidos' },
-    { id: 2, pregunta: '¿Cuáles son los métodos de pago?', respuesta: 'Aceptamos tarjetas de crédito/débito (Visa, Mastercard), PSE, Nequi y Daviplata. Todos los pagos son procesados de forma segura.', categoria: 'Pagos' },
-    { id: 3, pregunta: '¿Cómo agendo una cita con un técnico?', respuesta: 'Ve a la sección "Citas" en el menú, selecciona el tipo de servicio, fecha, hora y describe tu necesidad. Opcionalmente elige un técnico preferido.', categoria: 'Citas' },
-    { id: 4, pregunta: '¿Puedo cancelar o modificar mi cita?', respuesta: 'Sí, puedes cancelar o reprogramar desde tu perfil en la sección "Mis citas" con al menos 2 horas de antelación.', categoria: 'Citas' },
-    { id: 5, pregunta: '¿Cómo agrego productos a favoritos?', respuesta: 'En la página de productos, haz clic en el ícono de corazón en la tarjeta del producto. Luego ve a "Mi perfil > Mis favoritos" para verlos.', categoria: 'Cuenta' },
-    { id: 6, pregunta: '¿Cuál es el tiempo de entrega?', respuesta: 'Envíos a ciudades principales: 2-3 días hábiles. Otras zonas: 4-6 días hábiles. Recibirás notificaciones de seguimiento.', categoria: 'Envíos' },
-    { id: 7, pregunta: '¿Ofrecen garantía en instalaciones?', respuesta: 'Sí, todas nuestras instalaciones tienen garantía de 12 meses en mano de obra y la garantía del fabricante en equipos.', categoria: 'Servicios' },
-    { id: 8, pregunta: '¿Cómo contacto a soporte?', respuesta: 'Puedes usar el formulario en esta página, escribir a soporte@neodomus.com o llamar al +57 601 123 4567 en horario laboral.', categoria: 'Contacto' },
+    { id: 1, pregunta: t('ayuda.faq.p1'), respuesta: t('ayuda.faq.r1'), categoria: t('ayuda.faq.catPedidos') },
+    { id: 2, pregunta: t('ayuda.faq.p2'), respuesta: t('ayuda.faq.r2'), categoria: t('ayuda.faq.catPagos') },
+    { id: 3, pregunta: t('ayuda.faq.p3'), respuesta: t('ayuda.faq.r3'), categoria: t('ayuda.faq.catCitas') },
+    { id: 4, pregunta: t('ayuda.faq.p4'), respuesta: t('ayuda.faq.r4'), categoria: t('ayuda.faq.catCitas') },
+    { id: 5, pregunta: t('ayuda.faq.p5'), respuesta: t('ayuda.faq.r5'), categoria: t('ayuda.faq.catCuenta') },
+    { id: 6, pregunta: t('ayuda.faq.p6'), respuesta: t('ayuda.faq.r6'), categoria: t('ayuda.faq.catEnvios') },
+    { id: 7, pregunta: t('ayuda.faq.p7'), respuesta: t('ayuda.faq.r7'), categoria: t('ayuda.faq.catServicios') },
+    { id: 8, pregunta: t('ayuda.faq.p8'), respuesta: t('ayuda.faq.r8'), categoria: t('ayuda.faq.catContacto') },
   ];
 
   const handleConsultaChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -85,31 +198,31 @@ const AyudaPage = () => {
   const handleConsultaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consulta.nombre.trim() || !consulta.email.trim() || !consulta.mensaje.trim()) {
-      showToast('Completa todos los campos', 'error');
+      showToast(t('ayuda.form.errorCampos'), 'error');
       return;
     }
     if (!consulta.email.includes('@')) {
-      showToast('Email inválido', 'error');
+      showToast(t('ayuda.form.errorEmail'), 'error');
       return;
     }
     if (!consulta.categoria) {
-      showToast('Selecciona la clasificación de tu consulta', 'error');
+      showToast(t('ayuda.form.errorCategoria'), 'error');
       return;
     }
     setSubmitting(true);
     try {
-      await api.post('/contacto', {
+      await api.post(isAuthenticated ? '/contacto/autenticado' : '/contacto', {
         nombre: consulta.nombre,
         email: consulta.email,
         asunto: CATEGORIAS_CONSULTA[consulta.categoria] || 'Consulta',
         mensaje: consulta.mensaje,
         categoria: consulta.categoria,
       });
-      showToast('Tu consulta ha sido enviada. Te responderemos pronto.', 'success');
+      showToast(t('ayuda.form.exito'), 'success');
       setConsulta(prev => ({ ...prev, categoria: '', mensaje: '' }));
     } catch (err) {
       console.error(err);
-      showToast('Error al enviar. Intenta de nuevo.', 'error');
+      showToast(t('ayuda.form.errorEnvio'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -131,10 +244,10 @@ const AyudaPage = () => {
   }, {} as Record<string, FAQ[]>);
 
   const infoContacto = [
-    { icon: <FaEnvelope />, titulo: 'Correo de soporte', valor: 'soporte@neodomus.com', descripcion: 'Respondemos en 24h hábiles' },
-    { icon: <FaPhone />, titulo: 'Línea de atención', valor: '+57 601 123 4567', descripcion: 'Lun-Vie 8:00 - 18:00' },
-    { icon: <FaClock />, titulo: 'Horario de atención', valor: 'Lunes a Viernes', descripcion: '8:00 AM - 6:00 PM' },
-    { icon: <FaLocationDot />, titulo: 'Oficina principal', valor: 'Cra 15 #93-47, Bogotá', descripcion: 'Solo con cita previa' },
+    { icon: <FaEnvelope />, titulo: t('ayuda.contacto.correoTitulo'), valor: 'soporte@neodomus.com', descripcion: t('ayuda.contacto.correoDesc') },
+    { icon: <FaPhone />, titulo: t('ayuda.contacto.lineaTitulo'), valor: '+57 601 123 4567', descripcion: t('ayuda.contacto.lineaDesc') },
+    { icon: <FaClock />, titulo: t('ayuda.contacto.horarioTitulo'), valor: t('ayuda.contacto.horarioValor'), descripcion: t('ayuda.contacto.horarioDesc') },
+    { icon: <FaLocationDot />, titulo: t('ayuda.contacto.oficinaTitulo'), valor: 'Cra 15 #93-47, Bogotá', descripcion: t('ayuda.contacto.oficinaDesc') },
   ];
 
   return (
@@ -156,7 +269,7 @@ const AyudaPage = () => {
             role="tab"
             aria-selected={activeTab === 'faq'}
             className={`ayuda-tab ${activeTab === 'faq' ? 'active' : ''}`}
-            onClick={() => setActiveTab('faq')}
+            onClick={() => cambiarTab('faq')}
           >
             <FaQuestion /> {t('ayuda.preguntasFrec')}
           </button>
@@ -164,15 +277,15 @@ const AyudaPage = () => {
             role="tab"
             aria-selected={activeTab === 'chat'}
             className={`ayuda-tab ${activeTab === 'chat' ? 'active' : ''}`}
-            onClick={() => setActiveTab('chat')}
+            onClick={() => cambiarTab('chat')}
           >
-            <FaRobot /> Asistente virtual
+            <FaRobot /> {t('ayuda.contacto.asistenteVirtual')}
           </button>
           <button
             role="tab"
             aria-selected={activeTab === 'contacto'}
             className={`ayuda-tab ${activeTab === 'contacto' ? 'active' : ''}`}
-            onClick={() => setActiveTab('contacto')}
+            onClick={() => cambiarTab('contacto')}
           >
             <FaHeadset /> {t('ayuda.contacto')}
           </button>
@@ -180,10 +293,25 @@ const AyudaPage = () => {
             role="tab"
             aria-selected={activeTab === 'formulario'}
             className={`ayuda-tab ${activeTab === 'formulario' ? 'active' : ''}`}
-            onClick={() => setActiveTab('formulario')}
+            onClick={() => cambiarTab('formulario')}
           >
             <FaPaperPlane /> {t('ayuda.enviarConsulta')}
           </button>
+          {(isAuthenticated || tabSolicitudesSolicitado || activeTab === 'misSolicitudes') && (
+            <button
+              role="tab"
+              aria-selected={activeTab === 'misSolicitudes'}
+              className={`ayuda-tab ${activeTab === 'misSolicitudes' ? 'active' : ''}`}
+              onClick={() => cambiarTab('misSolicitudes')}
+            >
+              <FaMessage /> {t('ayuda.solicitudes.titulo')}
+              {misSolicitudes.some((solicitud) => solicitud.respuesta_no_leida) && (
+                <span className="ayuda-solicitudes-count" aria-label={t('ayuda.solicitudes.nuevaRespuesta')}>
+                  <FaCircleExclamation />
+                </span>
+              )}
+            </button>
+          )}
         </nav>
 
         <div className="ayuda-content" role="tabpanel">
@@ -222,7 +350,7 @@ const AyudaPage = () => {
               )}
               <div className="ayuda-faq-cta">
                 <p>{t('ayuda.noEncontraste')}</p>
-                <button className="ayuda-btn ayuda-btn-primary" onClick={() => setActiveTab('formulario')}>
+                <button className="ayuda-btn ayuda-btn-primary" onClick={() => cambiarTab('formulario')}>
                   <FaPaperPlane /> {t('ayuda.enviarUnaPregunta')}
                 </button>
               </div>
@@ -269,14 +397,14 @@ const AyudaPage = () => {
                         className="ayuda-chat-confirm-btn si"
                         onClick={() => confirmar('si')}
                       >
-                        Sí
+                        {t('ayuda.contacto.chatSi')}
                       </button>
                       <button
                         type="button"
                         className="ayuda-chat-confirm-btn no"
                         onClick={() => confirmar('no')}
                       >
-                        No
+                        {t('ayuda.contacto.chatNo')}
                       </button>
                     </>
                   )}
@@ -285,16 +413,16 @@ const AyudaPage = () => {
                 <div className="ayuda-chat-sugs">
                   {!chatEscribiendo && mostrarSugerencias && (
                     <>
-                      <span className="ayuda-chat-sugs-label">Preguntas frecuentes:</span>
+                      <span className="ayuda-chat-sugs-label">{t('ayuda.preguntasFrec')}:</span>
                       <div className="ayuda-chat-sugs-list">
-                        {BOT_SUGERENCIAS.map((s) => (
+                        {BOT_SUGERENCIAS.map((s, i) => (
                           <button
                             type="button"
                             key={s}
                             className="ayuda-chat-sug"
                             onClick={() => enviar(s)}
                           >
-                            {s}
+                            {t(CLAVES_SUGERENCIAS_BOT[i] ?? s)}
                           </button>
                         ))}
                       </div>
@@ -307,7 +435,7 @@ const AyudaPage = () => {
                     ref={chatInputRef}
                     type="text"
                     className="ayuda-input"
-                    placeholder="Escribe tu pregunta..."
+                    placeholder={t('ayuda.contacto.chatPlaceholder')}
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -325,9 +453,9 @@ const AyudaPage = () => {
                 </div>
 
                 <div className="ayuda-chat-cta">
-                  <span>¿No encontraste tu respuesta?</span>
-                  <button className="ayuda-btn ayuda-btn-ghost" onClick={() => setActiveTab('formulario')}>
-                    <FaPaperPlane /> Escalar a un asesor
+                  <span>{t('ayuda.noEncontraste')}</span>
+                  <button className="ayuda-btn ayuda-btn-ghost" onClick={() => cambiarTab('formulario')}>
+                    <FaPaperPlane /> {t('ayuda.contacto.escalarAsesor')}
                   </button>
                 </div>
               </div>
@@ -350,8 +478,8 @@ const AyudaPage = () => {
                 <h3>{t('ayuda.canalesExtra')}</h3>
                 <ul className="ayuda-contacto-lista">
                   <li><FaCircleCheck /> {t('ayuda.chatEnVivo')}</li>
-                  <li><FaCircleCheck /> WhatsApp Business: +57 300 123 4567</li>
-                  <li><FaCircleCheck /> Redes sociales: @NeodomusOficial</li>
+                  <li><FaCircleCheck /> {t('ayuda.contacto.whatsapp')}: +57 300 123 4567</li>
+                  <li><FaCircleCheck /> {t('ayuda.contacto.redes')}: @NeodomusOficial</li>
                 </ul>
               </div>
             </section>
@@ -362,7 +490,7 @@ const AyudaPage = () => {
               <form onSubmit={handleConsultaSubmit} className="ayuda-form" noValidate>
                 <div className="ayuda-form-grid">
                   <div className="ayuda-form-group">
-                    <label htmlFor="ayuda-nombre">Nombre completo *</label>
+                    <label htmlFor="ayuda-nombre">{t('ayuda.form.nombre')}</label>
                     <input
                       type="text"
                       id="ayuda-nombre"
@@ -373,10 +501,10 @@ const AyudaPage = () => {
                       required
                       disabled={isAuthenticated}
                     />
-                    {isAuthenticated && <span className="ayuda-hint">Se completa automáticamente desde tu perfil</span>}
+                    {isAuthenticated && <span className="ayuda-hint">{t('ayuda.form.hintPerfil')}</span>}
                   </div>
                   <div className="ayuda-form-group">
-                    <label htmlFor="ayuda-email">Correo electrónico *</label>
+                    <label htmlFor="ayuda-email">{t('ayuda.form.email')}</label>
                     <input
                       type="email"
                       id="ayuda-email"
@@ -389,7 +517,7 @@ const AyudaPage = () => {
                     />
                   </div>
                   <div className="ayuda-form-group ayuda-form-full">
-                    <label htmlFor="ayuda-categoria">Motivo de la consulta *</label>
+                    <label htmlFor="ayuda-categoria">{t('ayuda.form.motivo')}</label>
                     <select
                       id="ayuda-categoria"
                       name="categoria"
@@ -398,16 +526,16 @@ const AyudaPage = () => {
                       className="ayuda-select"
                       required
                     >
-                      <option value="">Selecciona una clasificación</option>
+                      <option value="">{t('ayuda.form.seleccionaClasificacion')}</option>
                       {CATEGORIAS_CONSULTA_ORDER.map((cat) => (
                         <option key={cat} value={cat}>
-                          {CATEGORIAS_CONSULTA[cat]}
+                          {etiquetaCategoria(cat)}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="ayuda-form-group ayuda-form-full">
-                    <label htmlFor="ayuda-mensaje">Mensaje *</label>
+                    <label htmlFor="ayuda-mensaje">{t('ayuda.form.mensaje')}</label>
                     <textarea
                       id="ayuda-mensaje"
                       name="mensaje"
@@ -415,21 +543,21 @@ const AyudaPage = () => {
                       onChange={handleConsultaChange}
                       className="ayuda-textarea"
                       rows={6}
-                      placeholder="Describe tu consulta, problema o sugerencia con el mayor detalle posible..."
+                      placeholder={t('ayuda.form.placeholderMensaje')}
                       required
                     />
-                    <span className="ayuda-hint">Mínimo 30 caracteres</span>
+                    <span className="ayuda-hint">{t('ayuda.form.hintMinimo')}</span>
                   </div>
                 </div>
                 <div className="ayuda-form-actions">
                   <button type="submit" className="ayuda-btn ayuda-btn-primary" disabled={submitting}>
                     {submitting ? (
                       <>
-                        <FaCircleCheck style={{ animation: 'spin 1s linear infinite' }} /> Enviando...
+                        <FaCircleCheck style={{ animation: 'spin 1s linear infinite' }} /> {t('ayuda.form.enviando')}
                       </>
                     ) : (
                       <>
-                        <FaPaperPlane /> Enviar consulta
+                        <FaPaperPlane /> {t('ayuda.enviarConsulta')}
                       </>
                     )}
                   </button>
@@ -437,12 +565,92 @@ const AyudaPage = () => {
               </form>
             </section>
           )}
+
+          {activeTab === 'misSolicitudes' && (
+            <section className="ayuda-solicitudes">
+              {!isAuthenticated ? (
+                <div className="ayuda-solicitudes-vacio">
+                  <FaMessage />
+                  <h2>{t('ayuda.solicitudes.loginTitulo')}</h2>
+                  <p>{t('ayuda.solicitudes.loginDesc')}</p>
+                  <button type="button" className="ayuda-btn ayuda-btn-primary" onClick={() => openAuth('ingresar')}>
+                    {t('ayuda.solicitudes.loginAccion')}
+                  </button>
+                </div>
+              ) : cargandoSolicitudes ? (
+                <p className="ayuda-loading">{t('ayuda.solicitudes.cargando')}</p>
+              ) : misSolicitudes.length === 0 ? (
+                <div className="ayuda-solicitudes-vacio">
+                  <FaMessage />
+                  <h2>{t('ayuda.solicitudes.vacio')}</h2>
+                  <p>{t('ayuda.solicitudes.vacioDesc')}</p>
+                </div>
+              ) : (
+                <div className="ayuda-solicitudes-lista">
+                  {misSolicitudes.map((solicitud) => {
+                    const abierta = solicitudExpandida === solicitud.id;
+                    const estadoKey: Record<string, string> = {
+                      pendiente: 'ayuda.solicitudes.estadoPendiente',
+                      en_proceso: 'ayuda.solicitudes.estadoProceso',
+                      respondida: 'ayuda.solicitudes.estadoResuelta',
+                      resuelta: 'ayuda.solicitudes.estadoResuelta',
+                    };
+                    const fecha = solicitud.created_at
+                      ? new Date(solicitud.created_at).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CO', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                        })
+                      : '';
+                    return (
+                      <article className="ayuda-solicitud-card" key={solicitud.id}>
+                        <button
+                          type="button"
+                          className="ayuda-solicitud-toggle"
+                          aria-expanded={abierta}
+                          onClick={() => void abrirSolicitud(solicitud)}
+                        >
+                          <span className="ayuda-solicitud-main">
+                            <strong>{solicitud.asunto}</strong>
+                            <span className="ayuda-solicitud-meta">
+                              <span>{fecha}</span>
+                              <span className={`ayuda-solicitud-estado ${solicitud.estado}`}>
+                                {t(estadoKey[solicitud.estado] || 'ayuda.solicitudes.estadoPendiente')}
+                              </span>
+                              {solicitud.respuesta_no_leida && (
+                                <span className="ayuda-solicitud-nueva">{t('ayuda.solicitudes.nuevaRespuesta')}</span>
+                              )}
+                            </span>
+                          </span>
+                          <FaChevronDown className={abierta ? 'abierto' : ''} />
+                        </button>
+                        {abierta && (
+                          <div className="ayuda-solicitud-detalle">
+                            <p>{solicitud.mensaje}</p>
+                            {solicitud.respuesta ? (
+                              <div className="ayuda-solicitud-respuesta">
+                                <strong>{t('ayuda.solicitudes.respuesta')}</strong>
+                                <p>{solicitud.respuesta}</p>
+                                {solicitud.responded_at && (
+                                  <small>{new Date(solicitud.responded_at).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CO')}</small>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="ayuda-solicitud-pendiente">{t('ayuda.solicitudes.sinRespuesta')}</p>
+                            )}
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
         </div>
 
         {toast && (
           <div className={`ayuda-toast ${toast.tipo}`}>
             <FaCircleCheck />
-            <span>{toast.msg}</span>
+            <span><LocalizedNotificationText message={toast.msg} /></span>
           </div>
         )}
       </main>

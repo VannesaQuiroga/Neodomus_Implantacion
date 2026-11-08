@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaUserPen, FaCircleExclamation, FaCircleCheck } from 'react-icons/fa6';
 import { useAuth } from '@contexts/AuthContext';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/auth-modal.css';
 import '@styles/login.css';
 
@@ -11,6 +12,7 @@ import '@styles/login.css';
 const CompletarDatosModal = () => {
   const navigate = useNavigate();
   const { perfilIncompleto, rol, isAuthenticated, marcarPerfilCompleto, logout } = useAuth();
+  const { t } = useIdioma();
   const [tipoDocumento, setTipoDocumento] = useState('1');
   const [documento, setDocumento] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -51,15 +53,15 @@ const CompletarDatosModal = () => {
     const doc = Number.parseInt(documento, 10);
     const tel = Number.parseInt(telefono, 10);
     if (!doc || doc <= 0) {
-      setError('Ingresa un número de documento válido');
+      setError(t('auth.data.errorDocumento'));
       return;
     }
     if (!tel || String(telefono).length !== 10) {
-      setError('Ingresa un número de teléfono válido (10 dígitos)');
+      setError(t('auth.data.errorTelefono'));
       return;
     }
     if (!direccion.trim()) {
-      setError('Ingresa tu dirección de residencia');
+      setError(t('auth.data.errorDireccion'));
       return;
     }
 
@@ -72,36 +74,34 @@ const CompletarDatosModal = () => {
         address: direccion.trim(),
       });
       marcarPerfilCompleto();
-      setMessage('¡Datos guardados! Tu cuenta está completa.');
+      setMessage(t('auth.data.guardado'));
       window.setTimeout(() => {
         navigate('/', { replace: true });
       }, 1200);
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Error al guardar tus datos';
-      setError(typeof errorMsg === 'string' ? errorMsg : 'Error al guardar tus datos');
+      const errorMsg = err.response?.data?.detail || t('auth.data.errorGuardar');
+      setError(typeof errorMsg === 'string' ? errorMsg : t('auth.data.errorGuardar'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-modal-overlay" role="dialog" aria-modal="true" aria-label="Completar tus datos">
+    <div className="auth-modal-overlay" role="dialog" aria-modal="true" aria-label={t('auth.data.ariaModal')}>
       <div className="auth-modal-content">
         <form onSubmit={handleSubmit} className="login-form">
           <div className="login-logo">
             <FaUserPen />
           </div>
-          <h2>Completa tus datos</h2>
+          <h2>{t('auth.data.titulo')}</h2>
           <p className="login-subtitle">
-            Te registraste con Google y nos faltan algunos datos obligatorios para
-            poder realizar pedidos y agendar instalaciones. Completa esta información
-            para continuar usando la plataforma.
+            {t('auth.data.subtitulo')}
           </p>
           {message && <div className="success"><FaCircleCheck /> {message}</div>}
           {error && <div className="error"><FaCircleExclamation /> {error}</div>}
 
           <div className="complete-data-field">
-            <label htmlFor="complete-data-document-type">Tipo de documento</label>
+            <label htmlFor="complete-data-document-type">{t('perfil.tipoDocumento')}</label>
             <div className="login-input-wrapper">
               <select
                 id="complete-data-document-type"
@@ -110,21 +110,21 @@ const CompletarDatosModal = () => {
                 disabled={loading}
                 className="login-select"
               >
-                <option value="1">CC - Cédula de ciudadanía</option>
-                <option value="2">CE - Cédula de extranjería</option>
+                <option value="1">{t('perfil.datos.docCC')}</option>
+                <option value="2">{t('perfil.datos.docCE')}</option>
               </select>
             </div>
           </div>
 
           <div className="complete-data-field">
-            <label htmlFor="complete-data-document">Número de documento</label>
+            <label htmlFor="complete-data-document">{t('perfil.numeroDocumento')}</label>
             <div className="login-input-wrapper">
               <input
                 id="complete-data-document"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="Ingresa tu número de documento"
+                placeholder={t('auth.data.placeholderDocumento')}
                 value={documento}
                 onChange={(e) => setDocumento(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 maxLength={10}
@@ -136,14 +136,14 @@ const CompletarDatosModal = () => {
           </div>
 
           <div className="complete-data-field">
-            <label htmlFor="complete-data-phone">Teléfono</label>
+            <label htmlFor="complete-data-phone">{t('perfil.telefono')}</label>
             <div className="login-input-wrapper">
               <input
                 id="complete-data-phone"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="10 dígitos"
+                placeholder={t('auth.data.placeholderTelefono')}
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 maxLength={10}
@@ -155,12 +155,12 @@ const CompletarDatosModal = () => {
           </div>
 
           <div className="complete-data-field">
-            <label htmlFor="complete-data-address">Dirección de residencia</label>
+            <label htmlFor="complete-data-address">{t('perfil.direccionResidencia')}</label>
             <div className="login-input-wrapper">
               <input
                 id="complete-data-address"
                 type="text"
-                placeholder="Ingresa tu dirección"
+                placeholder={t('auth.data.placeholderDireccion')}
                 value={direccion}
                 onChange={(e) => setDireccion(e.target.value)}
                 required
@@ -171,11 +171,11 @@ const CompletarDatosModal = () => {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Guardando...' : 'Guardar mis datos'}
+            {loading ? t('perfil.password.guardando') : t('auth.data.guardar')}
           </button>
 
           <button type="button" className="login-logout" onClick={logout}>
-            Cerrar sesión
+            {t('nav.cerrarSesion')}
           </button>
         </form>
       </div>

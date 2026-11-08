@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla TechnicianDashboard de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -1359,7 +1360,7 @@ const TechnicianDashboard = () => {
       {toast && (
         <div className={`ap-toast ${toast.tipo === 'error' ? 'err' : 'ok'}`}>
           {toast.tipo === 'error' ? <FaCircleExclamation /> : <FaCircleCheck />}
-          <span>{toast.msg}</span>
+          <span><LocalizedNotificationText message={toast.msg} /></span>
         </div>
       )}
     </div>

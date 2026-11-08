@@ -15,12 +15,18 @@ import React, {
   useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TRADUCCIONES_PUBLICAS } from "./translations/publicTranslations";
+import { TRADUCCIONES_CLIENTE } from "./translations/clienteTranslations";
+import { TRADUCCIONES_CLIENTE_CUENTA } from "./translations/clienteAccountTranslations";
+import { TRADUCCIONES_TECNICO } from "./translations/tecnicoTranslations";
+import { TRADUCCIONES_COMPARTIDAS } from "./translations/sharedTranslations";
+import { TRADUCCIONES_NOTIFICACIONES } from "./translations/notificationTranslations";
 
 export type Idioma = "es" | "en";
 
 const CLAVE_IDIOMA = "pf_idioma";
 
-const DICCIONARIO: Record<string, { es: string; en: string }> = {
+const DICCIONARIO_BASE: Record<string, { es: string; en: string }> = {
   // Navbar / menú usuario
   "nav.inicio": { es: "Inicio", en: "Home" },
   "nav.productos": { es: "Productos", en: "Products" },
@@ -207,6 +213,48 @@ const DICCIONARIO: Record<string, { es: string; en: string }> = {
   "auth.cambiarPassword": { es: "Cambiar contraseña", en: "Change password" },
   "auth.idioma": { es: "Idioma", en: "Language" },
 };
+
+const DICCIONARIO: Record<string, { es: string; en: string }> = {
+  ...DICCIONARIO_BASE,
+  ...TRADUCCIONES_PUBLICAS,
+  ...TRADUCCIONES_CLIENTE,
+  ...TRADUCCIONES_CLIENTE_CUENTA,
+  ...TRADUCCIONES_TECNICO,
+  ...TRADUCCIONES_COMPARTIDAS,
+  ...TRADUCCIONES_NOTIFICACIONES,
+};
+
+export function traducirMensajeNotificacion(mensaje: string, idioma: Idioma): string {
+  if (!mensaje || idioma === "es") return mensaje;
+
+  for (const traduccion of Object.values(DICCIONARIO)) {
+    const textoEs = traduccion.es;
+    const textoEn = traduccion.en;
+    if (!textoEs || !textoEn) continue;
+
+    const partes = textoEs.split(/(\{[^}]+\})/g);
+    const nombres: string[] = [];
+    const patron = partes.map((parte) => {
+      const variable = /^\{([^}]+)\}$/.exec(parte);
+      if (variable) {
+        nombres.push(variable[1]);
+        return "(.+?)";
+      }
+      return parte.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }).join("");
+    const capturas = new RegExp(`^${patron}$`).exec(mensaje);
+    if (!capturas) continue;
+
+    return nombres.reduce(
+      (texto, nombre, indice) => texto.replaceAll(`{${nombre}}`, capturas[indice + 1]),
+      textoEn,
+    );
+  }
+  return Object.values(DICCIONARIO).reduce((texto, traduccion) => {
+    if (!traduccion.es || !traduccion.en || traduccion.es.includes("{")) return texto;
+    return texto.replaceAll(traduccion.es, traduccion.en);
+  }, mensaje);
+}
 
 interface IdiomaContextValue {
   idioma: Idioma;

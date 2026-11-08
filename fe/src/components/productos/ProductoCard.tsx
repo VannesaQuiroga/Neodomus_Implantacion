@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 import { MetrosSelect } from '@components/common/MetrosSelect';
 // Tarjeta de producto rediseñada — estilo premium oscuro con borde dorado.
 // Reutiliza exactamente el mismo CarritoContext, lógica de stock, variantes,
@@ -33,10 +34,12 @@ interface ProductoVariante {
 export interface ProductoCardData {
   id_producto: number;
   nombre_producto: string;
+  nombre_producto_label?: string;
   precio_venta_producto: number;
   imagen_url?: string | null;
   id_cate_pr?: number;
   nombre_categoria?: string;
+  nombre_categoria_label?: string;
   venta_por_metros?: boolean;
   descuento_activo?: number | null;
   precio_final?: number | null;
@@ -85,9 +88,13 @@ const ProductoCard = ({ producto }: Props) => {
     : stockTotal;
   const esStockAgotado = stockDisponible <= 0;
   const esStockBajo = stockDisponible > 0 && stockDisponible <= 5;
-  const stockTexto = esPorMetros
-    ? `${stockDisponible} m disponibles`
-    : `${stockDisponible} ${stockDisponible === 1 ? 'unidad' : 'unidades'} disponibles`;
+  const stockLabel = esPorMetros
+    ? t('productos.disponibilidadMetros', { count: stockDisponible })
+    : t('productos.disponibilidadUnidades', {
+        count: stockDisponible,
+        unit: t(stockDisponible === 1 ? 'productos.unidad' : 'productos.unidades'),
+      });
+  const nombreVisible = producto.nombre_producto_label || producto.nombre_producto;
 
   const totalMetrosCard = metros * unidades;
   const totalLinea = esPorMetros
@@ -145,17 +152,17 @@ const ProductoCard = ({ producto }: Props) => {
 
   const handleAddToCart = () => {
     if (tieneVariantes && !varianteActiva) {
-      showToast('Selecciona una variante disponible');
+      showToast(t('productos.seleccionaVariante'));
       return;
     }
     if (stockDisponible <= 0) {
-      showToast('Producto sin stock disponible');
+      showToast(t('productos.sinStockDisponible'));
       return;
     }
     if (esPorMetros) {
       const total = metros * unidades;
       if (metros <= 0 || total > stockDisponible) {
-        showToast(`Stock insuficiente: solo ${stockDisponible} m disponibles`);
+        showToast(t('productos.stockInsuficienteMetros', { count: stockDisponible }));
         return;
       }
       const err = addItem(
@@ -174,10 +181,13 @@ const ProductoCard = ({ producto }: Props) => {
         metros
       );
       if (err) showToast(err);
-      else showToast(`${unidades} x ${metros} m (${total} m) - ${producto.nombre_producto}`);
+      else showToast(`${unidades} × ${metros} m (${total} m) — ${nombreVisible}`);
     } else {
       if (cantidad > stockDisponible) {
-        showToast(`Stock insuficiente: solo ${stockDisponible} ${stockDisponible === 1 ? 'unidad' : 'unidades'} disponibles`);
+        showToast(t('productos.stockInsuficienteUnidades', {
+          count: stockDisponible,
+          unit: t(stockDisponible === 1 ? 'productos.unidad' : 'productos.unidades'),
+        }));
         return;
       }
       const err = addItem(
@@ -193,7 +203,7 @@ const ProductoCard = ({ producto }: Props) => {
         cantidad
       );
       if (err) showToast(err);
-      else showToast(t('productos.agregadoMsg', { nombre: producto.nombre_producto }));
+      else showToast(t('productos.agregadoMsg', { nombre: nombreVisible }));
     }
   };
 
@@ -237,7 +247,7 @@ const ProductoCard = ({ producto }: Props) => {
 
   return (
     <>
-      {toast && <div className="cart-toast">{toast}</div>}
+      {toast && <div className="cart-toast"><LocalizedNotificationText message={toast} /></div>}
       <div className="card-producto">
         {/* Imagen superior centrada */}
         <div className="img-contenedor">
@@ -254,10 +264,10 @@ const ProductoCard = ({ producto }: Props) => {
             </svg>
           </button>
           <div className="img-producto-wrap">
-            <Link to={`/producto/${producto.id_producto}`} aria-label={`Ver detalle de ${producto.nombre_producto}`}>
+            <Link to={`/producto/${producto.id_producto}`} aria-label={t('productos.verDetalleDe', { name: nombreVisible })}>
               <img
                 src={getImagen(producto)}
-                alt={producto.nombre_producto}
+                alt={nombreVisible}
                 className="img-producto"
                 loading="lazy"
                 onError={(e) => (e.currentTarget.src = '/productos/default.png')}
@@ -266,8 +276,8 @@ const ProductoCard = ({ producto }: Props) => {
           </div>
           {/* Corner badges (Nuevo / Promoción) */}
           <div className="corner-badges">
-            {producto.es_nuevo && <span className="nuevo-corner">Nuevo</span>}
-            {tieneDescuento && <span className="promo-corner">Promoción</span>}
+            {producto.es_nuevo && <span className="nuevo-corner">{t('productos.nuevo')}</span>}
+            {tieneDescuento && <span className="promo-corner">{t('productos.promocion')}</span>}
           </div>
         </div>
 
@@ -275,20 +285,28 @@ const ProductoCard = ({ producto }: Props) => {
         <div className="info-producto">
           {/* Nombre */}
           <Link to={`/producto/${producto.id_producto}`} className="nombre-producto-link">
-            <h3 className="nombre-producto">{producto.nombre_producto}</h3>
+            <h3 className="nombre-producto">{nombreVisible}</h3>
           </Link>
 
           {/* Categoría badge dorada */}
-          {producto.nombre_categoria && (
-            <span className="categoria-producto">{producto.nombre_categoria}</span>
-          )}
+          <span
+            className="categoria-producto"
+            style={{ visibility: producto.nombre_categoria ? 'visible' : 'hidden' }}
+            aria-hidden={!producto.nombre_categoria}
+          >
+            {producto.nombre_categoria_label || producto.nombre_categoria || '\u00a0'}
+          </span>
 
           {/* Etiqueta de requisitos técnicos */}
-          {producto.tecnicos_requeridos && producto.tecnicos_requeridos > 0 && (
-            <span className="tecnico-requisito">
-              REQUIERE {producto.tecnicos_requeridos > 1 ? producto.tecnicos_requeridos + ' TÉCNICOS' : '1 TÉCNICO'}
-            </span>
-          )}
+          <span
+            className="tecnico-requisito"
+            style={{ visibility: producto.tecnicos_requeridos && producto.tecnicos_requeridos > 0 ? 'visible' : 'hidden' }}
+            aria-hidden={!producto.tecnicos_requeridos}
+          >
+            {producto.tecnicos_requeridos && producto.tecnicos_requeridos > 0
+              ? t(producto.tecnicos_requeridos === 1 ? 'productos.tecnicosUno' : 'productos.tecnicosVarios', { count: producto.tecnicos_requeridos })
+              : '\u00a0'}
+          </span>
 
           {/* Separador horizontal */}
           <div className="separador" />
@@ -296,7 +314,7 @@ const ProductoCard = ({ producto }: Props) => {
           {/* Precios */}
           <div className="precio-bloque">
             <span className="precio-unitario">
-              {esPorMetros ? 'Precio unitario por metro' : 'Precio unitario'}
+              {t(esPorMetros ? 'productos.precioPorMetro' : 'productos.precioUnitario')}
             </span>
             <div className="precio-producto">
               {tieneDescuento && (
@@ -316,14 +334,14 @@ const ProductoCard = ({ producto }: Props) => {
 
           {/* Subtotal calculado */}
           <span className="subtotal-detalle">
-            Subtotal: {esPorMetros ? `${metros} m × ${unidades}` : `${cantidad} u.`} ={' '}
+            {t('productos.subtotal', { quantity: esPorMetros ? `${metros} m × ${unidades}` : `${cantidad} u.` })}{' '}
             <span className="subtotal-detalle-valor">${totalLinea.toLocaleString()} COP</span>
           </span>
 
           {/* Disponibilidad con punto verde */}
           <span className={`stock-disponible ${esStockAgotado ? 'stock-disponible--agotado' : ''} ${esStockBajo ? 'stock-disponible--bajo' : ''}`}>
             <span className="stock-disponible__dot" aria-hidden="true"></span>
-            {esStockAgotado ? 'Sin stock' : `Disponibles: ${stockTexto}`}
+            {esStockAgotado ? t('productos.sinStock') : stockLabel}
           </span>
 
           {/* Variantes (chips de color/tamaño) */}
@@ -342,12 +360,12 @@ const ProductoCard = ({ producto }: Props) => {
                     disabled={agotada}
                     onClick={() => setVarianteId(v.id)}
                     aria-pressed={activa}
-                    title={`${v.nombre}${medida ? ` - ${medida}` : ''} - ${agotada ? 'Sin stock' : `${stockVariante} u. disponibles`}`}
+                    title={`${v.nombre}${medida ? ` - ${medida}` : ''} - ${agotada ? t('productos.sinStock') : t('productos.stockVariante', { count: stockVariante })}`}
                   >
                     <i className="combo-dot" style={{ background: v.hex || '#d4a54b' }} />
                     <b>{v.nombre}</b>
                     {medida && <span> - {medida}</span>}
-                    {agotada && <span> (agotado)</span>}
+                    {agotada && <span> ({t('productos.agotado')})</span>}
                   </button>
                 );
               })}
@@ -366,7 +384,7 @@ const ProductoCard = ({ producto }: Props) => {
             {esPorMetros ? (
               <div className="metros-control-grid">
                 <MetrosSelect className="metros-select" value={metros} max={stockDisponible / Math.max(1, unidades)}
-                  aria-label="Metros" onChange={(m) => {
+                  aria-label={t('productos.metrosLabel')} onChange={(m) => {
                     setMetros(m);
                     const stock = stockDisponible;
                     if (Number.isFinite(stock) && m * unidades > stock) {
@@ -374,9 +392,9 @@ const ProductoCard = ({ producto }: Props) => {
                     }
                   }} />
                 <div className="cantidad-row">
-                  <span className="cantidad-label">Unidades:</span>
+                  <span className="cantidad-label">{t('productos.unidadesLabel')}</span>
                   <div className="cantidad-control">
-                    <button type="button" onClick={disminuirUnidades} aria-label="Reducir unidades">−</button>
+                    <button type="button" onClick={disminuirUnidades} aria-label={t('productos.reducirUnidades')}>−</button>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -404,22 +422,22 @@ const ProductoCard = ({ producto }: Props) => {
                           (e.target as HTMLInputElement).blur();
                         }
                       }}
-                      aria-label="Unidades"
+                      aria-label={t('productos.unidadesLabel')}
                     />
                     <button
                       type="button"
                       onClick={aumentarUnidades}
                       disabled={unidades >= Math.max(1, Math.floor(stockDisponible / Math.max(metros, 0.5)) || 1)}
-                      aria-label="Aumentar unidades"
+                      aria-label={t('productos.aumentarUnidades')}
                     >+</button>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="cantidad-row">
-                <span className="cantidad-label">Cantidad:</span>
+                <span className="cantidad-label">{t('productos.cantidadLabel')}</span>
                 <div className="cantidad-control">
-                  <button type="button" onClick={disminuirCantidad} disabled={cantidad <= 1} aria-label="Reducir cantidad">−</button>
+                  <button type="button" onClick={disminuirCantidad} disabled={cantidad <= 1} aria-label={t('productos.reducirCantidad')}>−</button>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -427,13 +445,13 @@ const ProductoCard = ({ producto }: Props) => {
                     value={displayValue}
                     onChange={handleCantidadChange}
                     onBlur={handleCantidadBlur}
-                    aria-label="Cantidad"
+                    aria-label={t('productos.cantidadLabel')}
                   />
                   <button
                     type="button"
                     onClick={aumentarCantidad}
                     disabled={cantidad >= stockDisponible}
-                    aria-label="Aumentar cantidad"
+                    aria-label={t('productos.aumentarCantidad')}
                   >+</button>
                 </div>
               </div>

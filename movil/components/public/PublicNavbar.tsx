@@ -54,7 +54,7 @@ export default function PublicNavbar() {
       <Pressable
         onPress={() => router.navigate("/(tabs)")}
         accessibilityRole="link"
-        accessibilityLabel="Inicio"
+        accessibilityLabel={t("nav.inicio")}
         hitSlop={6}
       >
         <Image source={require("@/assets/images/Logo.jpg")} style={styles.logo} />
@@ -70,7 +70,7 @@ export default function PublicNavbar() {
             onPress={() => router.push("/registro")}
             hitSlop={6}
           >
-            <Text style={styles.textoBotonOro}>Registrarse</Text>
+            <Text style={styles.textoBotonOro}>{t("publico.registrarse")}</Text>
           </Pressable>
 
           <Pressable
@@ -78,7 +78,7 @@ export default function PublicNavbar() {
             onPress={() => router.push("/login")}
             hitSlop={6}
           >
-            <Text style={styles.textoBotonClaro}>Iniciar sesión</Text>
+            <Text style={styles.textoBotonClaro}>{t("publico.iniciarSesion")}</Text>
           </Pressable>
         </View>
       ) : (
@@ -90,7 +90,7 @@ export default function PublicNavbar() {
               pressed && styles.presionado,
             ]}
             onPress={() => setMenuHerramientasVisible(true)}
-            accessibilityLabel="Menú de herramientas"
+            accessibilityLabel={t("menu.herramientas")}
             accessibilityRole="button"
             hitSlop={6}
           >
@@ -114,7 +114,7 @@ export default function PublicNavbar() {
               hitSlop={4}
             >
               <View style={styles.bienvenidaColumna}>
-                <Text style={styles.textoBienvenido}>Bienvenido</Text>
+                <Text style={styles.textoBienvenido}>{t("publico.bienvenido")}</Text>
                 <Text style={styles.textoNombre}>
                   {usuario?.nombre ?? ""}
                 </Text>

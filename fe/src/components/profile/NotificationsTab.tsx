@@ -3,40 +3,42 @@ import { useState } from 'react';
 import { FaBell, FaCartShopping, FaTags, FaScrewdriverWrench, FaEnvelopeOpenText, FaShield } from 'react-icons/fa6';
 import type { ReactNode } from 'react';
 import { getNotificaciones, saveItem, PF_NOTIF_KEY, NotificacionPrefs } from '@utils/profileStorage';
+import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
 
 interface Opcion {
   key: keyof NotificacionPrefs;
-  titulo: string;
-  desc: string;
+  tituloKey: string;
+  descKey: string;
   icono: ReactNode;
 }
 
 const opciones: Opcion[] = [
-  { key: 'pedidos', titulo: 'Estado de mis pedidos', desc: 'Actualizaciones sobre compras, envíos y entregas.', icono: <FaCartShopping /> },
-  { key: 'promociones', titulo: 'Promociones y ofertas', desc: 'Descuentos y novedades exclusivas de Neodomus.', icono: <FaTags /> },
-  { key: 'tecnicos', titulo: 'Servicios y técnicos', desc: 'Confirmaciones de citas, visitas y resultados.', icono: <FaScrewdriverWrench /> },
-  { key: 'boletines', titulo: 'Boletín informativo', desc: 'Consejos de domótica y mejoras del hogar.', icono: <FaEnvelopeOpenText /> },
-  { key: 'seguridad', titulo: 'Alertas de seguridad', desc: 'Accesos a tu cuenta y cambios en tu información.', icono: <FaShield /> },
+  { key: 'pedidos', tituloKey: 'perfil.notificacionesTab.pedidosTitulo', descKey: 'perfil.notificacionesTab.pedidosDesc', icono: <FaCartShopping /> },
+  { key: 'promociones', tituloKey: 'perfil.notificacionesTab.promocionesTitulo', descKey: 'perfil.notificacionesTab.promocionesDesc', icono: <FaTags /> },
+  { key: 'tecnicos', tituloKey: 'perfil.notificacionesTab.tecnicosTitulo', descKey: 'perfil.notificacionesTab.tecnicosDesc', icono: <FaScrewdriverWrench /> },
+  { key: 'boletines', tituloKey: 'perfil.notificacionesTab.boletinTitulo', descKey: 'perfil.notificacionesTab.boletinDesc', icono: <FaEnvelopeOpenText /> },
+  { key: 'seguridad', tituloKey: 'perfil.notificacionesTab.seguridadTitulo', descKey: 'perfil.notificacionesTab.seguridadDesc', icono: <FaShield /> },
 ];
 
 const NotificationsTab = ({ notify }: { notify: NotifyFn }) => {
+  const { t } = useIdioma();
   const [prefs, setPrefs] = useState<NotificacionPrefs>(getNotificaciones());
 
   const alternar = (key: keyof NotificacionPrefs) => {
     const next = { ...prefs, [key]: !prefs[key] };
     setPrefs(next);
     saveItem(PF_NOTIF_KEY, next);
-    notify(next[key] ? 'Notificaciones activadas' : 'Notificaciones desactivadas', 'success');
+    notify(next[key] ? t('perfil.notificacionesTab.activadas') : t('perfil.notificacionesTab.desactivadas'), 'success');
   };
 
   return (
     <div className="pf-tab">
       <SectionHeader
         icon={<FaBell />}
-        title="Notificaciones"
-        subtitle="Controla qué notificaciones deseas recibir."
+        title={t('perfil.notificaciones')}
+        subtitle={t('perfil.notificacionesTab.subtitulo')}
       />
 
       <div className="pf-notif-list">
@@ -44,14 +46,14 @@ const NotificationsTab = ({ notify }: { notify: NotifyFn }) => {
           <div className="pf-notif-item" key={opcion.key}>
             <span className="pf-notif-icon">{opcion.icono}</span>
             <div className="pf-notif-info">
-              <strong className="pf-notif-titulo">{opcion.titulo}</strong>
-              <span className="pf-notif-desc">{opcion.desc}</span>
+              <strong className="pf-notif-titulo">{t(opcion.tituloKey)}</strong>
+              <span className="pf-notif-desc">{t(opcion.descKey)}</span>
             </div>
             <button
               type="button"
               role="switch"
               aria-checked={prefs[opcion.key]}
-              aria-label={opcion.titulo}
+              aria-label={t(opcion.tituloKey)}
               className={`pf-switch ${prefs[opcion.key] ? 'on' : ''}`}
               onClick={() => alternar(opcion.key)}
             >

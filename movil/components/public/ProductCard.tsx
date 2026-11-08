@@ -20,6 +20,7 @@ import {
 } from "@/services/productos.service";
 import { useFavoritos } from "@/contexts/FavoritosContext";
 import { useCart } from "@/contexts/CartContext";
+import { useIdioma } from "@/contexts/IdiomaContext";
 
 interface ProductCardProps {
   producto: Producto;
@@ -30,6 +31,7 @@ const METROS_OPCIONES = [10, 20, 30, 40, 50];
 export default function ProductCard({ producto }: ProductCardProps) {
   const { esFavorito, toggleFavorito } = useFavoritos();
   const { addItem, items } = useCart();
+  const { t } = useIdioma();
   const prevItemsLen = useRef(items.length);
   const [falloImagen, setFalloImagen] = useState(false);
   const [cantidad, setCantidad] = useState(1);
@@ -151,7 +153,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
             <Image
               source={{ uri: imagen }}
               style={styles.imagen}
-              contentFit="cover"
+              contentFit="contain"
               transition={180}
               cachePolicy="memory-disk"
               onError={() => {
@@ -174,7 +176,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
 
         {!!producto.es_nuevo && (
           <View style={styles.badgeNuevo}>
-            <Text style={styles.badgeNuevoTexto}>Nuevo</Text>
+            <Text style={styles.badgeNuevoTexto}>{t("productos.nuevo")}</Text>
           </View>
         )}
 
@@ -209,8 +211,8 @@ export default function ProductCard({ producto }: ProductCardProps) {
                   <FontAwesome6 name="screwdriver-wrench" size={9} color="#141414" />
                   <Text style={styles.chipTecnicoTexto}>
                     {(producto.tecnicos_requeridos ?? 1) > 1
-                      ? `Requiere ${producto.tecnicos_requeridos} técnicos`
-                      : "Requiere un técnico"}
+                      ? t("productos.requiereTecnicos", { count: producto.tecnicos_requeridos ?? 1 })
+                      : t("productos.requiereUnTecnico")}
                   </Text>
                 </View>
               )}
@@ -223,7 +225,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
         {/* ── Nombre con altura fija (2 líneas) para alineación ── */}
         <Pressable onPress={abrirDetalle} style={styles.nombreWrap}>
           <Text style={styles.nombre} numberOfLines={2}>
-            {producto.nombre_producto}
+            {producto.nombre_producto_label || producto.nombre_producto}
           </Text>
         </Pressable>
 
@@ -255,7 +257,9 @@ export default function ProductCard({ producto }: ProductCardProps) {
             <View style={styles.stockFila}>
               <View style={[styles.stockDot, esStockAgotado ? styles.dotAgotado : esStockBajo ? styles.dotBajo : styles.dotOk]} />
               <Text style={[styles.stockTexto, esStockAgotado && styles.stockTextoAgotado]} numberOfLines={1}>
-                {esStockAgotado ? "Sin stock" : `Disponible: ${stockDisponible} ${esPorMetros ? "m" : stockDisponible === 1 ? "unidad" : "unidades"}`}
+                {esStockAgotado ? t("productos.sinStock") : esPorMetros
+                  ? t("productos.disponibilidadMetros", { count: stockDisponible })
+                  : t("productos.disponibilidadUnidades", { count: stockDisponible, unit: t(stockDisponible === 1 ? "productos.unidad" : "productos.unidades") })}
               </Text>
             </View>
           ) : (
@@ -267,7 +271,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
         {esPorMetros ? (
           <View style={styles.metrosBloque}>
             <View style={styles.cantidadFila}>
-              <Text style={styles.cantidadLabel}>Cantidad:</Text>
+              <Text style={styles.cantidadLabel}>{t("productos.cantidadLabel")}</Text>
               <View style={styles.cantidadControl}>
                 <Pressable onPress={disminuirUnidades} style={styles.cantidadBoton} hitSlop={6}>
                   <FontAwesome6 name="minus" size={10} color={C.blanco} />
@@ -329,7 +333,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
         ) : (
           <View style={styles.bloqueCantidadSinMetraje}>
             <View style={styles.cantidadFila}>
-              <Text style={styles.cantidadLabel}>Cantidad:</Text>
+              <Text style={styles.cantidadLabel}>{t("productos.cantidadLabel")}</Text>
               <View style={styles.cantidadControl}>
                 <Pressable onPress={disminuirCantidad} style={styles.cantidadBoton} hitSlop={8}>
                   <FontAwesome6 name="minus" size={10} color={C.blanco} />
@@ -396,7 +400,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
           onPress={handleAdd}
           disabled={!!esStockAgotado || agregando}
         >
-          <Text style={styles.agregarTexto}>{agregando ? "Agregando..." : esStockAgotado ? "Sin stock" : "Agregar al carrito"}</Text>
+          <Text style={styles.agregarTexto}>{agregando ? t("productos.agregando") : esStockAgotado ? t("productos.sinStock") : t("productos.agregarCarrito")}</Text>
           <View style={styles.agregarIconoCaja}>
             <FontAwesome6 name="cart-shopping" size={14} color={C.textoSobreOro} />
           </View>
@@ -420,11 +424,11 @@ const styles = StyleSheet.create({
   zonaImagen: {
     width: "100%",
     aspectRatio: 4 / 3,
-    backgroundColor: C.cardOscuraAlt,
+    backgroundColor: "#101010",
     overflow: "hidden",
   },
-  imagenContenedor: { flex: 1 },
-  imagen: { width: "100%", height: "100%" },
+  imagenContenedor: { flex: 1, padding: 12 },
+  imagen: { width: "100%", height: "100%", borderRadius: 12 },
   imagenPlaceholder: {
     alignItems: "center",
     justifyContent: "center",

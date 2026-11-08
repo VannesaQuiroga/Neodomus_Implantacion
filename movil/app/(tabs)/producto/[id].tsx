@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // ─────────────────────────────────────────────────────────────
 // Detalle de producto — adaptación móvil de ProductoDetalle WEB
 // (ruta /producto/:id). Lógica de variantes/colores/medidas/
@@ -27,6 +28,7 @@ import PublicNavbar from "@/components/public/PublicNavbar";
 import AsistenteFlotante from "@/components/public/AsistenteFlotante";
 import { useFavoritos } from "@/contexts/FavoritosContext";
 import { useCart } from "@/contexts/CartContext";
+import { useIdioma } from "@/contexts/IdiomaContext";
 import {
   formatearPrecio,
   obtenerProducto,
@@ -73,6 +75,7 @@ export default function ProductoDetalleScreen() {
 
   const { esFavorito, toggleFavorito } = useFavoritos();
   const { addItem } = useCart();
+  const { t } = useIdioma();
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -198,7 +201,7 @@ export default function ProductoDetalleScreen() {
 
   const imagen = falloImagen ? null : urlImagenProducto(producto);
 
-  const caracteristicas = (producto.caracteristicas_producto ?? "")
+  const caracteristicas = (producto.caracteristicas_producto_label ?? producto.caracteristicas_producto ?? "")
     .split("\n")
     .map((linea) => linea.replace(/^[-*\s]+/, "").trim())
     .filter(Boolean);
@@ -333,7 +336,7 @@ export default function ProductoDetalleScreen() {
             <View style={styles.chipsFila}>
               <View style={styles.chipCategoria}>
                 <Text style={styles.chipCategoriaTexto}>
-                  {producto.nombre_categoria}
+                  {producto.nombre_categoria_label || producto.nombre_categoria}
                 </Text>
               </View>
               {(producto.tecnicos_requeridos ?? 0) > 0 && (
@@ -345,14 +348,14 @@ export default function ProductoDetalleScreen() {
                   />
                   <Text style={styles.chipTecnicoTexto}>
                     {(producto.tecnicos_requeridos ?? 1) > 1
-                      ? `Requiere ${producto.tecnicos_requeridos} técnicos`
-                      : "Requiere un técnico"}
+                      ? t("productos.requiereTecnicos", { count: producto.tecnicos_requeridos ?? 1 })
+                      : t("productos.requiereUnTecnico")}
                   </Text>
                 </View>
               )}
             </View>
           )}
-          <Text style={styles.nombre}>{producto.nombre_producto}</Text>
+          <Text style={styles.nombre}>{producto.nombre_producto_label || producto.nombre_producto}</Text>
 
           <View style={styles.precioFila}>
             {conDescuento && (
@@ -557,15 +560,14 @@ export default function ProductoDetalleScreen() {
           {/* Descripción */}
           <Text style={styles.descripcionTitulo}>Descripción</Text>
           <Text style={styles.descripcion}>
-            {producto.descripcion_producto ||
-              `El ${producto.nombre_producto} pertenece a la categoría de ${producto.nombre_categoria}. Diseñado para integrarse a la perfección en tu hogar inteligente, combina tecnología confiable con una instalación sencilla.`}
+            {producto.descripcion_producto_label || producto.descripcion_producto || t("productos.descripcionGenerica", { nombre: producto.nombre_producto_label || producto.nombre_producto, categoria: producto.nombre_categoria_label || producto.nombre_categoria || t("productos.producto") })}
           </Text>
 
           {/* Características */}
           {caracteristicas.length > 0 && (
             <>
               <Text style={styles.descripcionTitulo}>
-                Características principales
+                {t("productos.caracteristicasPrincipales")}
               </Text>
               {caracteristicas.map((linea) => (
                 <View key={linea} style={styles.caracteristica}>
@@ -578,12 +580,14 @@ export default function ProductoDetalleScreen() {
 
           {/* Beneficios fijos de la web */}
           <View style={styles.beneficios}>
-            <Beneficio icono="truck-fast" texto="Envío seguro a todo el país" />
-            <Beneficio icono="shield-halved" texto="Garantía oficial Neodomus" />
+            <Beneficio icono="truck-fast" texto={t("productos.envioSeguro")} />
+            <Beneficio icono="shield-halved" texto={t("productos.garantiaOficial")} />
             {(producto.tecnicos_requeridos ?? 1) > 0 && (
               <Beneficio
                 icono="screwdriver-wrench"
-                texto={`Requiere ${(producto.tecnicos_requeridos ?? 1) > 1 ? `${producto.tecnicos_requeridos} técnicos` : "1 técnico"} para su instalación`}
+                texto={`${(producto.tecnicos_requeridos ?? 1) > 1
+                  ? t("productos.requiereTecnicos", { count: producto.tecnicos_requeridos ?? 1 })
+                  : t("productos.requiereUnTecnico")} ${t("productos.paraInstalacion")}`}
               />
             )}
           </View>
@@ -613,7 +617,7 @@ export default function ProductoDetalleScreen() {
               disabled={stockDisponible <= 0 && !esMetros}
             >
               <Text style={styles.textoBotonOroNegro}>
-                Agregar al carrito
+                {t("productos.agregarCarrito")}
               </Text>
               {/* Icono a la DERECHA, en caja fija: siempre visible */}
               <View style={styles.botonIconoCaja}>
@@ -675,7 +679,7 @@ export default function ProductoDetalleScreen() {
                       </View>
                     )}
                     <View style={styles.recomendadoInfo}>
-                      <Text style={styles.recomendadoNombre} numberOfLines={2}>{p.nombre_producto}</Text>
+                      <Text style={styles.recomendadoNombre} numberOfLines={2}>{p.nombre_producto_label || p.nombre_producto}</Text>
                       <Text style={styles.recomendadoPrecio}>{formatearPrecio(precio)}</Text>
                     </View>
                   </Pressable>
@@ -697,7 +701,7 @@ export default function ProductoDetalleScreen() {
       {toast && (
         <View style={styles.toastWrap} pointerEvents="none">
           <View style={styles.toast}>
-            <Text style={styles.toastTexto}>{toast}</Text>
+            <Text style={styles.toastTexto}><LocalizedNotificationText message={toast} /></Text>
           </View>
         </View>
       )}

@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // Ruta móvil de entregas. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
@@ -863,7 +864,7 @@ export default function TecnicoEntregasScreen() {
             ]}
           >
             <Text style={[styles.toastTxt, toast.tipo === "error" && { color: "#f0858a" }]}>
-              {toast.msg}
+              <LocalizedNotificationText message={toast.msg} />
             </Text>
           </View>
         </View>

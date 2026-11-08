@@ -24,6 +24,7 @@ import {
 import api, { descargarFactura } from '@services/api';
 import { useCart } from '@contexts/CartContext';
 import { useAuth } from '@contexts/AuthContext';
+import { useIdioma } from '@i18n/IdiomaContext';
 import { PF_REDIRECT_AFTER_LOGIN_KEY } from '@utils/profileStorage';
 import { subtotalLinea } from '@utils/productoPrecio';
 import { esDomingo } from '@utils/fechas';
@@ -33,21 +34,24 @@ import '@styles/citas.css';
 
 type Metodo = 'tarjeta_debito' | 'tarjeta_credito' | 'pse' | 'paypal' | 'punto_pago';
 
-const METODOS: { codigo: Metodo; nombre: string; icono: any }[] = [
-  { codigo: 'tarjeta_debito', nombre: 'Tarjeta débito', icono: FaCreditCard },
-  { codigo: 'tarjeta_credito', nombre: 'Tarjeta crédito', icono: FaCreditCard },
-  { codigo: 'pse', nombre: 'PSE (Débito bancario)', icono: FaBuildingColumns },
-  { codigo: 'paypal', nombre: 'PayPal (simulado)', icono: FaPaypal },
-  { codigo: 'punto_pago', nombre: 'Punto de pago (Efecty)', icono: FaStore },
+const METODOS: { codigo: Metodo; clave: string; icono: any }[] = [
+  { codigo: 'tarjeta_debito', clave: 'citas.tarjetaDebito', icono: FaCreditCard },
+  { codigo: 'tarjeta_credito', clave: 'citas.tarjetaCredito', icono: FaCreditCard },
+  { codigo: 'pse', clave: 'checkout.pago.pse', icono: FaBuildingColumns },
+  { codigo: 'paypal', clave: 'checkout.pago.paypal', icono: FaPaypal },
+  { codigo: 'punto_pago', clave: 'checkout.pago.puntoPagoEfecty', icono: FaStore },
 ];
 
-const TIPOS_SERVICIO: { tipo: string; precio: number }[] = [
-  { tipo: 'Instalación', precio: 120000 },
-  { tipo: 'Mantenimiento', precio: 80000 },
-  { tipo: 'Reparación', precio: 90000 },
-  { tipo: 'Revisión', precio: 60000 },
-  { tipo: 'Soporte técnico', precio: 70000 },
+const TIPOS_SERVICIO: { tipo: string; precio: number; clave: string }[] = [
+  { tipo: 'Instalación', precio: 120000, clave: 'citas.instalacion' },
+  { tipo: 'Mantenimiento', precio: 80000, clave: 'citas.mantenimiento' },
+  { tipo: 'Reparación', precio: 90000, clave: 'citas.reparacion' },
+  { tipo: 'Revisión', precio: 60000, clave: 'checkout.entrega.tipoRevision' },
+  { tipo: 'Soporte técnico', precio: 70000, clave: 'citas.soporte' },
 ];
+
+const claveServicio = (tipo: string) =>
+  TIPOS_SERVICIO.find((servicio) => servicio.tipo === tipo)?.clave ?? tipo;
 
 interface LineaServicio {
   id: number;
@@ -136,22 +140,22 @@ const validarTarjeta = (pago: {
   cvv: string;
 }): string | null => {
   if (!pago.numero || !pago.titular || !pago.expiracion || !pago.cvv) {
-    return 'Completa los datos de la tarjeta.';
+    return 'checkout.validaciones.tarjetaDatos';
   }
   if (!/^\d{13,19}$/.test(pago.numero)) {
-    return 'El número de tarjeta debe tener entre 13 y 19 dígitos.';
+    return 'checkout.validaciones.tarjetaNumero';
   }
   const fecha = /^(\d{2})\/(\d{2})$/.exec(pago.expiracion);
   if (!fecha || Number(fecha[1]) < 1 || Number(fecha[1]) > 12) {
-    return 'Usa el formato de expiración MM/AA.';
+    return 'checkout.validaciones.tarjetaExpiracionFormato';
   }
   const ahora = new Date();
   const anio = 2000 + Number(fecha[2]);
   if (anio < ahora.getFullYear() || (anio === ahora.getFullYear() && Number(fecha[1]) < ahora.getMonth() + 1)) {
-    return 'La tarjeta está vencida.';
+    return 'checkout.validaciones.tarjetaVencida';
   }
   if (!/^\d{3,4}$/.test(pago.cvv)) {
-    return 'El CVV debe tener 3 o 4 dígitos.';
+    return 'checkout.validaciones.cvv';
   }
   return null;
 };
@@ -178,6 +182,7 @@ const limpiarCacheSensible = (datos: Record<string, any>): Record<string, any> =
 // Comunica con el backend mediante GET '/pedidos/metodos-pago', GET '/clients/me', GET `/tecnicos/publicos?${params.toString()}` y otras peticiones de esta vista; accede a sessionStorage para conservar o recuperar datos locales.
 const CheckoutPage = () => {
   const navigate = useNavigate();
+  const { t } = useIdioma();
   const { items, totalPrice, clearCart } = useCart();
   const { isAuthenticated, rol, loading: authLoading } = useAuth();
 
@@ -245,7 +250,7 @@ const CheckoutPage = () => {
   const aplicarCupon = async (codigo = codigoCupon) => {
     const normalizado = codigo.trim().toUpperCase();
     if (!normalizado) {
-      setMensajeCupon('Escribe o selecciona un cupón.');
+      setMensajeCupon(t('checkout.errores.cuponVacio'));
       return;
     }
     setValidandoCupon(true);
@@ -255,15 +260,15 @@ const CheckoutPage = () => {
       const cupon = res.data;
       if (total < Number(cupon.compra_minima || 0)) {
         setCuponAplicado(null);
-        setMensajeCupon(`Este cupón requiere una compra mínima de ${formatoPeso(Number(cupon.compra_minima))}.`);
+        setMensajeCupon(t('checkout.errores.cuponMinimo', { monto: formatoPeso(Number(cupon.compra_minima)) }));
         return;
       }
       setCuponAplicado(cupon);
       setCodigoCupon(cupon.codigo);
-      setMensajeCupon('Cupón aplicado a tu compra.');
+      setMensajeCupon(t('checkout.resumen.cuponAplicadoMsg'));
     } catch (err: any) {
       setCuponAplicado(null);
-      setMensajeCupon(err.response?.data?.detail || 'No se pudo validar el cupón.');
+      setMensajeCupon(err.response?.data?.detail || t('checkout.errores.cuponValidar'));
     } finally {
       setValidandoCupon(false);
     }
@@ -385,7 +390,7 @@ const CheckoutPage = () => {
   };
 
   const cambiarTipoServicio = (id: number, tipo: string) => {
-    const info = TIPOS_SERVICIO.find((t) => t.tipo === tipo) || TIPOS_SERVICIO[0];
+    const info = TIPOS_SERVICIO.find((servicio) => servicio.tipo === tipo) || TIPOS_SERVICIO[0];
     setServicios((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, tipo, nombre: tipo, precio: info.precio, fecha: '', hora: '08:00', id_tecnico: null, id_tecnico_2: null, id_tecnico_3: null, modo_tecnico: 'auto' } : s
@@ -428,7 +433,7 @@ const CheckoutPage = () => {
     if (procesandoRef.current) return;
     setError('');
     if (items.length === 0 && !reintentoPedidoId) {
-      setError('Tu carrito está vacío. Agrega productos antes de finalizar la compra.');
+      setError(t('checkout.errores.carritoVacio'));
       return;
     }
 
@@ -443,61 +448,61 @@ const CheckoutPage = () => {
       payloadPago.cvv = pago.cvv;
       const errorTarjeta = validarTarjeta(pago);
       if (errorTarjeta) {
-        setError(errorTarjeta);
+        setError(t(errorTarjeta));
         return;
       }
       if (!pago.resultado_simulacion) {
-        setError('Selecciona el resultado de simulación (aprobado o rechazado).');
+        setError(t('checkout.errores.resultadoSimulacion'));
         return;
       }
     } else if (metodo === 'pse') {
       payloadPago.banco = pago.banco;
       payloadPago.titular = pago.titular;
       if (!pago.banco) {
-        setError('Selecciona un banco para pagar por PSE.');
+        setError(t('checkout.errores.bancoPse'));
         return;
       }
       if (!pago.resultado_simulacion) {
-        setError('Selecciona el resultado de simulación (aprobado, rechazado o pendiente).');
+        setError(t('checkout.errores.resultadoSimulacionPse'));
         return;
       }
     } else if (metodo === 'paypal') {
       payloadPago.correo_paypal = pago.correo_paypal;
       if (!pago.correo_paypal) {
-        setError('Ingresa el correo de tu cuenta PayPal.');
+        setError(t('checkout.errores.correoPaypal'));
         return;
       }
       if (!pago.resultado_simulacion) {
-        setError('Selecciona el resultado de simulación (aprobado o rechazado).');
+        setError(t('checkout.errores.resultadoSimulacion'));
         return;
       }
     } else if (metodo === 'punto_pago') {
       if (!pago.punto_pago) {
-        setError('Selecciona el punto de pago (Efecty, Servientrega u otro).');
+        setError(t('checkout.errores.puntoPago'));
         return;
       }
     }
 
     for (const s of servicios) {
       if (!s.fecha) {
-        setError('Selecciona la fecha en que deseas el servicio técnico.');
+        setError(t('checkout.validaciones.fechaServicio'));
         return;
       }
       if (esDomingo(s.fecha)) {
-        setError('Los domingos no están disponibles. Elige un día de lunes a sábado.');
+        setError(t('citas.domingoNoLaborable'));
         return;
       }
       const fechaHora = new Date(`${s.fecha}T${s.hora || '08:00'}:00`);
       const limite = new Date(Date.now() + 3 * 60 * 60 * 1000);
       if (Number.isNaN(fechaHora.getTime()) || fechaHora < limite) {
-        setError('Los servicios se agendan con al menos 3 horas de anticipación. Si es para hoy, elige una hora posterior.');
+        setError(t('checkout.validaciones.anticipacion'));
         return;
       }
       const camposTecnicos: (keyof LineaServicio)[] = ['id_tecnico', 'id_tecnico_2', 'id_tecnico_3'];
       if (s.modo_tecnico === 'lista') {
         for (let i = 0; i < tecnicosNecesarios && i < 3; i++) {
           if (!s[camposTecnicos[i]]) {
-            setError(`Selecciona el técnico ${i + 1} de la lista o elige asignación automática.`);
+            setError(t('checkout.validaciones.tecnico', { n: i + 1 }));
             return;
           }
         }
@@ -568,7 +573,7 @@ const CheckoutPage = () => {
           pedido: data.pedido,
           pago: data.pago,
           mensaje:
-            'Tu pago quedó pendiente. Realiza el pago en el punto físico con el código generado y luego confírmalo aquí.',
+            t('checkout.exito.pagoPendienteMsg'),
         });
       } else {
         // Pago rechazado: guardar credenciales del intento para el reintento.
@@ -586,12 +591,12 @@ const CheckoutPage = () => {
           tipo: 'rechazado',
           pedido: data.pedido,
           pago: data.pago,
-          mensaje: 'El pago fue rechazado por el sistema. Puedes reintentar sin duplicar el pedido.',
+          mensaje: t('checkout.exito.pagoRechazadoMsg'),
         });
       }
     } catch (err: any) {
-      const detalle = err.response?.data?.detail || err.response?.data?.message || 'No se pudo procesar el pedido. Intenta de nuevo.';
-      setError(typeof detalle === 'string' ? detalle : 'No se pudo procesar el pedido. Intenta de nuevo.');
+      const detalle = err.response?.data?.detail || err.response?.data?.message || t('checkout.errores.procesarPedido');
+      setError(typeof detalle === 'string' ? detalle : t('checkout.errores.procesarPedido'));
     } finally {
       procesandoRef.current = false;
       setProcesando(false);
@@ -618,8 +623,8 @@ const CheckoutPage = () => {
         entrega: data.entrega || undefined,
       });
     } catch (err: any) {
-      const detalle = err.response?.data?.detail || 'No se pudo confirmar el pago. Intenta de nuevo.';
-      setError(typeof detalle === 'string' ? detalle : 'No se pudo confirmar el pago.');
+      const detalle = err.response?.data?.detail || t('checkout.errores.confirmarPago');
+      setError(typeof detalle === 'string' ? detalle : t('checkout.errores.confirmarPagoGenerico'));
     } finally {
       setProcesando(false);
     }
@@ -714,23 +719,23 @@ const CheckoutPage = () => {
   if (resultado?.tipo === 'aprobado') {
     return (
       <div className="checkout-modal-overlay">
-        <main className="checkout-modal app-glass" role="dialog" aria-modal="true" aria-label="Confirmación de compra">
+        <main className="checkout-modal app-glass" role="dialog" aria-modal="true" aria-label={t('checkout.exito.confirmacionAria')}>
           <header className="checkout-modal-header">
             <div className="checkout-modal-head-left">
               <div className="checkout-modal-icon">
                 <FaCircleCheck />
               </div>
               <div className="checkout-modal-titles">
-                <h1>¡Pago exitoso!</h1>
-                <p>Tu pedido fue registrado correctamente.</p>
+                <h1>{t('checkout.exito.pagoExitoso')}</h1>
+                <p>{t('checkout.exito.pedidoRegistrado')}</p>
               </div>
             </div>
             <button
               type="button"
               className="checkout-modal-close"
               onClick={() => navigate('/productos')}
-              aria-label="Cerrar confirmación de compra"
-              title="Cerrar"
+              aria-label={t('checkout.exito.cerrarConfirmacionAria')}
+              title={t('common.cerrar')}
             >
               <FaXmark />
             </button>
@@ -739,30 +744,30 @@ const CheckoutPage = () => {
           <div className="checkout-modal-body">
             {resultado.factura?.enviada_por_correo ? (
               <p className="checkout-correo-ok">
-                <FaEnvelope /> La factura fue enviada correctamente a tu correo electrónico.
+                <FaEnvelope /> {t('checkout.exito.facturaEnviada')}
               </p>
             ) : (
               <p className="checkout-correo-warn">
-                Pago exitoso. Tu factura fue generada correctamente.
+                {t('checkout.exito.facturaGenerada')}
               </p>
             )}
 
             <div className="checkout-success-datos">
-              <div><span>Pedido:</span><strong>#{resultado.pedido?.id_pedido}</strong></div>
-              <div><span>Factura:</span><strong>{resultado.factura?.numero_factura}</strong></div>
-              <div><span>Total:</span><strong>{formatoPeso(resultado.pedido?.total || 0)}</strong></div>
-              <div><span>Transacción:</span><strong>{resultado.pago?.numero_transaccion}</strong></div>
+              <div><span>{t('checkout.resumen.pedido')}</span><strong>#{resultado.pedido?.id_pedido}</strong></div>
+              <div><span>{t('checkout.resumen.factura')}</span><strong>{resultado.factura?.numero_factura}</strong></div>
+              <div><span>{t('checkout.resumen.total')}</span><strong>{formatoPeso(resultado.pedido?.total || 0)}</strong></div>
+              <div><span>{t('checkout.resumen.transaccion')}</span><strong>{resultado.pago?.numero_transaccion}</strong></div>
             </div>
 
             {resultado.ordenes_instalacion && resultado.ordenes_instalacion.length > 0 && (
               <div className="checkout-ordenes-instalacion">
-                <h2>Instalación agendada</h2>
+                <h2>{t('checkout.exito.instalacionAgendada')}</h2>
                 {resultado.ordenes_instalacion.map((o, idx) => (
                   <div className="checkout-orden-instalacion" key={idx}>
-                    <div><span>Estado:</span><strong>{o.estado}</strong></div>
-                    <div><span>Técnico:</span><strong>{o.nombre_tecnico || 'Por asignar'}{o.nombre_tecnico_2 ? ` y ${o.nombre_tecnico_2}` : ''}</strong></div>
-                    <div><span>Fecha:</span><strong>{o.fecha ? (() => { const [a, m, d] = o.fecha.split('-').map(Number); return a ? new Date(a, m - 1, d).toLocaleDateString('es-CO') : o.fecha; })() : ''} {o.hora ? ` · ${o.hora}` : ''}</strong></div>
-                    <div><span>Dirección:</span><strong>{o.direccion || 'Por definir'}</strong></div>
+                    <div><span>{t('checkout.resumen.estado')}</span><strong>{o.estado}</strong></div>
+                    <div><span>{t('checkout.resumen.tecnico')}</span><strong>{o.nombre_tecnico || t('checkout.exito.porAsignar')}{o.nombre_tecnico_2 ? t('checkout.exito.yTecnico', { nombre: o.nombre_tecnico_2 }) : ''}</strong></div>
+                    <div><span>{t('checkout.resumen.fecha')}</span><strong>{o.fecha ? (() => { const [a, m, d] = o.fecha.split('-').map(Number); return a ? new Date(a, m - 1, d).toLocaleDateString('es-CO') : o.fecha; })() : ''} {o.hora ? ` · ${o.hora}` : ''}</strong></div>
+                    <div><span>{t('checkout.resumen.direccion')}</span><strong>{o.direccion || t('checkout.exito.porDefinir')}</strong></div>
                   </div>
                 ))}
               </div>
@@ -770,26 +775,26 @@ const CheckoutPage = () => {
 
             {resultado.entrega && (
               <div className="checkout-ordenes-instalacion">
-                <h2>Entrega programada</h2>
+                <h2>{t('checkout.exito.entregaProgramada')}</h2>
                 <div className="checkout-entrega-tecnico">
                   {resultado.entrega.foto_tecnico && (
                     <img
                       src={resultado.entrega.foto_tecnico}
-                      alt={resultado.entrega.nombre_tecnico || 'Técnico'}
+                      alt={resultado.entrega.nombre_tecnico || t('tec.tecnico')}
                       className="checkout-entrega-foto"
                       onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
                   )}
                   <div className="checkout-entrega-info">
-                    <div><span>Fecha de entrega:</span><strong>{resultado.entrega.fecha_entrega ? new Date(resultado.entrega.fecha_entrega).toLocaleDateString('es-CO') : ''} · {resultado.entrega.hora_entrega || ''}</strong></div>
-                    <div><span>Técnico asignado:</span><strong>{resultado.entrega.nombre_tecnico || 'Por asignar'}</strong></div>
+                    <div><span>{t('checkout.exito.fechaEntrega')}</span><strong>{resultado.entrega.fecha_entrega ? new Date(resultado.entrega.fecha_entrega).toLocaleDateString('es-CO') : ''} · {resultado.entrega.hora_entrega || ''}</strong></div>
+                    <div><span>{t('checkout.exito.tecnicoAsignado')}</span><strong>{resultado.entrega.nombre_tecnico || t('checkout.exito.porAsignar')}</strong></div>
                     {resultado.entrega.telefono_tecnico && (
-                      <div><span>Teléfono:</span><strong>{resultado.entrega.telefono_tecnico}</strong></div>
+                      <div><span>{t('checkout.exito.telefono')}</span><strong>{resultado.entrega.telefono_tecnico}</strong></div>
                     )}
                   </div>
                 </div>
                 <p className="checkout-entrega-nota">
-                  Verifica la identidad del técnico con la foto y el nombre antes de recibir tu pedido. Recibirás un aviso por correo antes de la entrega.
+                  {t('checkout.exito.entregaNota')}
                 </p>
               </div>
             )}
@@ -798,7 +803,7 @@ const CheckoutPage = () => {
           <footer className="checkout-modal-footer">
             <div className="checkout-success-acciones">
               <button type="button" className="checkout-pdf-btn" onClick={() => navigate('/productos')}>
-                Seguir comprando
+                {t('checkout.exito.seguirComprando')}
               </button>
               {resultado.pdf_url && (
                 <button
@@ -807,7 +812,7 @@ const CheckoutPage = () => {
                   onClick={descargarFacturaPedido}
                   disabled={descargando}
                 >
-                  <FaFilePdf /> {descargando ? 'Descargando...' : 'Descargar factura PDF'}
+                  <FaFilePdf /> {descargando ? t('checkout.exito.descargando') : t('checkout.exito.descargarFactura')}
                 </button>
               )}
             </div>
@@ -823,40 +828,40 @@ const CheckoutPage = () => {
       <div className="checkout-page app-glass">
         <main className="checkout-main checkout-pendiente">
           <div className="checkout-pendiente-icon"><FaStore /></div>
-          <h1>Pago pendiente</h1>
+          <h1>{t('citas.estadoPago.pendiente')}</h1>
           <p>{resultado.mensaje}</p>
 
           {resultado.pago?.codigo_punto_pago && (
             <div className="checkout-pendiente-codigo">
-              <span className="checkout-pendiente-label">Código de pago</span>
+              <span className="checkout-pendiente-label">{t('checkout.exito.codigoPago')}</span>
               <strong>{resultado.pago?.codigo_punto_pago}</strong>
               <span className="checkout-pendiente-hint">
-                Preséntalo en <strong>{resultado.pago?.punto_pago || 'el punto seleccionado'}</strong> y paga {formatoPeso(resultado.pedido?.total || 0)}.
+                {t('checkout.exito.presentaloEn')} <strong>{resultado.pago?.punto_pago || t('checkout.exito.puntoSeleccionado')}</strong> {t('checkout.exito.presentaloPaga', { monto: formatoPeso(resultado.pedido?.total || 0) })}
               </span>
             </div>
           )}
 
           <div className="checkout-success-datos">
-            <div><span>Pedido:</span><strong>#{resultado.pedido?.id_pedido}</strong></div>
-            <div><span>Referencia:</span><strong>{resultado.pago?.referencia_pago || resultado.pago?.numero_transaccion}</strong></div>
+            <div><span>{t('checkout.resumen.pedido')}</span><strong>#{resultado.pedido?.id_pedido}</strong></div>
+            <div><span>{t('checkout.resumen.referencia')}</span><strong>{resultado.pago?.referencia_pago || resultado.pago?.numero_transaccion}</strong></div>
             {resultado.pago?.punto_pago && (
-              <div><span>Punto de pago:</span><strong>{resultado.pago?.punto_pago}</strong></div>
+              <div><span>{t('checkout.resumen.puntoPago')}</span><strong>{resultado.pago?.punto_pago}</strong></div>
             )}
-            <div><span>Valor a pagar:</span><strong>{formatoPeso(resultado.pedido?.total || 0)}</strong></div>
+            <div><span>{t('checkout.resumen.valorPagar')}</span><strong>{formatoPeso(resultado.pedido?.total || 0)}</strong></div>
             {resultado.pago?.fecha_limite && (
-              <div><span>Fecha límite:</span><strong>
+              <div><span>{t('checkout.resumen.fechaLimite')}</span><strong>
                 {new Date(resultado.pago.fecha_limite).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
               </strong></div>
             )}
-            <div><span>Estado:</span><strong>Pendiente</strong></div>
+            <div><span>{t('checkout.resumen.estado')}</span><strong>{t('citas.pendiente')}</strong></div>
           </div>
 
           <div className="checkout-success-acciones">
             <button type="button" className="checkout-pdf-btn" onClick={confirmarPago} disabled={procesando}>
-              {procesando ? <FaSpinner className="spin" /> : <FaCircleCheck />} Confirmar pago
+              {procesando ? <FaSpinner className="spin" /> : <FaCircleCheck />} {t('checkout.exito.confirmarPago')}
             </button>
             <button type="button" className="checkout-volver-btn" onClick={reiniciar}>
-              Volver al checkout
+              {t('checkout.exito.volverCheckout')}
             </button>
           </div>
         </main>
@@ -870,18 +875,17 @@ const CheckoutPage = () => {
       <div className="checkout-page app-glass">
         <main className="checkout-main checkout-rechazado">
           <div className="checkout-rechazado-icon"><FaExclamation /></div>
-          <h1>Pago rechazado</h1>
+          <h1>{t('citas.estadoPago.rechazado')}</h1>
           <p>{resultado.mensaje}</p>
           <p className="checkout-rechazado-detalle">
-            Tu carrito se mantuvo intacto. Por seguridad, ingresa de nuevo el número de
-            tarjeta y el CVV al reintentar.
+            {t('checkout.exito.rechazadoDetalle')}
           </p>
           <div className="checkout-success-acciones">
             <button type="button" className="checkout-pdf-btn" onClick={reintentarPago}>
-              <FaArrowLeft /> Reintentar pago
+              <FaArrowLeft /> {t('checkout.exito.reintentarPago')}
             </button>
             <button type="button" className="checkout-volver-btn" onClick={() => navigate('/carrito')}>
-              Ver mi carrito
+              {t('checkout.exito.verCarrito')}
             </button>
           </div>
         </main>
@@ -890,24 +894,24 @@ const CheckoutPage = () => {
   }
 
   if (authLoading) {
-    return <div className="loading">Cargando...</div>;
+    return <div className="loading">{t('common.cargando')}</div>;
   }
 
   if (!isAuthenticated || rol !== 'cliente') {
     return (
       <div className="checkout-page app-glass">
         <main className="checkout-main checkout-login">
-          <h1>Inicia sesión para continuar</h1>
-          <p>Para finalizar tu compra necesitas una cuenta de cliente Neodomus.</p>
+          <h1>{t('checkout.pasos.loginTitulo')}</h1>
+          <p>{t('checkout.pasos.loginDescripcion')}</p>
           <div className="checkout-success-acciones">
             <Link
               to="/login"
               className="checkout-pdf-btn"
               onClick={() => sessionStorage.setItem(PF_REDIRECT_AFTER_LOGIN_KEY, '/checkout')}
             >
-              Iniciar sesión
+              {t('nav.iniciarSesion')}
             </Link>
-            <Link to="/register" className="checkout-volver-btn">Crear cuenta</Link>
+            <Link to="/register" className="checkout-volver-btn">{t('checkout.pasos.crearCuenta')}</Link>
           </div>
         </main>
       </div>
@@ -920,11 +924,11 @@ const CheckoutPage = () => {
       <main className="checkout-main">
         <header className="checkout-header">
           <div>
-            <h1>Finalizar compra</h1>
-            <p>Confirma los productos y elige cómo quieres pagar.</p>
+            <h1>{t('checkout.titulo')}</h1>
+            <p>{t('checkout.pasos.descripcion')}</p>
           </div>
           <button type="button" className="checkout-back-btn" onClick={() => navigate('/carrito')}>
-            <FaArrowLeft /> Volver al carrito
+            <FaArrowLeft /> {t('checkout.pasos.volverCarrito')}
           </button>
         </header>
 
@@ -933,14 +937,14 @@ const CheckoutPage = () => {
             {/* Servicios opcionales */}
             <section className="checkout-seccion">
               <div className="checkout-seccion-titulo">
-                <h2>Servicios técnicos opcionales</h2>
+                <h2>{t('checkout.entrega.serviciosTitulo')}</h2>
                 <button type="button" className="checkout-add-servicio" onClick={agregarServicio}>
-                  <FaPlus /> Agregar servicio
+                  <FaPlus /> {t('checkout.entrega.agregarServicio')}
                 </button>
               </div>
               {servicios.length === 0 ? (
                 <p className="checkout-servicios-vacio">
-                  Agrega un servicio de instalación, mantenimiento o soporte junto a tu compra.
+                  {t('checkout.entrega.serviciosVacio')}
                 </p>
               ) : (
                 <div className="checkout-servicios-lista">
@@ -951,12 +955,12 @@ const CheckoutPage = () => {
                           value={s.tipo}
                           onChange={(e) => cambiarTipoServicio(s.id, e.target.value)}
                         >
-                          {TIPOS_SERVICIO.map((t) => (
-                            <option key={t.tipo} value={t.tipo}>{t.tipo}</option>
+                          {TIPOS_SERVICIO.map((tipo) => (
+                            <option key={tipo.tipo} value={tipo.tipo}>{t(tipo.clave)}</option>
                           ))}
                         </select>
                         <span className="checkout-servicio-precio">{formatoPeso(s.precio)}</span>
-                        <button type="button" onClick={() => quitarServicio(s.id)} aria-label="Quitar servicio">
+                        <button type="button" onClick={() => quitarServicio(s.id)} aria-label={t('checkout.entrega.quitarServicio')}>
                           <FaTrashCan />
                         </button>
                       </div>
@@ -964,16 +968,17 @@ const CheckoutPage = () => {
                           {s.tipo === 'Instalación' && (
                             <>
                               <span className="checkout-tecnicos-aviso">
-                                <FaUsers /> Según los productos de tu compra, esta instalación requerirá{' '}
-                                {tecnicosNecesarios === 1 ? '1 técnico' : `${tecnicosNecesarios} técnicos`}
+                                <FaUsers /> {tecnicosNecesarios === 1
+                                  ? t('checkout.entrega.requiereUnTecnico')
+                                  : t('checkout.entrega.requiereTecnicos', { n: tecnicosNecesarios })}
                                 {recomendacion && recomendacion.horas_por_tecnico
-                                  ? ` (~${recomendacion.horas_por_tecnico} h por técnico)`
+                                  ? t('checkout.entrega.horasPorTecnico', { n: recomendacion.horas_por_tecnico })
                                   : ''}
                                 .
                               </span>
                               {recomendacion && recomendacion.especializaciones_requeridas.length > 0 && (
                                 <span className="checkout-tecnicos-aviso">
-                                  Especializaciones requeridas:{' '}
+                                  {t('checkout.entrega.especializacionesRequeridas')}{' '}
                                   {recomendacion.especializaciones_requeridas.map((e) => e.nombre).join(', ')}.
                                 </span>
                               )}
@@ -986,18 +991,18 @@ const CheckoutPage = () => {
                             onChange={(e) => {
                               const valor = e.target.value;
                               if (esDomingo(valor)) {
-                                setError('Los domingos no están disponibles. Elige un día de lunes a sábado.');
+                                setError(t('citas.domingoNoLaborable'));
                                 return;
                               }
                               actualizarServicio(s.id, 'fecha', valor);
                             }}
                           />
                           {!s.fecha ? (
-                            <span className="checkout-hora-placeholder">Selecciona una fecha</span>
+                            <span className="checkout-hora-placeholder">{t('checkout.entrega.seleccionaFecha')}</span>
                           ) : cargandoHorasServicio[s.id] ? (
                             <span className="checkout-hora-loading"><span className="ap-loader" /></span>
                           ) : (horasPorServicio[s.id] || []).length === 0 ? (
-                            <span className="checkout-hora-placeholder">Sin horarios disponibles</span>
+                            <span className="checkout-hora-placeholder">{t('checkout.entrega.sinHorarios')}</span>
                           ) : (
                             <div className="citas-horas-grid">
                               {(horasPorServicio[s.id] || []).map((hora) => (
@@ -1026,10 +1031,10 @@ const CheckoutPage = () => {
                               ).map((ts) => ts.id_tecnico),
                             );
                             const opciones = (tecnicosMap[s.id] || []).filter(
-                              (t) =>
+                              (tec) =>
                                 !relacionados.size ||
-                                relacionados.has(t.id_tecnico) ||
-                                elegidos.includes(t.id_tecnico),
+                                relacionados.has(tec.id_tecnico) ||
+                                elegidos.includes(tec.id_tecnico),
                             );
                             return (
                               <>
@@ -1040,13 +1045,13 @@ const CheckoutPage = () => {
                                 >
                                   {esInstalacion && totalTecnicos > 1 ? (
                                     <>
-                                      <option value="auto">Asignación automática de los {totalTecnicos} técnicos</option>
-                                      <option value="lista">Elegir mis {totalTecnicos} técnicos</option>
+                                      <option value="auto">{t('checkout.entrega.asignacionAutoMulti', { n: totalTecnicos })}</option>
+                                      <option value="lista">{t('checkout.entrega.elegirMisTecnicos', { n: totalTecnicos })}</option>
                                     </>
                                   ) : (
                                     <>
-                                      <option value="auto">Técnico: asignación automática</option>
-                                      <option value="lista">Técnico: elegir de la lista</option>
+                                      <option value="auto">{t('checkout.entrega.asignacionAuto')}</option>
+                                      <option value="lista">{t('checkout.entrega.elegirLista')}</option>
                                     </>
                                   )}
                                 </select>
@@ -1062,20 +1067,20 @@ const CheckoutPage = () => {
                                           actualizarServicio(s.id, campo, e.target.value)
                                         }
                                       >
-                                        <option value="">Técnico {i + 1}: selecciona uno</option>
-                                        {opciones.map((t) => {
+                                        <option value="">{t('checkout.entrega.tecnicoSelecciona', { n: i + 1 })}</option>
+                                        {opciones.map((tec) => {
                                           const tomadoPorOtro = elegidos.some(
-                                            (v, j) => j !== i && Number(v) === t.id_tecnico,
+                                            (v, j) => j !== i && Number(v) === tec.id_tecnico,
                                           );
                                           return (
                                             <option
-                                              key={t.id_tecnico}
-                                              value={t.id_tecnico}
-                                              disabled={t.disponible === false || tomadoPorOtro}
+                                              key={tec.id_tecnico}
+                                              value={tec.id_tecnico}
+                                              disabled={tec.disponible === false || tomadoPorOtro}
                                             >
-                                              {t.first_name || ''} {t.last_name || ''}
-                                              {t.calificacion ? ` (★ ${Number(t.calificacion).toFixed(1)})` : ''}
-                                              {t.disponible === false ? ' — ocupado ese día' : ''}
+                                              {tec.first_name || ''} {tec.last_name || ''}
+                                              {tec.calificacion ? ` (★ ${Number(tec.calificacion).toFixed(1)})` : ''}
+                                              {tec.disponible === false ? t('checkout.entrega.ocupadoEseDia') : ''}
                                             </option>
                                           );
                                         })}
@@ -1084,8 +1089,7 @@ const CheckoutPage = () => {
                                   })}
                                 {!(s.modo_tecnico === 'lista') && esInstalacion && totalTecnicos > 1 && (
                                   <span className="checkout-tecnicos-aviso">
-                                    <FaUsers /> Se asignarán automáticamente los {totalTecnicos} técnicos
-                                    según disponibilidad en tu franja.
+                                    <FaUsers /> {t('checkout.entrega.asignacionAutoNota', { n: totalTecnicos })}
                                   </span>
                                 )}
                               </>
@@ -1097,7 +1101,7 @@ const CheckoutPage = () => {
                             </span>
                           ) : (
                             <span className="checkout-servicio-direccion checkout-servicio-direccion-warn">
-                              <FaLocationDot /> Agrega tu dirección en tu perfil para indicar dónde se realizará el servicio o la entrega.
+                              <FaLocationDot /> {t('checkout.entrega.direccionFaltante')}
                             </span>
                           )}
                         </div>
@@ -1109,10 +1113,10 @@ const CheckoutPage = () => {
 
             {/* Método de pago */}
             <section className="checkout-seccion">
-              <h2>Método de pago</h2>
+              <h2>{t('checkout.pago.metodoTitulo')}</h2>
               <div className="checkout-modo-banner">
                 <FaFlask />
-                Modo de prueba / Simulación: no se realizan cobros reales ni se requiere registro de empresa.
+                {t('citas.modoSimulador')}
               </div>
               <div className="checkout-metodos">
                 {(metodosDisponibles ? METODOS.filter((m) => metodosDisponibles.includes(m.codigo)) : METODOS).map((m) => {
@@ -1124,7 +1128,7 @@ const CheckoutPage = () => {
                       className={`checkout-metodo ${metodo === m.codigo ? 'activo' : ''}`}
                       onClick={() => cambiarMetodo(m.codigo)}
                     >
-                      <Icono /> {m.nombre}
+                      <Icono /> {t(m.clave)}
                     </button>
                   );
                 })}
@@ -1134,7 +1138,7 @@ const CheckoutPage = () => {
                 {(metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito') && (
                   <>
                     <div className="checkout-field">
-                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1137">Número de tarjeta</label>
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1137">{t('citas.numeroTarjeta')}</label>
                       <CardPaymentInput id="nb-fesrcpagespublicCheckoutPagetsx1137" field="number"
                         placeholder="4242 4242 4242 4242"
                         value={pago.numero}
@@ -1142,25 +1146,25 @@ const CheckoutPage = () => {
                       />
                     </div>
                     <div className="checkout-field">
-                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1145">Titular de la tarjeta</label>
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1145">{t('citas.titularTarjeta')}</label>
                       <input id="nb-fesrcpagespublicCheckoutPagetsx1145"
                         type="text"
-                        placeholder="Como aparece en la tarjeta"
+                        placeholder={t('citas.placeholderTitular')}
                         value={pago.titular}
                         onChange={(e) => setPago({ ...pago, titular: e.target.value })}
                       />
                     </div>
                     <div className="checkout-field-row">
                       <div className="checkout-field">
-                        <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1155">Expiración</label>
+                        <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1155">{t('citas.expiracion')}</label>
                         <CardPaymentInput id="nb-fesrcpagespublicCheckoutPagetsx1155" field="expiry"
-                          placeholder="MM/AA"
+                          placeholder={t('checkout.pago.expiracionPlaceholder')}
                           value={pago.expiracion}
                           onValueChange={(value) => setPago({ ...pago, expiracion: value })}
                         />
                       </div>
                       <div className="checkout-field">
-                        <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1163">CVV</label>
+                        <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1163">{t('checkout.pago.cvv')}</label>
                         <CardPaymentInput id="nb-fesrcpagespublicCheckoutPagetsx1163" field="cvv"
                           placeholder="123"
                           value={pago.cvv}
@@ -1169,19 +1173,19 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                     <p className="checkout-nota">
-                      Prueba: 4242 4242 4242 4242 (aprobada) · 4242 4242 4242 0001 (rechazada)
+                      {t('checkout.pago.pruebaTarjetas')}
                     </p>
                     <div className="checkout-field">
-                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1175">Cuotas</label>
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1175">{t('checkout.pago.cuotasLabel')}</label>
                       <select id="nb-fesrcpagespublicCheckoutPagetsx1175"
                         className="checkout-cuotas-select"
                         value={pago.cuotas}
                         onChange={(e) => setPago({ ...pago, cuotas: Number(e.target.value) })}
                       >
-                        <option value={1}>1 cuota</option>
-                        <option value={3}>3 cuotas</option>
-                        <option value={6}>6 cuotas</option>
-                        <option value={12}>12 cuotas</option>
+                        <option value={1}>{t('checkout.pago.cuotaUnica')}</option>
+                        <option value={3}>{t('checkout.pago.cuotasOpcion', { n: 3 })}</option>
+                        <option value={6}>{t('checkout.pago.cuotasOpcion', { n: 6 })}</option>
+                        <option value={12}>{t('checkout.pago.cuotasOpcion', { n: 12 })}</option>
                       </select>
                     </div>
                   </>
@@ -1189,15 +1193,15 @@ const CheckoutPage = () => {
 
                 {(metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito' || metodo === 'pse' || metodo === 'paypal') && (
                   <div className="checkout-field">
-                    <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1192">Resultado de simulación (entorno de prueba)</label>
+                    <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1192">{t('citas.resultadoSimulacion')}</label>
                     <select id="nb-fesrcpagespublicCheckoutPagetsx1192"
                       value={pago.resultado_simulacion}
                       onChange={(e) => setPago({ ...pago, resultado_simulacion: e.target.value })}
                     >
-                      <option value="">Selecciona el resultado...</option>
-                      <option value="aprobado">Aprobado</option>
-                      <option value="rechazado">Rechazado</option>
-                      {metodo === 'pse' && <option value="pendiente">Pendiente</option>}
+                      <option value="">{t('citas.seleccionaResultado')}</option>
+                      <option value="aprobado">{t('citas.aprobadoSim')}</option>
+                      <option value="rechazado">{t('citas.rechazadoSim')}</option>
+                      {metodo === 'pse' && <option value="pendiente">{t('citas.pendienteSim')}</option>}
                     </select>
                   </div>
                 )}
@@ -1205,22 +1209,22 @@ const CheckoutPage = () => {
                 {metodo === 'pse' && (
                   <>
                     <div className="checkout-field">
-                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1208">Banco</label>
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1208">{t('citas.banco')}</label>
                       <SelectorBanco id="nb-fesrcpagespublicCheckoutPagetsx1208"
                         bancos={listaBancos}
                         value={pago.banco}
                         onChange={(banco) => setPago((prev) => ({ ...prev, banco }))}
                         classNameTrigger="checkout-banco-trigger"
                         classNameMenu=""
-                        placeholder="Selecciona tu banco"
-                        ariaLabel="Banco"
+                        placeholder={t('citas.seleccionaBanco')}
+                        ariaLabel={t('citas.banco')}
                       />
                     </div>
                     <div className="checkout-field">
-                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1220">Titular de la cuenta</label>
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1220">{t('citas.titularCuenta')}</label>
                       <input id="nb-fesrcpagespublicCheckoutPagetsx1220"
                         type="text"
-                        placeholder="Nombre del titular"
+                        placeholder={t('checkout.pago.nombreTitular')}
                         value={pago.titular}
                         onChange={(e) => setPago({ ...pago, titular: e.target.value })}
                       />
@@ -1230,15 +1234,15 @@ const CheckoutPage = () => {
 
                 {metodo === 'paypal' && (
                   <div className="checkout-field">
-                    <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1233">Correo de PayPal</label>
+                    <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1233">{t('checkout.pago.correoPaypalLabel')}</label>
                     <input id="nb-fesrcpagespublicCheckoutPagetsx1233"
                       type="email"
-                      placeholder="Correo de tu cuenta PayPal"
+                      placeholder={t('checkout.pago.correoPaypalPlaceholder')}
                       value={pago.correo_paypal}
                       onChange={(e) => setPago({ ...pago, correo_paypal: e.target.value })}
                     />
                     <p className="checkout-nota">
-                      Pago simulado / entorno de prueba: no se conecta ninguna cuenta real de PayPal.
+                      {t('checkout.pago.paypalNota')}
                     </p>
                   </div>
                 )}
@@ -1246,20 +1250,19 @@ const CheckoutPage = () => {
                 {metodo === 'punto_pago' && (
                   <>
                     <div className="checkout-field">
-                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1249">Punto de pago</label>
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1249">{t('citas.puntoPago')}</label>
                       <select id="nb-fesrcpagespublicCheckoutPagetsx1249"
                         value={pago.punto_pago}
                         onChange={(e) => setPago({ ...pago, punto_pago: e.target.value })}
                       >
-                        <option value="">Selecciona el punto...</option>
+                        <option value="">{t('citas.seleccionaPunto')}</option>
                         <option value="Efecty">Efecty</option>
                         <option value="Servientrega">Servientrega</option>
-                        <option value="Otro punto de pago">Otro punto de pago</option>
+                        <option value="Otro punto de pago">{t('citas.otroPunto')}</option>
                       </select>
                     </div>
                     <p className="checkout-nota">
-                      Al confirmar se generará una referencia y un código de pago en efectivo para
-                      el punto seleccionado. El pedido queda pendiente hasta confirmar el pago.
+                      {t('checkout.pago.puntoPagoNota')}
                     </p>
                   </>
                 )}
@@ -1269,7 +1272,7 @@ const CheckoutPage = () => {
 
           {/* Resumen */}
           <aside className="checkout-resumen">
-            <h2>Resumen del pedido</h2>
+            <h2>{t('carrito.resumen')}</h2>
             <div className="checkout-resumen-items">
               {items.map((item) => {
                 const totalM = item.venta_por_metros ? (item.metros || 0) * (item.cantidad || 1) : 0;
@@ -1288,7 +1291,9 @@ const CheckoutPage = () => {
                         : item.cantidad > 1
                           ? ` × ${item.cantidad}`
                           : ''}
-                      {tecnicosReq > 0 ? ` (${tecnicosReq} técnico${tecnicosReq > 1 ? 's' : ''})` : ' (sin instalación)'}
+                      {tecnicosReq > 0
+                        ? (tecnicosReq === 1 ? t('checkout.resumen.unTecnico') : t('checkout.resumen.tecnicos', { n: tecnicosReq }))
+                        : t('checkout.resumen.sinInstalacion')}
                     </span>
                     <span className="checkout-resumen-precio">{formatoPeso(importe)}</span>
                   </div>
@@ -1296,21 +1301,21 @@ const CheckoutPage = () => {
               })}
               {servicios.map((s) => (
                 <div className="checkout-resumen-item" key={s.id}>
-                  <span className="checkout-resumen-nombre">{s.nombre} (servicio)</span>
+                  <span className="checkout-resumen-nombre">{t(claveServicio(s.tipo))}{t('checkout.resumen.servicio')}</span>
                   <span className="checkout-resumen-precio">{formatoPeso(s.precio)}</span>
                 </div>
               ))}
             </div>
 
             <div className="checkout-resumen-row">
-              <span>Subtotal</span>
+              <span>{t('carrito.subtotal')}</span>
               <span>{formatoPeso(total)}</span>
             </div>
-            <section className="checkout-cupon" aria-label="Cupón de descuento">
-              <label htmlFor="checkout-cupon-codigo"><FaTag /> ¿Tienes un cupón?</label>
+            <section className="checkout-cupon" aria-label={t('checkout.resumen.cuponAria')}>
+              <label htmlFor="checkout-cupon-codigo"><FaTag /> {t('checkout.resumen.cuponPregunta')}</label>
               {cuponesDisponibles.length > 0 && (
                 <select
-                  aria-label="Cupones disponibles"
+                  aria-label={t('checkout.resumen.cuponesDisponiblesAria')}
                   value={cuponesDisponibles.some((c) => c.codigo === codigoCupon) ? codigoCupon : ''}
                   onChange={(e) => {
                     setCodigoCupon(e.target.value);
@@ -1318,7 +1323,7 @@ const CheckoutPage = () => {
                   }}
                   disabled={Boolean(cuponAplicado)}
                 >
-                  <option value="">Elegir cupón disponible</option>
+                  <option value="">{t('checkout.resumen.elegirCupon')}</option>
                   {cuponesDisponibles.map((cupon) => (
                     <option key={cupon.id_cupon} value={cupon.codigo}>
                       {cupon.codigo} · {cupon.tipo_descuento === 'porcentaje' ? `${cupon.valor_descuento}%` : formatoPeso(Number(cupon.valor_descuento))}
@@ -1331,15 +1336,15 @@ const CheckoutPage = () => {
                   id="checkout-cupon-codigo"
                   value={codigoCupon}
                   onChange={(e) => setCodigoCupon(e.target.value.toUpperCase())}
-                  placeholder="Ingresa tu código"
+                  placeholder={t('checkout.resumen.cuponPlaceholder')}
                   autoComplete="off"
                   disabled={Boolean(cuponAplicado)}
                 />
                 {cuponAplicado ? (
-                  <button type="button" onClick={quitarCupon}>Quitar</button>
+                  <button type="button" onClick={quitarCupon}>{t('common.quitar')}</button>
                 ) : (
                   <button type="button" onClick={() => void aplicarCupon()} disabled={validandoCupon}>
-                    {validandoCupon ? 'Validando…' : 'Aplicar'}
+                    {validandoCupon ? t('checkout.resumen.validandoCupon') : t('checkout.resumen.aplicarCupon')}
                   </button>
                 )}
               </div>
@@ -1347,16 +1352,16 @@ const CheckoutPage = () => {
             </section>
             {descuentoCupon > 0 && (
               <div className="checkout-resumen-row checkout-cupon-descuento">
-                <span>Descuento ({cuponAplicado?.codigo})</span>
+                <span>{t('checkout.resumen.descuento', { codigo: cuponAplicado?.codigo ?? '' })}</span>
                 <span>−{formatoPeso(descuentoCupon)}</span>
               </div>
             )}
             <div className="checkout-resumen-row">
-              <span>Envío</span>
-              <span>Calculado al confirmar</span>
+              <span>{t('carrito.envio')}</span>
+              <span>{t('checkout.resumen.envioCalculado')}</span>
             </div>
             <div className="checkout-resumen-total">
-              <span>Total a pagar</span>
+              <span>{t('citas.totalAPagar')}</span>
               <span>{formatoPeso(total - descuentoCupon)}</span>
             </div>
 
@@ -1367,10 +1372,10 @@ const CheckoutPage = () => {
               disabled={procesando || (items.length === 0 && !reintentoPedidoId)}
             >
               {procesando ? <FaSpinner className="spin" /> : <FaCreditCard />}
-              {procesando ? 'Procesando pago...' : 'Pagar y confirmar'}
+              {procesando ? t('checkout.pago.procesando') : t('checkout.pago.pagarConfirmar')}
             </button>
             <p className="checkout-resumen-hint">
-                Simulación académica: no se realizan cobros reales.
+                {t('checkout.resumen.simulacionHint')}
               </p>
           </aside>
         </div>

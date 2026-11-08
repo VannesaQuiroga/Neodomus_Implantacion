@@ -1,10 +1,12 @@
 // Sección de entrada de la portada pública.
 import { useNavigate } from 'react-router-dom';
+import { useIdioma } from '@i18n/IdiomaContext';
 import fondo from '@assets/images/FONDO.png';
 import '@styles/home.css';
 
 
 const HomePage = () => {
+  const { t } = useIdioma();
   const navigate = useNavigate();
   return (
     <>
@@ -14,11 +16,11 @@ const HomePage = () => {
         />
         <div className="overlay">
           <h1 className="main-title">NEODOMUS</h1>
-          <h3>"NEODOMUS más que tecnología, una evolución."</h3>
+          <h3>{t('home.info.herofrase')}</h3>
           <p>
-            En NEODOMUS ofrecemos soluciones integrales en tecnología, innovación y gestión de servicios.
+            {t('home.info.herodescripcionCorta')}
           </p>
-          <button className="btn-continuar" onClick={() => navigate('/info')}>CONTINUAR</button>
+          <button className="btn-continuar" onClick={() => navigate('/info')}>{t('home.info.herocontinuar')}</button>
         </div>
     </>
   );

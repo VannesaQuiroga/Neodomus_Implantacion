@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FaMagnifyingGlass } from 'react-icons/fa6';
 import '@styles/perfil-cliente.css';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 
 interface ReembolsoCliente {
   id_reembolso: number;
@@ -34,10 +35,11 @@ const claseEstado = (estado: string) => {
 };
 
 const textoEstado = (estado: string) =>
-  estado === 'Procesando' ? 'En proceso' : estado;
+  estado === 'Procesando' ? 'perfil.reembolsos.enProceso' : estado;
 
 // Comunica con el backend mediante GET '/reembolsos/mis'.
 const ReembolsosCliente = () => {
+  const { t } = useIdioma();
   const [reembolsos, setReembolsos] = useState<ReembolsoCliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -103,18 +105,18 @@ const ReembolsosCliente = () => {
       <div className="pf-reembolso-info">
         <div className="pf-reembolso-cabecera">
           <span className={`pf-reembolso-estado ${claseEstado(r.estado)}`}>
-            {textoEstado(r.estado)}
+            {t(textoEstado(r.estado))}
           </span>
           <span className="pf-reembolso-referencia">{r.referencia}</span>
         </div>
-        <p className="pf-reembolso-motivo">{r.motivo || 'Sin motivo registrado'}</p>
+        <p className="pf-reembolso-motivo">{r.motivo || t('perfil.reembolsos.sinMotivo')}</p>
         <p className="pf-reembolso-fecha">{formatFecha(r.created_at)}</p>
       </div>
       <div className="pf-reembolso-monto">
         <strong>{formatoPeso(r.monto)}</strong>
         {r.numero_transaccion_reembolso && (
           <span className="pf-reembolso-transaccion" title={r.numero_transaccion_reembolso}>
-            Transacción: {r.numero_transaccion_reembolso}
+            {t('perfil.reembolsos.transaccion', { numero: r.numero_transaccion_reembolso })}
           </span>
         )}
       </div>
@@ -125,7 +127,7 @@ const ReembolsosCliente = () => {
     return (
       <div className="pf-empty">
         <div className="pf-empty-icon">⏳</div>
-        <p>{'Cargando reembolsos...'}</p>
+        <p>{t('perfil.reembolsos.cargando')}</p>
       </div>
     );
   }
@@ -133,20 +135,20 @@ const ReembolsosCliente = () => {
   return (
     <div className="pf-reembolsos-section">
       <div className="pf-reembolsos-header">
-        <h3>{'Mis reembolsos'}</h3>
+        <h3>{t('perfil.misReembolsos')}</h3>
         <span className="pf-reembolsos-total">
-          {formatoPeso(totalDevuelto)} <small>devueltos</small>
+          {formatoPeso(totalDevuelto)} <small>{t('perfil.reembolsos.devueltos')}</small>
         </span>
       </div>
 
       <div className="pf-reembolsos-resumen">
         <span className="pf-reembolso-chip ok">
-          {reembolsos.filter((r) => r.estado === 'Reembolsado').length} reembolsados
+          {t('perfil.reembolsos.reembolsados', { n: reembolsos.filter((r) => r.estado === 'Reembolsado').length })}
         </span>
         {enProceso > 0 && (
-          <span className="pf-reembolso-chip proceso">{enProceso} en proceso</span>
+          <span className="pf-reembolso-chip proceso">{t('perfil.reembolsos.enProcesoConteo', { n: enProceso })}</span>
         )}
-        <span className="pf-reembolso-chip">{reembolsos.length} en total</span>
+        <span className="pf-reembolso-chip">{t('perfil.reembolsos.total', { n: reembolsos.length })}</span>
       </div>
 
       <div className="pf-reembolsos-toolbar">
@@ -154,10 +156,10 @@ const ReembolsosCliente = () => {
           <FaMagnifyingGlass />
           <input
             type="text"
-            placeholder="Buscar por referencia o motivo..."
+            placeholder={t('perfil.reembolsos.buscarPlaceholder')}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            aria-label="Buscar reembolsos"
+            aria-label={t('perfil.reembolsos.buscarAria')}
           />
         </div>
         <input
@@ -165,12 +167,12 @@ const ReembolsosCliente = () => {
           className="pf-fecha-input"
           value={filtroFecha}
           onChange={(e) => setFiltroFecha(e.target.value)}
-          aria-label="Filtrar por fecha"
-          title="Filtrar por fecha"
+          aria-label={t('perfil.reembolsos.filtrarFecha')}
+          title={t('perfil.reembolsos.filtrarFecha')}
         />
         {hayFiltros && (
           <button type="button" className="pf-btn pf-btn-ghost pf-reembolsos-limpiar" onClick={limpiarFiltros}>
-            Limpiar
+            {t('perfil.reembolsos.limpiar')}
           </button>
         )}
       </div>
@@ -178,12 +180,12 @@ const ReembolsosCliente = () => {
       {reembolsos.length === 0 ? (
         <div className="pf-empty">
           <div className="pf-empty-icon">•••</div>
-          <p>{'No has recibido reembolsos aún'}</p>
+          <p>{t('perfil.reembolsos.vacio')}</p>
         </div>
       ) : filtrados.length === 0 ? (
         <div className="pf-empty">
           <div className="pf-empty-icon">•••</div>
-          <p>{'No hay reembolsos con los filtros aplicados'}</p>
+          <p>{t('perfil.reembolsos.sinFiltros')}</p>
         </div>
       ) : (
         <div className="pf-reembolsos-lista">

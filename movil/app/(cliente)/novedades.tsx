@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // ─────────────────────────────────────────────────────────────
 // Novedades del cliente — solo lectura.
 // Muestra las novedades visibles para el cliente, incluyendo
@@ -127,7 +128,7 @@ export default function NovedadesClienteScreen() {
       {/* Toast */}
       {toast && (
         <View style={[s.toast, toast.tipo === "ok" ? s.toastOk : s.toastErr]}>
-          <Text style={s.toastText}>{toast.msg}</Text>
+          <Text style={s.toastText}><LocalizedNotificationText message={toast.msg} /></Text>
         </View>
       )}
 
@@ -157,10 +158,10 @@ export default function NovedadesClienteScreen() {
               <View style={s.cardTop}>
                 <Text style={s.cardId}>#{n.id_novedad}</Text>
                 <View style={[s.badge, { backgroundColor: COLOR_ESTADO[n.estado_novedad]?.bg || "#222", borderColor: COLOR_ESTADO[n.estado_novedad]?.border || "#444" }]}>
-                  <Text style={[s.badgeText, { color: C.oro }]}>{n.estado_novedad}</Text>
+                  <Text style={[s.badgeText, { color: C.oro }]}>{n.estado_novedad_label || n.estado_novedad}</Text>
                 </View>
               </View>
-              <Text style={s.cardTipo}>{n.tipo_novedad}</Text>
+              <Text style={s.cardTipo}>{n.tipo_novedad_label || n.tipo_novedad}</Text>
               <View style={s.cardMeta}>
                 {n.cliente_nombre && (
                   <View style={s.cardMetaItem}>
@@ -222,17 +223,17 @@ export default function NovedadesClienteScreen() {
           {detalle && (
             <ScrollView style={s.modalBody} contentContainerStyle={{ paddingBottom: 40 }}>
               <View style={[s.badgeModal, { backgroundColor: COLOR_ESTADO[detalle.estado_novedad]?.bg || "#222", borderColor: COLOR_ESTADO[detalle.estado_novedad]?.border || "#444" }]}>
-                <Text style={[s.badgeText, { color: C.oro }]}>{detalle.estado_novedad}</Text>
+                <Text style={[s.badgeText, { color: C.oro }]}>{detalle.estado_novedad_label || detalle.estado_novedad}</Text>
               </View>
 
               <View style={s.detalleGrid}>
                 <View style={s.detalleItem}>
                   <Text style={s.detalleLabel}>Tipo</Text>
-                  <Text style={s.detalleValue}>{detalle.tipo_novedad}</Text>
+                  <Text style={s.detalleValue}>{detalle.tipo_novedad_label || detalle.tipo_novedad}</Text>
                 </View>
                 <View style={s.detalleItem}>
                   <Text style={s.detalleLabel}>Prioridad</Text>
-                  <Text style={[s.detalleValue, { color: C.oro }]}>{detalle.prioridad}</Text>
+                  <Text style={[s.detalleValue, { color: C.oro }]}>{detalle.prioridad_label || detalle.prioridad}</Text>
                 </View>
                 <View style={s.detalleItem}>
                   <Text style={s.detalleLabel}>Fecha</Text>

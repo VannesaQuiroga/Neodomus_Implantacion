@@ -1,3 +1,4 @@
+import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
 // Pantalla TecnicoDevoluciones de Neodomus. Reúne el estado y las acciones de su vista.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -543,7 +544,7 @@ const TecnicoDevoluciones = () => {
 
       {toast && (
         <div className={`ap-toast ${toast.tipo === 'error' ? 'err' : 'ok'}`} role="status">
-          {toast.msg}
+          <LocalizedNotificationText message={toast.msg} />
         </div>
       )}
 

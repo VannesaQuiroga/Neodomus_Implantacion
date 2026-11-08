@@ -2,11 +2,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/verify-email.css';
 
 // Comunica con el backend mediante POST '/auth/verify-email', POST '/auth/resend-verification'.
 const VerifyEmail = () => {
   const { email, openAuth } = useAuthModal();
+  const { t } = useIdioma();
   
   // Estado para las 6 cajitas individuales del código
   const [codeArray, setCodeArray] = useState(['', '', '', '', '', '']);
@@ -81,7 +83,7 @@ const VerifyEmail = () => {
     const finalCode = codeArray.join('');
     
     if (finalCode.length !== 6) {
-      setError('Por favor ingresa el código completo de 6 dígitos');
+      setError(t('auth.verifyEmail.errorCodigo'));
       return;
     }
     setLoading(true);
@@ -90,7 +92,7 @@ const VerifyEmail = () => {
       await api.post('/auth/verify-email', null, { params: { code: finalCode } });
       openAuth('ingresar');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Código inválido o expirado');
+      setError(err.response?.data?.detail || t('auth.verifyEmail.errorGeneral'));
     } finally {
       setLoading(false);
     }
@@ -107,7 +109,7 @@ const VerifyEmail = () => {
       await api.post('/auth/resend-verification', { email });
       setCountdown(30);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al reenviar el código');
+      setError(err.response?.data?.detail || t('auth.verifyEmail.errorReenvio'));
       setCanResend(true);
     } finally {
       setLoading(false);
@@ -117,12 +119,12 @@ const VerifyEmail = () => {
   if (!email) {
     return (
       <div className="verify-form">
-        <h2>Error</h2>
+        <h2>{t('auth.verifyEmail.errorTitulo')}</h2>
         <div className="glow-line"></div>
-        <p className="instruction-text">No se proporcionó un correo electrónico válido.</p>
+        <p className="instruction-text">{t('auth.verifyEmail.errorEmail')}</p>
         <div className="back-to-login">
           <button type="button" className="back-link" onClick={() => openAuth('registro')}>
-            <span className="back-arrow">←</span> Volver a registro
+            <span className="back-arrow">←</span> {t('auth.verifyEmail.volverRegistro')}
           </button>
         </div>
       </div>
@@ -151,12 +153,12 @@ const VerifyEmail = () => {
             </div>
           </div>
 
-          <h2>Verificación de cuenta</h2>
+          <h2>{t('auth.verifyEmail.titulo')}</h2>
           <div className="glow-line"></div>
           
           <p className="instruction-text">
-            Ingresa el código de 6 dígitos que enviamos a <br />
-            <strong className="user-email">{email || 'tu correo'}</strong>
+            {t('auth.verifyEmail.instruccion')} <br />
+            <strong className="user-email">{email || t('auth.verifyEmail.tuCorreo')}</strong>
           </p>
           
           {error && <div className="error-msg">{error}</div>}
@@ -185,7 +187,7 @@ const VerifyEmail = () => {
               <svg className="shield-icon" viewBox="0 0 24 24" fill="none" stroke="#ffd700" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
-              <span>El código expirará en 24 horas</span>
+              <span>{t('auth.verifyEmail.expira')}</span>
             </div>
 
           {/* Botón principal estilizado y centrado */}
@@ -194,12 +196,12 @@ const VerifyEmail = () => {
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     <polyline points="9 11 11 13 15 9" />
   </svg>
-  <span className="btn-text">{loading ? 'Verificando...' : 'Verificar cuenta'}</span>
+  <span className="btn-text">{loading ? t('auth.verifyEmail.verificando') : t('auth.verifyEmail.verificar')}</span>
 </button>
           
           {/* Sección de Reenvío con Separadores */}
           <div className="divider-section">
-            <span className="divider-text">¿No recibiste el código?</span>
+            <span className="divider-text">{t('perfil.noRecibisteCodigo')}</span>
           </div>
 
           <div className="resend-action-container">
@@ -212,14 +214,14 @@ const VerifyEmail = () => {
               <svg className="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
               </svg>
-              <span>{!canResend ? `Reenviar en ${countdown}s` : 'Reenviar código'}</span>
+              <span>{!canResend ? t('auth.verifyEmail.reenviarEn', { segundos: countdown }) : t('perfil.reenviarCodigo')}</span>
             </a>
           </div>
 
           {/* Enlace Volver al Inicio de Sesión */}
           <div className="back-to-login">
             <button type="button" className="back-link" onClick={() => openAuth('ingresar')}>
-              <span className="back-arrow">←</span> Volver al inicio de sesión
+              <span className="back-arrow">←</span> {t('auth.verifyEmail.volverLogin')}
             </button>
           </div>
 

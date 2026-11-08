@@ -1,9 +1,10 @@
-﻿// Pantalla ForgotPassword de Neodomus. ReÃºne el estado y las acciones de su vista.
+﻿// Pantalla ForgotPassword de Neodomus. Reúne el estado y las acciones de su vista.
 
 import "../../styles/forgot-password.css";
 import { useState } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 
 
 // Comunica con el backend mediante POST '/auth/forgot-password'.
@@ -13,6 +14,7 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { openAuth } = useAuthModal();
+  const { t } = useIdioma();
 
   // Comunica con el backend mediante POST '/auth/forgot-password'.
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,33 +25,33 @@ const ForgotPassword = () => {
 
     const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
     if (!emailRegex.test(trimmed)) {
-      setError('Correo electrÃ³nico invÃ¡lido');
+      setError(t('auth.recover.errorCorreo'));
       return;
     }
 
-    // Evita mÃºltiples envÃ­os simultÃ¡neos
+    // Evita múltiples envíos simultáneos
     if (loading) return;
     setLoading(true);
 
     try {
       await api.post('/auth/forgot-password', { email: trimmed }, { timeout: 15000 });
-      // Ã‰xito: el backend responde inmediatamente (background) con mensaje genÃ©rico
-      // por seguridad. Avanza al paso de verificaciÃ³n solo si la solicitud fue
+      // Éxito: el backend responde inmediatamente (background) con mensaje genérico
+      // por seguridad. Avanza al paso de verificación solo si la solicitud fue
       // aceptada (no si hubo error de red/SMTP/timeout).
       openAuth('verificar-codigo', { email: trimmed });
     } catch (err: any) {
       const status = err.response?.status;
       const detail = err.response?.data?.detail;
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        setError('La solicitud tardÃ³ demasiado. Verifica tu conexiÃ³n e intÃ©ntalo nuevamente.');
+        setError(t('auth.recover.errorTimeout'));
       } else if (status === 429) {
-        setError('Demasiadas solicitudes. Espera un minuto antes de reintentar.');
+        setError(t('auth.recover.errorRate'));
       } else if (detail) {
-        setError(typeof detail === 'string' ? detail : 'Error al enviar la solicitud');
+        setError(typeof detail === 'string' ? detail : t('auth.recover.errorEnvio'));
       } else if (!err.response) {
-        setError('No se pudo conectar con el servidor. Verifica tu conexiÃ³n.');
+        setError(t('auth.recover.errorConexion'));
       } else {
-        setError('No fue posible enviar el cÃ³digo. Verifica tu correo e intÃ©ntalo nuevamente.');
+        setError(t('auth.recover.errorGeneral'));
       }
     } finally {
       setLoading(false);
@@ -57,7 +59,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    /* Tarjeta del formulario (se muestra dentro del modal sobre el catÃ¡logo) */
+    /* Tarjeta del formulario (se muestra dentro del modal sobre el catálogo) */
     <form onSubmit={handleSubmit} className="forgot-card">
       {/* Icono Superior */}
           <div className="forgot-avatar-circle">
@@ -73,9 +75,9 @@ const ForgotPassword = () => {
             </div>
           </div>
 
-          <h2>Recuperar contraseÃ±a</h2>
+          <h2>{t('auth.recover.titulo')}</h2>
           <p className="forgot-instruction-text">
-            Ingresa tu correo electrÃ³nico y te enviaremos un <span className="brand-gold">cÃ³digo</span> para restablecer tu contraseÃ±a.
+            {t('auth.recover.instruccionInicio')} <span className="brand-gold">{t('auth.recover.codigo')}</span> {t('auth.recover.instruccionFin')}
           </p>
 
           {message && <div className="success-message">{message}</div>}
@@ -84,7 +86,7 @@ const ForgotPassword = () => {
           <div className="login-input-wrapper">
             <input 
               type="email" 
-              placeholder="Tu correo electrÃ³nico" 
+              placeholder={t('auth.recover.placeholderCorreo')}
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required 
@@ -93,16 +95,16 @@ const ForgotPassword = () => {
           </div>
 
           <button type="submit" className="btn-forgot-submit" disabled={loading}>
-            <span>{loading ? 'Enviando...' : 'Enviar cÃ³digo'}</span>
+            <span>{loading ? t('auth.recover.enviando') : t('auth.recover.enviar')}</span>
           </button>
 
           <div className="forgot-security-notice">
-            <p>Te enviaremos un <span className="brand-gold">cÃ³digo seguro</span> a tu correo.</p>
+            <p>{t('auth.recover.avisoInicio')} <span className="brand-gold">{t('auth.recover.codigoSeguro')}</span> {t('auth.recover.avisoFin')}</p>
           </div>
 
           <div className="forgot-back-to-login">
             <button type="button" onClick={() => openAuth('ingresar')} className="forgot-back-link">
-              â† Volver al inicio de sesiÃ³n
+              ← {t('auth.recover.volverLogin')}
             </button>
           </div>
         </form>

@@ -1,11 +1,13 @@
 // Compone la portada pública y sus accesos principales.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIdioma } from '@i18n/IdiomaContext';
 import fondo from '@assets/images/FONDO.png';
 import '@styles/home.css';
 
 // accede a localStorage para conservar o recuperar datos locales.
 const HomePage = () => {
+  const { t } = useIdioma();
   const [logoutMessage, setLogoutMessage] = useState('');
   const navigate = useNavigate();
 
@@ -28,17 +30,15 @@ const HomePage = () => {
       <main className="hero" style={{ backgroundImage: `url(${fondo})` }}>
         <div className="overlay">
           <h1 className="main-title">NEODOMUS</h1>
-          <h3>"NEODOMUS más que tecnología, una evolución."</h3>
+          <h3>{t('home.info.herofrase')}</h3>
           <p>
-            En NEODOMUS ofrecemos soluciones integrales en tecnología, innovación y
-            gestión de servicios, diseñadas para mejorar la seguridad, eficiencia y
-            confianza de nuestros clientes.
+            {t('home.info.herodescripcion')}
           </p>
           <button className="btn-continuar" onClick={() => navigate('/info')}>
             <div className="icon-circle">
               <span className="arrow-icon">&gt;</span>
             </div>
-            <span className="btn-text">CONTINUAR</span>
+            <span className="btn-text">{t('home.info.herocontinuar')}</span>
           </button>
         </div>
 

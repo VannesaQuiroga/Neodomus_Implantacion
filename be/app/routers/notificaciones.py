@@ -47,7 +47,7 @@ def mis_notificaciones(
     filtro = _filtro_usuario(db, current_user)
     items = (
         db.query(Notificacion)
-        .filter(filtro)
+        .filter(filtro, Notificacion.tipo != "soporte_vinculo")
         .order_by(Notificacion.fecha_creacion.desc(), Notificacion.id_notificacion.desc())
         .limit(100)
         .all()

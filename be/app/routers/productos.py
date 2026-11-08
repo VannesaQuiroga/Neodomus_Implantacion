@@ -28,6 +28,7 @@ from app.services.disponibilidad_service import (
     producto_disponible,
     stock_disponible_producto,
 )
+from app.utils.database_values_i18n import add_database_value_labels, language_from_request
 
 # Umbral de stock bajo (configurable). Productos con stock >= STOCK_MINIMO
 # se consideran "disponible"; entre 1 y STOCK_MINIMO-1 "bajo"; 0 => "agotado".
@@ -75,6 +76,7 @@ class VarianteResponse(BaseModel):
 class ProductoResponse(BaseModel):
     id_producto: int
     nombre_producto: str
+    nombre_producto_label: Optional[str] = None
     marca: Optional[str] = None
     venta_por_metros: bool = False
     referencia_producto: Optional[str] = None
@@ -84,18 +86,24 @@ class ProductoResponse(BaseModel):
     imagen_url: Optional[str] = None
     id_cate_pr: Optional[int] = None
     nombre_categoria: Optional[str] = None
+    nombre_categoria_label: Optional[str] = None
     id_proveedor_pr: Optional[int] = None
     nombre_proveedor: Optional[str] = None
     descripcion_producto: Optional[str] = None
+    descripcion_producto_label: Optional[str] = None
     caracteristicas_producto: Optional[str] = None
+    caracteristicas_producto_label: Optional[str] = None
     colores_producto: Optional[str] = None
+    colores_producto_label: Optional[str] = None
     color_hex: Optional[str] = None
     tamaño: Optional[str] = None
     estado_producto: str = "activo"
+    estado_producto_label: Optional[str] = None
     stock_producto: float = 0
     stock_disponible: float = 0
     disponible: bool = False
     stock_estado: str = "disponible"
+    stock_estado_label: Optional[str] = None
     stock_minimo: int = STOCK_MINIMO
     descuento_activo: Optional[float] = None
     precio_final: Optional[float] = None
@@ -142,7 +150,9 @@ class ProductoCreate(BaseModel):
 class CategoriaResponse(BaseModel):
     id_categoria: int
     nombre_categoria: str
+    nombre_categoria_label: Optional[str] = None
     descripcion: Optional[str] = None
+    descripcion_label: Optional[str] = None
 
 
 # Agrupa los campos de VarianteCreate: nombre, hex, tamaño, ancho_cm, alto_cm y los demás declarados abajo.
@@ -454,6 +464,7 @@ router = APIRouter(prefix="/productos", tags=["productos"])
 # Consulta Producto.
 @router.get("/", response_model=dict)
 def listar_productos(
+    request: Request,
     db: Session = Depends(get_db),
     search: Optional[str] = Query(None),
     categoria: Optional[int] = Query(None),
@@ -483,7 +494,19 @@ def listar_productos(
         query = query.filter(Producto.id_proveedor_pr == proveedor)
     total = query.count()
     productos = query.order_by(Producto.id_producto.desc()).offset((page - 1) * limit).limit(limit).all()
-    data = [_serializar(p).dict() for p in productos]
+    labels = {
+        "nombre_producto": "product_name",
+        "nombre_categoria": "product_category",
+        "descripcion_producto": "product_description",
+        "caracteristicas_producto": "product_description",
+        "colores_producto": "product_color",
+        "estado_producto": "product_status",
+        "stock_estado": "stock_status",
+    }
+    data = [
+        add_database_value_labels(_serializar(p).dict(), labels, language_from_request(request))
+        for p in productos
+    ]
     return {
         "total": total,
         "page": page,
@@ -494,8 +517,17 @@ def listar_productos(
 
 
 @router.get("/categorias", response_model=List[CategoriaResponse])
-def listar_categorias(db: Session = Depends(get_db)):
-    return db.query(Categoria).order_by(Categoria.id_categoria.asc()).all()
+def listar_categorias(request: Request, db: Session = Depends(get_db)):
+    categories = db.query(Categoria).order_by(Categoria.id_categoria.asc()).all()
+    language = language_from_request(request)
+    return [
+        add_database_value_labels(
+            {"id_categoria": item.id_categoria, "nombre_categoria": item.nombre_categoria, "descripcion": item.descripcion},
+            {"nombre_categoria": "product_category", "descripcion": "product_description"},
+            language,
+        )
+        for item in categories
+    ]
 
 
 @router.get("/proveedores", response_model=List[ProveedorResponse])
@@ -677,6 +709,7 @@ async def solicitar_reabastecimiento(
 @router.get("/{producto_id}", response_model=ProductoResponse)
 def obtener_producto(
     producto_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(_empleado_opcional),
 ):
@@ -688,7 +721,16 @@ def obtener_producto(
             raise HTTPException(status_code=404, detail="Producto no encontrado")
         if not producto_disponible(p):
             raise HTTPException(status_code=404, detail="Producto no encontrado")
-    return _serializar(p)
+    labels = {
+        "nombre_producto": "product_name",
+        "nombre_categoria": "product_category",
+        "descripcion_producto": "product_description",
+        "caracteristicas_producto": "product_description",
+        "colores_producto": "product_color",
+        "estado_producto": "product_status",
+        "stock_estado": "stock_status",
+    }
+    return add_database_value_labels(_serializar(p).dict(), labels, language_from_request(request))
 
 
 @router.get("/{producto_id}/variantes", response_model=List[VarianteResponse])

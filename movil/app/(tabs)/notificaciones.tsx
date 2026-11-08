@@ -6,6 +6,8 @@
 // indicadores de "no leídas" falsos ni persistentes.
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useIdioma } from "@/contexts/IdiomaContext";
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 
 import AppScreen from "@/components/app/AppScreen";
 import { FontFamilies } from "@/constants/theme";
@@ -16,9 +18,10 @@ import {
   type Notificacion,
 } from "@/services/cliente.services";
 
-const TIPOS_CLIENTE = ["reembolso", "entrega", "producto", "promocion"];
+const TIPOS_CLIENTE = ["reembolso", "entrega", "producto", "promocion", "respuesta_soporte"];
 
 export default function NotificacionesScreen() {
+  const { t } = useIdioma();
   const [lista, setLista] = useState<Notificacion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,11 +48,11 @@ export default function NotificacionesScreen() {
   }, []);
 
   return (
-    <AppScreen titulo="Notificaciones">
-      {cargando && <Text style={S.gris}>Cargando...</Text>}
-      {error && <Text style={S.error}>{error}</Text>}
+    <AppScreen titulo={t("notificaciones.titulo")}>
+      {cargando && <Text style={S.gris}>{t("common.cargando")}</Text>}
+      {error && <Text style={S.error}><LocalizedNotificationText message={error} /></Text>}
       {!cargando && lista.length === 0 && (
-        <Text style={S.gris}>No tienes notificaciones nuevas.</Text>
+        <Text style={S.gris}>{t("tecnico.sinNotificaciones")}</Text>
       )}
 
       {lista.map((n) => (
@@ -59,14 +62,14 @@ export default function NotificacionesScreen() {
         >
           <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
             <Text style={S.titulo} numberOfLines={1}>
-              {n.titulo}
+              <LocalizedNotificationText message={n.titulo} />
             </Text>
             {!!n.fecha_creacion && (
               <Text style={S.fecha}>{String(n.fecha_creacion).slice(0, 10)}</Text>
             )}
           </View>
-          <Text style={S.mensaje}>{n.mensaje}</Text>
-          <Text style={S.tipo}>#{n.tipo}</Text>
+          <Text style={S.mensaje}><LocalizedNotificationText message={n.mensaje} /></Text>
+          <Text style={S.tipo}>#{t(`notif.tipo.${n.tipo}`)}</Text>
         </View>
       ))}
     </AppScreen>

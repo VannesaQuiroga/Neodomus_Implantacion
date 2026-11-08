@@ -1,5 +1,5 @@
 # Rutas de users. Las dependencias declaradas en cada endpoint determinan sus permisos de acceso.
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -15,6 +15,7 @@ from app.schemas.user import EmployeeResponse, PerfilEmpleadoResponse, UserUpdat
 from app.utils.respaldo_usuarios import respaldar_usuarios
 from app.utils.imagenes import validar_imagen_perfil
 from app.utils.security import get_current_employee, hash_password
+from app.utils.database_values_i18n import language_from_request, translate_database_value
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -241,9 +242,21 @@ def update_me(
 
 
 @router.get("/roles", response_model=List[dict])
-def get_roles(_admin_user: User = Depends(_admin), db: Session = Depends(get_db)):
+def get_roles(
+    request: Request,
+    _admin_user: User = Depends(_admin),
+    db: Session = Depends(get_db),
+):
+    idioma = language_from_request(request)
     roles = db.query(RolesUsuario).order_by(RolesUsuario.id_rol.asc()).all()
-    return [{"id": r.id_rol, "nombre": r.nombre_rol} for r in roles]
+    return [
+        {
+            "id": role.id_rol,
+            "nombre": role.nombre_rol,
+            "nombre_label": translate_database_value(role.nombre_rol, "role", idioma),
+        }
+        for role in roles
+    ]
 
 
 # Consulta User.

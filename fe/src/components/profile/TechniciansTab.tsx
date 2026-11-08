@@ -7,6 +7,7 @@ import {
   FaWhatsapp,
 } from 'react-icons/fa6';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { useTecnicosFavoritos } from '@utils/tecnicosFavoritos';
 
@@ -27,6 +28,7 @@ const initials = (name: string) =>
 
 // Comunica con el backend mediante GET '/tecnicos/publicos'.
 const TechniciansTab = () => {
+  const { t } = useIdioma();
   const [tecnicos, setTecnicos] = useState<TecnicoPublico[]>([]);
   const [loading, setLoading] = useState(true);
   const { esFavorito, toggleFavorito } = useTecnicosFavoritos();
@@ -50,39 +52,39 @@ const TechniciansTab = () => {
   }, []);
 
   // Solo los que el cliente marcó como favoritos.
-  const favoritosInfo = tecnicos.filter((t) => esFavorito(t.id_tecnico));
+  const favoritosInfo = tecnicos.filter((tecnico) => esFavorito(tecnico.id_tecnico));
 
   return (
     <div className="pf-tab">
       <SectionHeader
         icon={<FaScrewdriverWrench />}
-        title="Mis técnicos"
-        subtitle="Los técnicos que has marcado como favoritos."
+        title={t('perfil.misTecnicos')}
+        subtitle={t('perfil.tecnicosAsignados.subtitulo')}
       />
 
       {loading ? (
         <div className="pf-empty">
-          <p>Cargando...</p>
+          <p>{t('common.cargando')}</p>
         </div>
       ) : favoritosInfo.length === 0 ? (
         <div className="pf-empty">
           <span className="pf-empty-icon"><FaHeart /></span>
-          <p>Aún no tienes técnicos favoritos.</p>
+          <p>{t('perfil.tecnicosAsignados.vacio')}</p>
           <p style={{ fontSize: '0.8rem', color: '#9a8f78', marginTop: 4 }}>
-            Marca con ♥ a tus técnicos desde la página de técnicos.
+            {t('perfil.tecnicosAsignados.vacioHint')}
           </p>
         </div>
       ) : (
         <div className="pf-tech-grid">
-          {favoritosInfo.map((t) => {
-            const nombre = `${t.first_name} ${t.last_name}`.trim();
+          {favoritosInfo.map((tecnico) => {
+            const nombre = `${tecnico.first_name} ${tecnico.last_name}`.trim();
             return (
-              <div className={`pf-tech-card${esFavorito(t.id_tecnico) ? ' pf-tec-favorito' : ''}`} key={t.id_tecnico}>
+              <div className={`pf-tech-card${esFavorito(tecnico.id_tecnico) ? ' pf-tec-favorito' : ''}`} key={tecnico.id_tecnico}>
                 <div className="pf-tech-head">
                   <span className="pf-tech-avatar">
-                    {t.foto_url ? (
+                    {tecnico.foto_url ? (
                       <img
-                        src={t.foto_url}
+                        src={tecnico.foto_url}
                         alt={nombre}
                         style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
                         onError={(e) => (e.currentTarget.src = '/assets/images/perfil.png')}
@@ -94,9 +96,9 @@ const TechniciansTab = () => {
                   <button
                     type="button"
                     className="pf-fav-toggle on"
-                    onClick={() => toggleFavorito(t.id_tecnico)}
-                    aria-label="Quitar de favoritos"
-                    title="Quitar de favoritos"
+                    onClick={() => toggleFavorito(tecnico.id_tecnico)}
+                    aria-label={t('perfil.quitarDeFavoritos')}
+                    title={t('perfil.quitarDeFavoritos')}
                   >
                     ✕
                   </button>
@@ -104,31 +106,31 @@ const TechniciansTab = () => {
 
                 <div className="pf-tech-info">
                   <h3 className="pf-tech-nombre">{nombre}</h3>
-                  {t.certificacion_t && (
-                    <span className="pf-tech-especialidad">{t.certificacion_t}</span>
+                  {tecnico.certificacion_t && (
+                    <span className="pf-tech-especialidad">{tecnico.certificacion_t}</span>
                   )}
-                  {t.calificacion != null && t.calificacion > 0 && (
-                    <span className="pf-tech-calif">★ {Number(t.calificacion).toFixed(1)}</span>
+                  {tecnico.calificacion != null && tecnico.calificacion > 0 && (
+                    <span className="pf-tech-calif">★ {Number(tecnico.calificacion).toFixed(1)}</span>
                   )}
                 </div>
 
                 <div className="pf-tech-actions">
-                  {t.telefono ? (
+                  {tecnico.telefono ? (
                     <a
                       className="pf-btn pf-btn-ghost"
-                      href={`tel:+57${String(t.telefono).replace(/\D/g, '')}`}
+                      href={`tel:+57${String(tecnico.telefono).replace(/\D/g, '')}`}
                     >
-                      <FaPhone /> Llamar
+                      <FaPhone /> {t('perfil.tecnicosAsignados.llamar')}
                     </a>
                   ) : null}
-                  {t.telefono ? (
+                  {tecnico.telefono ? (
                     <a
                       className="pf-btn pf-btn-ghost"
-                      href={`https://wa.me/57${String(t.telefono).replace(/\D/g, '')}`}
+                      href={`https://wa.me/57${String(tecnico.telefono).replace(/\D/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <FaWhatsapp /> Mensaje
+                      <FaWhatsapp /> {t('perfil.tecnicosAsignados.mensaje')}
                     </a>
                   ) : null}
                 </div>

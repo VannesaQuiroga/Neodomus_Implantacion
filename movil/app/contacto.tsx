@@ -1,3 +1,4 @@
+import LocalizedNotificationText from "@/components/common/LocalizedNotificationText";
 // ─────────────────────────────────────────────────────────────
 // Contacto — pantalla pública apilada (Stack raíz).
 //
@@ -20,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
+import { useIdioma } from "@/contexts/IdiomaContext";
 import PublicNavbar from "@/components/public/PublicNavbar";
 import FormularioContacto from "@/components/public/FormularioContacto";
 import AsistenteFlotante from "@/components/public/AsistenteFlotante";
@@ -31,6 +33,7 @@ import {
 const TAB_BAR_ESTIMADO = 66;
 
 export default function ContactoScreen() {
+  const { t } = useIdioma();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<{ msg: string; tipo: "success" | "error" } | null>(
     null,
@@ -50,22 +53,21 @@ export default function ContactoScreen() {
         style={styles.volver}
         onPress={() => router.back()}
         hitSlop={8}
-        accessibilityLabel="Volver"
+        accessibilityLabel={t("publico.volver")}
       >
         <FontAwesome6 name="chevron-left" size={14} color={C.oroSuave} />
-        <Text style={styles.volverTexto}>Volver</Text>
+        <Text style={styles.volverTexto}>{t("publico.volver")}</Text>
       </Pressable>
 
       <PublicScreenScroll insetsBottom={insets.bottom}>
-        <Text style={styles.titulo}>Contacto</Text>
+        <Text style={styles.titulo}>{t("publico.contacto")}</Text>
         <Text style={styles.subtitulo}>
-          Estamos listos para ayudarte. Elige el canal que prefieras o envíanos
-          tu consulta.
+          {t("contacto.descripcion")}
         </Text>
 
         {INFO_CONTACTO.map((item) => (
           <Pressable
-            key={item.titulo}
+            key={item.tituloClave}
             disabled={!item.enlace}
             onPress={() =>
               item.enlace && Linking.openURL(item.enlace).catch(() => {})
@@ -80,9 +82,11 @@ export default function ContactoScreen() {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.tarjetaTitulo}>{item.titulo}</Text>
-              <Text style={styles.tarjetaValor}>{item.valor}</Text>
-              <Text style={styles.tarjetaDetalle}>{item.detalle}</Text>
+              <Text style={styles.tarjetaTitulo}>{t(item.tituloClave)}</Text>
+              <Text style={styles.tarjetaValor}>
+                {item.valorClave ? t(item.valorClave) : item.valor}
+              </Text>
+              <Text style={styles.tarjetaDetalle}>{t(item.detalleClave)}</Text>
             </View>
             {!!item.enlace && (
               <FontAwesome6
@@ -95,10 +99,14 @@ export default function ContactoScreen() {
         ))}
 
         <View style={styles.canales}>
-          <Text style={styles.canalesTitulo}>Canales adicionales</Text>
-          {CANALES_ADICIONALES.map((canal) => (
-            <Text key={canal} style={styles.canalLinea}>
-              {canal}
+          <Text style={styles.canalesTitulo}>{t("publico.canalesAdicionales")}</Text>
+          {CANALES_ADICIONALES.map((canalClave) => (
+            <Text key={canalClave} style={styles.canalLinea}>
+              {canalClave === "contacto.whatsapp"
+                ? `${t(canalClave)}: +57 300 123 4567`
+                : canalClave === "contacto.redes"
+                  ? `${t(canalClave)}: @NeodomusOficial`
+                  : t(canalClave)}
             </Text>
           ))}
         </View>
@@ -119,7 +127,7 @@ export default function ContactoScreen() {
               toast.tipo === "success" ? styles.toastExito : styles.toastError,
             ]}
           >
-            <Text style={styles.toastTexto}>{toast.msg}</Text>
+            <Text style={styles.toastTexto}><LocalizedNotificationText message={toast.msg} /></Text>
           </View>
         </View>
       )}

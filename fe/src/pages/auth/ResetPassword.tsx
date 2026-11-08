@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react';
 import { useAuthModal } from '@contexts/AuthModalContext';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 
 import '@styles/resetpassword.css';
 
 // Comunica con el backend mediante POST '/auth/reset-password'.
 const ResetPassword = () => {
   const { token, openAuth } = useAuthModal();
+  const { t } = useIdioma();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -36,7 +38,7 @@ const ResetPassword = () => {
 
   useEffect(() => {
     if (!token) {
-      setError('Token no válido');
+      setError(t('auth.reset.errorToken'));
     }
 
     if (error) {
@@ -55,13 +57,13 @@ const ResetPassword = () => {
     if (loading) return;
 
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('perfil.contrasenasNoCoinciden'));
       return;
     }
 
     if (!allPasswordValid) {
       setError(
-        'La contraseña no cumple los requisitos.'
+        t('auth.reset.errorRequisitos')
       );
       return;
     }
@@ -78,17 +80,17 @@ const ResetPassword = () => {
       openAuth('ingresar');
     } catch (err: any) {
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        setError('La solicitud tardó demasiado. Verifica tu conexión e inténtalo nuevamente.');
+        setError(t('auth.reset.errorTimeout'));
       } else if (err.response?.status === 403) {
         setError(
-          'Este enlace fue solicitado desde otra IP. Solicita un nuevo restablecimiento.'
+          t('auth.reset.errorIP')
         );
       } else if (err.response?.status === 429) {
-        setError('Demasiadas solicitudes. Espera un minuto antes de reintentar.');
+        setError(t('auth.reset.errorRate'));
       } else {
         setError(
           err.response?.data?.detail ||
-            'Error al restablecer la contraseña. Verifica el código e inténtalo de nuevo.'
+            t('auth.reset.errorGeneral')
         );
       }
     } finally {
@@ -101,17 +103,17 @@ const ResetPassword = () => {
       /* Tarjeta del formulario (se muestra dentro del modal sobre el catálogo) */
       <div className="reset-card">
 
-        <h2>Enlace inválido</h2>
+        <h2>{t('auth.reset.enlaceInvalido')}</h2>
 
         <div className="error-message">
-          El enlace ha expirado o no es válido.
+          {t('auth.reset.enlaceExpirado')}
         </div>
 
         <button
           className="btn-reset-submit"
           onClick={() => openAuth('recuperar')}
         >
-          Solicitar nuevamente
+          {t('auth.reset.solicitarNuevamente')}
         </button>
 
       </div>
@@ -131,11 +133,10 @@ const ResetPassword = () => {
 
       </div>
 
-        <h2>Nueva contraseña</h2>
+        <h2>{t('perfil.nuevaContrasena')}</h2>
 
         <p className="reset-description">
-          Crea una nueva contraseña segura para
-          acceder nuevamente a tu cuenta.
+          {t('auth.reset.descripcion')}
         </p>
 
         {error && (
@@ -149,7 +150,7 @@ const ResetPassword = () => {
             type={
               showPassword ? 'text' : 'password'
             }
-            placeholder="Nueva contraseña"
+            placeholder={t('perfil.nuevaContrasena')}
             value={newPassword}
             onChange={(e) => {
               setNewPassword(e.target.value);
@@ -179,23 +180,23 @@ const ResetPassword = () => {
 
         <div className="password-requirements">
           <p className="requirement-title">
-            La contraseña debe contener:
+            {t('auth.reset.reqTitulo')}
           </p>
           <ul>
             <li className={passwordErrors.length ? 'valid' : 'invalid'}>
-              {passwordErrors.length ? '✓' : '✗'} Mínimo 8 caracteres
+              {passwordErrors.length ? '✓' : '✗'} {t('perfil.reqLongitud')}
             </li>
             <li className={passwordErrors.lowercase ? 'valid' : 'invalid'}>
-              {passwordErrors.lowercase ? '✓' : '✗'} Una letra minúscula
+              {passwordErrors.lowercase ? '✓' : '✗'} {t('auth.reset.reqMinuscula')}
             </li>
             <li className={passwordErrors.uppercase ? 'valid' : 'invalid'}>
-              {passwordErrors.uppercase ? '✓' : '✗'} Una letra mayúscula
+              {passwordErrors.uppercase ? '✓' : '✗'} {t('auth.reset.reqMayuscula')}
             </li>
             <li className={passwordErrors.number ? 'valid' : 'invalid'}>
-              {passwordErrors.number ? '✓' : '✗'} Un número
+              {passwordErrors.number ? '✓' : '✗'} {t('auth.reset.reqNumero')}
             </li>
             <li className={passwordErrors.special ? 'valid' : 'invalid'}>
-              {passwordErrors.special ? '✓' : '✗'} Un carácter especial
+              {passwordErrors.special ? '✓' : '✗'} {t('auth.reset.reqEspecial')}
             </li>
           </ul>
         </div>
@@ -207,7 +208,7 @@ const ResetPassword = () => {
                 ? 'text'
                 : 'password'
             }
-            placeholder="Confirmar contraseña"
+            placeholder={t('auth.reset.placeholderConfirmar')}
             value={confirmPassword}
             onChange={(e) =>
               setConfirmPassword(
@@ -238,8 +239,8 @@ const ResetPassword = () => {
           disabled={loading || !allPasswordValid}
         >
           {loading
-            ? 'Actualizando...'
-            : 'Restablecer contraseña'}
+            ? t('auth.reset.actualizando')
+            : t('auth.reset.restablecer')}
         </button>
 
       </form>

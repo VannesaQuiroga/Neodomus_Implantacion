@@ -3,51 +3,56 @@ import { Link } from 'react-router-dom';
 import {
   FaHeadset, FaEnvelope, FaPhone, FaClock, FaLocationDot
 } from 'react-icons/fa6';
+import { useIdioma } from '@i18n/IdiomaContext';
 import LegalPage from '@components/legal/LegalPage';
 
-const Contacto = () => (
-  <LegalPage
-    icono={<FaHeadset />}
-    titulo="Contacto"
-    actualizacion="Agosto de 2026"
-    numeradas={false}
-    secciones={[
-      {
-        titulo: 'Introducción',
-        parrafos: [
-          'Estamos aquí para ayudarte. El equipo de Neodomus está disponible para resolver tus dudas, atender tus solicitudes y brindarte asesoría sobre nuestros productos y servicios.',
-        ],
-      },
-      {
-        titulo: 'Canales de atención',
-        tarjetas: [
-          { icono: <FaEnvelope />, titulo: 'Correo de soporte', valor: 'soporte@neodomus.com', descripcion: 'Respondemos en 24h hábiles' },
-          { icono: <FaPhone />, titulo: 'Línea de atención', valor: '+57 601 123 4567', descripcion: 'Lun - Vie 8:00 - 18:00' },
-          { icono: <FaClock />, titulo: 'Horario de atención', valor: 'Lunes a Viernes', descripcion: '8:00 AM - 6:00 PM' },
-          { icono: <FaLocationDot />, titulo: 'Oficina principal', valor: 'Cra 15 #93-47, Bogotá', descripcion: 'Solo con cita previa' },
-        ],
-      },
-      {
-        titulo: '¿Cómo podemos ayudarte?',
-        items: [
-          { texto: 'Consultas sobre pedidos y pagos.', tipo: 'check' },
-          { texto: 'Agendamiento y reprogramación de citas.', tipo: 'check' },
-          { texto: 'Soporte técnico e instalaciones.', tipo: 'check' },
-          { texto: 'Asesoría en productos domóticos.', tipo: 'check' },
-        ],
-      },
-      {
-        titulo: 'Tiempo de respuesta',
-        parrafos: [
-          'Nos comprometemos a responder todas las consultas dentro de un plazo máximo de 24 horas hábiles.',
-          <>
-            Para enviar una consulta por formulario, visita nuestro{' '}
-            <Link to="/ayuda" className="legal-enlace">Centro de Ayuda</Link>.
-          </>,
-        ],
-      },
-    ]}
-  />
-);
+const Contacto = () => {
+  const { t } = useIdioma();
+
+  return (
+    <LegalPage
+      icono={<FaHeadset />}
+      titulo={t('legal.contacto.titulo')}
+      actualizacion={t('legal.comun.agosto2026')}
+      numeradas={false}
+      secciones={[
+        {
+          titulo: t('legal.contacto.introduccionTitulo'),
+          parrafos: [
+            t('legal.contacto.introduccionP1'),
+          ],
+        },
+        {
+          titulo: t('legal.contacto.canalesTitulo'),
+          tarjetas: [
+            { icono: <FaEnvelope />, titulo: t('legal.contacto.canalesCorreoTitulo'), valor: 'soporte@neodomus.com', descripcion: t('legal.contacto.canalesCorreoDesc') },
+            { icono: <FaPhone />, titulo: t('legal.contacto.canalesLineaTitulo'), valor: '+57 601 123 4567', descripcion: t('legal.contacto.canalesLineaDesc') },
+            { icono: <FaClock />, titulo: t('legal.contacto.canalesHorarioTitulo'), valor: t('legal.contacto.canalesHorarioValor'), descripcion: t('legal.contacto.canalesHorarioDesc') },
+            { icono: <FaLocationDot />, titulo: t('legal.contacto.canalesOficinaTitulo'), valor: 'Cra 15 #93-47, Bogotá', descripcion: t('legal.contacto.canalesOficinaDesc') },
+          ],
+        },
+        {
+          titulo: t('legal.contacto.ayudaTitulo'),
+          items: [
+            { texto: t('legal.contacto.ayudaItem1'), tipo: 'check' },
+            { texto: t('legal.contacto.ayudaItem2'), tipo: 'check' },
+            { texto: t('legal.contacto.ayudaItem3'), tipo: 'check' },
+            { texto: t('legal.contacto.ayudaItem4'), tipo: 'check' },
+          ],
+        },
+        {
+          titulo: t('legal.contacto.tiempoTitulo'),
+          parrafos: [
+            t('legal.contacto.tiempoP1'),
+            <>
+              {t('legal.contacto.tiempoP2Prefijo')}{' '}
+              <Link to="/ayuda" className="legal-enlace">{t('ayuda.centro')}</Link>.
+            </>,
+          ],
+        },
+      ]}
+    />
+  );
+};
 
 export default Contacto;

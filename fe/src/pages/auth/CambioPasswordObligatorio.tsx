@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { FaKey, FaCircleExclamation } from 'react-icons/fa6';
 import { useAuth } from '@contexts/AuthContext';
 import api from '@services/api';
+import { useIdioma } from '@i18n/IdiomaContext';
 import '@styles/login.css';
 
 // Comunica con el backend mediante POST '/auth/change-password'.
 const CambioPasswordObligatorio = () => {
   const navigate = useNavigate();
   const { rol, logout, setPasswordResetRequired } = useAuth();
+  const { t } = useIdioma();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,15 +36,15 @@ const CambioPasswordObligatorio = () => {
     setError('');
 
     if (newPassword !== confirmPassword) {
-      setError('Las nuevas contraseñas no coinciden');
+      setError(t('auth.forceChange.errorNoCoinciden'));
       return;
     }
     if (!/^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[^!@#$%^&*(),.?":{}|<>]*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(newPassword)) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial');
+      setError(t('auth.forceChange.errorRequisitos'));
       return;
     }
     if (currentPassword === newPassword) {
-      setError('La nueva contraseña debe ser diferente a la actual');
+      setError(t('perfil.password.diferenteActual'));
       return;
     }
 
@@ -62,7 +64,7 @@ const CambioPasswordObligatorio = () => {
         navigate('/dashboard/tecnico', { replace: true });
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Error al cambiar la contraseña';
+      const errorMsg = err.response?.data?.detail || t('perfil.errorCambiarContrasena');
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -76,17 +78,16 @@ const CambioPasswordObligatorio = () => {
           <div className="login-logo">
             <FaKey />
           </div>
-          <h2>Debes cambiar tu contraseña</h2>
+          <h2>{t('auth.forceChange.titulo')}</h2>
           <p className="login-subtitle">
-            El administrador estableció una contraseña temporal para tu cuenta.
-            Por seguridad, debes crear una nueva contraseña personal antes de continuar.
+            {t('auth.forceChange.subtitulo')}
           </p>
           {error && <div className="error"><FaCircleExclamation /> {error}</div>}
 
           <div className="login-input-wrapper">
             <input
               type={showCurrent ? 'text' : 'password'}
-              placeholder="Contraseña temporal (la que te dio el administrador)"
+              placeholder={t('auth.forceChange.placeholderTemporal')}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
@@ -106,7 +107,7 @@ const CambioPasswordObligatorio = () => {
           <div className="login-input-wrapper">
             <input
               type={showNew ? 'text' : 'password'}
-              placeholder="Nueva contraseña"
+              placeholder={t('perfil.nuevaContrasena')}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
@@ -128,7 +129,7 @@ const CambioPasswordObligatorio = () => {
           <div className="login-input-wrapper">
             <input
               type={showConfirm ? 'text' : 'password'}
-              placeholder="Confirmar nueva contraseña"
+              placeholder={t('perfil.confirmarNuevaContrasena')}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -147,11 +148,11 @@ const CambioPasswordObligatorio = () => {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Guardando...' : 'Cambiar contraseña'}
+            {loading ? t('perfil.password.guardando') : t('perfil.cambiarContrasena')}
           </button>
 
           <button type="button" className="login-logout" onClick={logout}>
-            Cerrar sesión
+            {t('nav.cerrarSesion')}
           </button>
         </form>
       </div>
