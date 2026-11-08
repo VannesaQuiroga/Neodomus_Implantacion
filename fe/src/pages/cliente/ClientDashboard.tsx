@@ -6,9 +6,11 @@ import SinResultados from '@components/productos/SinResultados';
 import '@styles/client-dashboard.css';
 import carritoIcon from '@assets/images/Carrito.png';
 import buscadorIcon from '@assets/images/buscador.png';
+import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
 
 interface Producto {
   id_producto: number;
+  referencia_producto?: string | null;
   nombre_producto: string;
   precio_venta_producto: number;
   precio_final?: number;
@@ -140,6 +142,7 @@ const ClientDashboard = () => {
     addItem(
       {
         id_producto: producto.id_producto,
+        referencia_producto: producto.referencia_producto,
         nombre_producto: producto.nombre_producto,
         precio_venta_producto: producto.precio_final ?? producto.precio_venta_producto,
         imagen: getImagen(producto),
@@ -150,10 +153,7 @@ const ClientDashboard = () => {
     setTimeout(() => setCartMessage(''), 3000);
   };
 
-  const getImagen = (producto: Producto) => {
-    if (producto.imagen_url) return producto.imagen_url;
-    return `/productos/${producto.id_producto}.jpg`;
-  };
+  const getImagen = resolverImagenProducto;
 
   const getPageNumbers = (): (number | string)[] => {
     const delta = 2;
@@ -228,7 +228,7 @@ const ClientDashboard = () => {
                           src={getImagen(producto)}
                           alt={producto.nombre_producto}
                           className="img-producto"
-                          onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                          onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
                         />
                       </div>
                       <div className="info-producto">

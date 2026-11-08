@@ -31,6 +31,7 @@ import PasswordTab from '@components/profile/PasswordTab';
 import { getAvatar, getIniciales, getMensajes, PF_AVATAR_KEY, removeAvatar } from '@utils/profileStorage';
 import api from '@services/api';
 import { useFavoritos } from '@utils/favoritos';
+import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
 
 interface NavItem {
   id: string;
@@ -58,6 +59,7 @@ interface ClientProfile {
 
 interface Producto {
   id_producto: number;
+  referencia_producto?: string | null;
   nombre_producto: string;
   precio_venta_producto: number;
   imagen_url?: string | null;
@@ -523,11 +525,11 @@ const Perfil = () => {
             <div key={producto.id_producto} className="pf-favorito-card">
               <div className="pf-favorito-img-wrap">
                 <img
-                  src={producto.imagen_url || `/productos/${producto.id_producto}.jpg`}
+                  src={resolverImagenProducto(producto)}
                   alt={producto.nombre_producto}
                   className="pf-favorito-img"
                   loading="lazy"
-                  onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                  onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
                 />
                 <button
                   type="button"

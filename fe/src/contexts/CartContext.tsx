@@ -9,6 +9,7 @@ const CART_KEY = 'neodomus_carrito';
 
 export interface CartItem {
   id_producto: number;
+  referencia_producto?: string | null;
   nombre_producto: string;
   precio_venta_producto: number;
   imagen: string;
@@ -23,6 +24,10 @@ export interface CartItem {
   stock_maximo?: number;
 }
 
+type CartItemUpdate = Partial<
+  Pick<CartItem, 'stock_maximo' | 'precio_venta_producto' | 'imagen' | 'referencia_producto'>
+>;
+
 interface CartContextValue {
   items: CartItem[];
   totalItems: number;
@@ -33,7 +38,7 @@ interface CartContextValue {
   removeItem: (key: string) => void;
   clearCart: () => void;
   actualizarStock: (key: string, stock: number) => void;
-  actualizarItem: (key: string, cambios: Partial<Pick<CartItem, 'stock_maximo' | 'precio_venta_producto'>>) => void;
+  actualizarItem: (key: string, cambios: CartItemUpdate) => void;
   tieneStockInsuficiente: boolean;
 }
 
@@ -94,6 +99,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                   cantidad: (i.cantidad || 1) + unidades,
                   precio_venta_producto: producto.precio_venta_producto,
                   stock_maximo: stockMax,
+                  imagen: producto.imagen,
+                  referencia_producto: producto.referencia_producto,
                 }
               : i
           );
@@ -110,6 +117,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 cantidad: nuevaCantidad,
                 precio_venta_producto: producto.precio_venta_producto,
                 stock_maximo: stockMax,
+                imagen: producto.imagen,
+                referencia_producto: producto.referencia_producto,
               }
             : i
         );
@@ -203,7 +212,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const actualizarItem = useCallback((
     key: string,
-    cambios: Partial<Pick<CartItem, 'stock_maximo' | 'precio_venta_producto'>>,
+    cambios: CartItemUpdate,
   ) => {
     setItems(prev => {
       const actual = prev.find(i => itemKey(i) === key);
@@ -213,7 +222,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const cambiaPrecio =
         cambios.precio_venta_producto !== undefined &&
         cambios.precio_venta_producto !== actual.precio_venta_producto;
-      if (!cambiaStock && !cambiaPrecio) return prev;
+      const cambiaImagen = cambios.imagen !== undefined && cambios.imagen !== actual.imagen;
+      const cambiaReferencia =
+        cambios.referencia_producto !== undefined &&
+        cambios.referencia_producto !== actual.referencia_producto;
+      if (!cambiaStock && !cambiaPrecio && !cambiaImagen && !cambiaReferencia) return prev;
       return prev.map(i => (itemKey(i) === key ? { ...i, ...cambios } : i));
     });
   }, []);

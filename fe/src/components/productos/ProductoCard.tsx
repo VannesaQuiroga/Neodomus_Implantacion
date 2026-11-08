@@ -17,6 +17,7 @@ import {
   precioUnitarioProducto,
   subtotalLinea,
 } from '@utils/productoPrecio';
+import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
 import '@styles/productos-publicos.css';
 
 interface ProductoVariante {
@@ -33,6 +34,7 @@ interface ProductoVariante {
 
 export interface ProductoCardData {
   id_producto: number;
+  referencia_producto?: string | null;
   nombre_producto: string;
   nombre_producto_label?: string;
   precio_venta_producto: number;
@@ -131,10 +133,7 @@ const ProductoCard = ({ producto }: Props) => {
     });
   }, [varianteId, stockDisponible, esPorMetros]);
 
-  const getImagen = (p: ProductoCardData) => {
-    if (p.imagen_url) return p.imagen_url;
-    return `/productos/${p.id_producto}.jpg`;
-  };
+  const getImagen = resolverImagenProducto;
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -168,6 +167,7 @@ const ProductoCard = ({ producto }: Props) => {
       const err = addItem(
         {
           id_producto: producto.id_producto,
+          referencia_producto: producto.referencia_producto,
           nombre_producto: producto.nombre_producto,
           precio_venta_producto: precioUnitario,
           imagen: getImagen(producto),
@@ -193,6 +193,7 @@ const ProductoCard = ({ producto }: Props) => {
       const err = addItem(
         {
           id_producto: producto.id_producto,
+          referencia_producto: producto.referencia_producto,
           nombre_producto: producto.nombre_producto,
           precio_venta_producto: precioUnitario,
           imagen: getImagen(producto),
@@ -270,7 +271,7 @@ const ProductoCard = ({ producto }: Props) => {
                 alt={nombreVisible}
                 className="img-producto"
                 loading="lazy"
-                onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
               />
             </Link>
           </div>

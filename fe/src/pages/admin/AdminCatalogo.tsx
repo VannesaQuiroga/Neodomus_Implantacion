@@ -10,6 +10,7 @@ import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { badgeStock, textoStock } from '../../constants';
 import type { CategoriaAdmin, ProductoAdmin } from '../../types';
+import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
 
 interface PaginaProductos {
   total: number;
@@ -254,10 +255,10 @@ const AdminCatalogo = () => {
                     <td>
                       <div className="ap-cell-user">
                         <img
-                          src={producto.imagen_url || `/productos/${producto.id_producto}.jpg`}
+                          src={resolverImagenProducto(producto)}
                           alt={producto.nombre_producto}
                           className="ap-thumb"
-                          onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                          onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
                         />
                         <div>
                           <strong>{producto.nombre_producto}</strong>

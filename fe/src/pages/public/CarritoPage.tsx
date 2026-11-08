@@ -14,27 +14,14 @@ import {
   stockDisponibleVariante,
 } from '@utils/productoDisponibilidad';
 import { precioUnitarioProducto, subtotalLinea } from '@utils/productoPrecio';
+import { aplicarFallbackImagenProducto, PRODUCT_IMAGE_PLACEHOLDER, resolverImagenProducto } from '@utils/productImages';
 import api from '@services/api';
 import ProductoCard from '@components/productos/ProductoCard';
 import '@styles/carrito.css';
 import '@styles/productos-publicos.css';
 
-// Fallback de imagen para el carrito: la referencia del producto no siempre
-// existe (URL de MinIO inalcanzable o recurso estático ausente). El primer
-// error prueba el mismo recurso con la extensión .webp que usa el catálogo
-// sembrado; el siguiente termina en el placeholder público. Nunca se muestra
-// la imagen de otro producto.
-const IMAGEN_DEFAULT = '/productos/default.png';
-
-const dentroDeFallback = (img: HTMLImageElement) => {
-  if (img.dataset.fallback === 'webp') {
-    if (!img.getAttribute('src')?.includes(IMAGEN_DEFAULT)) img.src = IMAGEN_DEFAULT;
-    return;
-  }
-  img.dataset.fallback = 'webp';
-  const id = img.dataset.id_producto;
-  img.src = id ? `/productos/${id}.webp` : IMAGEN_DEFAULT;
-};
+const dentroDeFallback = (img: HTMLImageElement) =>
+  aplicarFallbackImagenProducto(img, img.dataset.referenciaProducto);
 
 const itemKey = (item: { id_producto: number; color?: string; medida?: string; tamaño?: string; metros?: number; venta_por_metros?: boolean }) =>
   [item.id_producto, item.color?.toLowerCase(), (item.medida || item.tamaño || '').toLowerCase(), item.venta_por_metros && item.metros ? `${item.metros}m` : null].filter(Boolean).join('-');
@@ -99,6 +86,11 @@ const CarritoPage = () => {
         actualizarItem(itemKey(item), {
           stock_maximo: stock,
           precio_venta_producto: precioUnitarioProducto(producto, variante),
+          imagen: resolverImagenProducto({
+            ...producto,
+            imagen_url: variante?.imagen_url || producto.imagen_url,
+          }),
+          referencia_producto: producto.referencia_producto,
         });
       } catch {
         actualizarItem(itemKey(item), { stock_maximo: 0 });
@@ -227,8 +219,8 @@ const CarritoPage = () => {
                   <article key={key} className="carrito-item">
                     <Link to={`/producto/${item.id_producto}`} className="carrito-item-img">
                       <img
-                        src={item.imagen || IMAGEN_DEFAULT}
-                        data-id_producto={item.id_producto}
+                        src={item.imagen || PRODUCT_IMAGE_PLACEHOLDER}
+                        data-referencia-producto={item.referencia_producto || ''}
                         alt={item.nombre_producto}
                         onError={(e) => dentroDeFallback(e.currentTarget)}
                       />

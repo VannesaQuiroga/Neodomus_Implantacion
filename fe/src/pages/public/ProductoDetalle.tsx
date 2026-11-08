@@ -16,10 +16,12 @@ import {
   precioUnitarioProducto,
   subtotalLinea,
 } from '@utils/productoPrecio';
+import { aplicarFallbackImagenProducto, imagenPorReferencia, resolverImagenProducto } from '@utils/productImages';
 import '@styles/producto-detalle.css';
 
 interface Producto {
   id_producto: number;
+  referencia_producto?: string | null;
   nombre_producto: string;
   nombre_producto_label?: string;
   marca?: string | null;
@@ -235,16 +237,18 @@ const ProductoDetalle = () => {
   const imagen =
     imagenActiva ||
     varianteActiva?.imagen_url ||
-    producto?.imagen_url ||
-    `/productos/${producto?.id_producto}.jpg`;
+    (producto ? resolverImagenProducto(producto) : '/productos/default.png');
 
   // Galería: imagen principal siempre visible + imágenes propias de variantes.
   // Cada imagen lleva su color asociado para el vínculo bidireccional color<->imagen.
   const imagenesGaleria = useMemo(() => {
     const lista: { url: string; key: string; etiqueta: string; color: string | null; tamano: string }[] = [];
-    if (producto?.imagen_url) {
+    const imagenPrincipal = producto
+      ? producto.imagen_url || imagenPorReferencia(producto.referencia_producto)
+      : undefined;
+    if (imagenPrincipal) {
       lista.push({
-        url: producto.imagen_url,
+        url: imagenPrincipal,
         key: 'principal',
         etiqueta: 'Principal',
         color: colorPrincipal || null,
@@ -452,6 +456,7 @@ const ProductoDetalle = () => {
       const error = addItem(
         {
           id_producto: producto.id_producto,
+          referencia_producto: producto.referencia_producto,
           nombre_producto: producto.nombre_producto,
           precio_venta_producto: precioUnitario,
           imagen,
@@ -480,6 +485,7 @@ const ProductoDetalle = () => {
     const error = addItem(
       {
         id_producto: producto.id_producto,
+        referencia_producto: producto.referencia_producto,
         nombre_producto: producto.nombre_producto,
         precio_venta_producto: precioUnitario,
         imagen,
@@ -536,7 +542,7 @@ const ProductoDetalle = () => {
               <img
                 src={imagen}
                 alt={nombreVisible}
-                onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
               />
             </div>
 
