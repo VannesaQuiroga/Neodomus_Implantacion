@@ -6,7 +6,7 @@ WORKDIR /app
 
 RUN useradd -m -u 1000 appuser
 
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock ./
 
 COPY app/ ./app/
 COPY alembic/ ./alembic/
