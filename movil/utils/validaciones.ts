@@ -5,7 +5,7 @@
 
 /** Regex de contraseña de Register/ResetPassword de la WEB. */
 export const REGEX_CONTRASENA =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+  /^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[^!@#$%^&*(),.?":{}|<>]*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
 /** Regex de correo de Login/ForgotPassword de la WEB. */
 export const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

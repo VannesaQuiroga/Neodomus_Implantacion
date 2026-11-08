@@ -445,7 +445,7 @@ const TechnicianEntregas = () => {
                   capture="environment"
                   style={{ display: 'none' }}
                   onChange={(ev) => {
-                    subirEvidencias(e.id_pedido, ev.target.files);
+                    void subirEvidencias(e.id_pedido, ev.target.files);
                     ev.target.value = '';
                   }}
                 />

@@ -706,7 +706,7 @@ const TecnicoNovedades = () => {
                 {/* ── PASO 2: Seleccionar origen ──────────────── */}
                 {paso === 'origen' && (
                   <div>
-                    <label className="ap-form-label">Seleccionar origen</label>
+                    <span className="ap-form-label">Seleccionar origen</span>
                     <p style={{ fontSize: '0.78rem', color: '#8f8f8f', margin: '0 0 12px' }}>
                       Pedidos y citas de {clienteSeleccion?.nombre}
                     </p>

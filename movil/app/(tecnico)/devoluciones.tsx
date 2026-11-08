@@ -296,7 +296,7 @@ export default function TecnicoDevolucionesScreen() {
                 {selected.motivo ? <><Text style={styles.label}>{t("devoluciones.motivo")}</Text><Text style={styles.gris}>{selected.motivo}</Text></> : null}
                 <Text style={styles.label}>{t("devoluciones.preferencia")}</Text><Text style={styles.value}>{selected.preferencia || "No especificada"}</Text>
                 {selected.recogida_estado !== "Recogida" && vista === "pendientes" && (
-                  <Pressable onPress={() => { setDetalleVisible(false); subirEvidencia(selected.id_devolucion); }} disabled={subiendo === selected.id_devolucion} style={[styles.btn, subiendo === selected.id_devolucion && { opacity: 0.5 }]}>
+                  <Pressable onPress={() => { setDetalleVisible(false); void subirEvidencia(selected.id_devolucion); }} disabled={subiendo === selected.id_devolucion} style={[styles.btn, subiendo === selected.id_devolucion && { opacity: 0.5 }]}>
                     <FontAwesome6 name="camera" size={12} color="#141414" />
                     <Text style={styles.btnTxt}>{subiendo === selected.id_devolucion ? "Subiendo..." : t("devoluciones.subirEvidencia")}</Text>
                   </Pressable>
