@@ -41,37 +41,7 @@ $ErrorActionPreference = 'Stop'
 $Root      = Split-Path -Parent $PSScriptRoot
 $BeDir     = Join-Path $Root 'be'
 $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-
-function Write-Rule([string]$Text = '=') {
-    Write-Host ($Text * 78) -ForegroundColor DarkGray
-}
-
-function Test-TcpPort {
-    param([string]$TargetHost, [int]$TargetPort, [int]$TimeoutMs = 3000)
-    $client = New-Object System.Net.Sockets.TcpClient
-    try {
-        $async = $client.ConnectAsync($TargetHost, $TargetPort)
-        return ($async.Wait($TimeoutMs) -and $client.Connected)
-    } catch {
-        return $false
-    } finally {
-        $client.Close()
-    }
-}
-
-function Get-DatabaseInfo {
-    param([string]$Url)
-    if ($Url -match '@([^:/?]+)(?::(\d+))?/([^/?]+)') {
-        $port = 3306
-        if ($Matches[2]) { $port = [int]$Matches[2] }
-        return [PSCustomObject]@{
-            HostName = $Matches[1]
-            Port     = $port
-            Database = $Matches[3]
-        }
-    }
-    return $null
-}
+. (Join-Path $PSScriptRoot 'TestRunner.Common.ps1')
 
 function Assert-TestDatabaseUrl {
     Write-Host '[1] Validando TEST_DATABASE_URL...' -ForegroundColor Yellow
@@ -121,28 +91,6 @@ function Test-DockerReady {
     }
     Write-Host '  OK: contenedor api corriendo.' -ForegroundColor Green
     return $true
-}
-
-function Get-MissingPythonPackages {
-    param([string[]]$Required)
-    $installed = @()
-    # Quirk de PS 5.1: el redirect 2>$null sobre un nativo convierte cualquier
-    # artefacto de stderr en ErrorRecord; con ErrorActionPreference=Stop es
-    # terminante y mata al runner. Captura protegida con restauracion SIEMPRE
-    # (finally), conservando la logica y los codigos de salida.
-    $prevEap = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
-        $raw = & python -m pip list 2>$null
-    } finally {
-        $ErrorActionPreference = $prevEap
-    }
-    foreach ($line in $raw) {
-        if ([string]::IsNullOrWhiteSpace($line)) { continue }
-        $name = (($line -split '\s+')[0]).ToLower().Replace('_', '-')
-        $installed += $name
-    }
-    return @($Required | Where-Object { $_ -notin $installed })
 }
 
 function Invoke-Py {
