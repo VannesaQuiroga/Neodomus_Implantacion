@@ -19,6 +19,7 @@ import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { badgeStock, textoStock } from '../../constants';
 import type { ProductoAdmin, ProveedorAdmin } from '../../types';
+import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
 
 interface PaginaProductos {
   total: number;
@@ -416,10 +417,10 @@ const AdminProductos = () => {
                     <td>
                       <div className="ap-cell-user">
                         <img
-                          src={producto.imagen_url || `/productos/${producto.id_producto}.jpg`}
+                          src={resolverImagenProducto(producto)}
                           alt={producto.nombre_producto}
                           className="ap-thumb"
-                          onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                          onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
                         />
                         <div>
                           <strong>{producto.nombre_producto}</strong>
@@ -569,10 +570,10 @@ const AdminProductos = () => {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <img
-                        src={p.imagen_url || `/productos/${p.id_producto}.jpg`}
+                        src={resolverImagenProducto(p)}
                         alt=""
                         className="ap-thumb"
-                        onError={(e) => (e.currentTarget.src = '/productos/default.png')}
+                        onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, p.referencia_producto)}
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <strong

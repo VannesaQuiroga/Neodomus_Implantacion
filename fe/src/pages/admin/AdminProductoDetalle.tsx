@@ -18,6 +18,7 @@ import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import EspecializacionesSelect from '@components/admin/EspecializacionesSelect';
+import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
 import { STOCK_MINIMO, badgeStock, textoStock } from '../../constants';
 import type { ProductoAdmin, CategoriaAdmin, ProveedorAdmin, VarianteAdmin, Especializacion } from '../../types';
 
@@ -697,18 +698,11 @@ const AdminProductoDetalle = () => {
               <span className="ap-form-hint">{t('adm.productoDetalle.hintImagen')}</span>
               {(form.imagen_url || !esNuevo) && (
                 <img
-                  src={form.imagen_url || `/productos/${id}.jpg`}
+                  src={resolverImagenProducto(form)}
                   alt={t('adm.productoDetalle.altVistaPrevia')}
                   className="ap-thumb"
                   style={{ width: 80, height: 80, marginTop: 8, background: '#222' }}
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    if (img.src.includes('default.png')) {
-                      img.style.display = 'none';
-                    } else {
-                      img.src = '/productos/default.png';
-                    }
-                  }}
+                  onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, form.referencia_producto)}
                 />
               )}
             </div>
@@ -1310,17 +1304,10 @@ const AdminProductoDetalle = () => {
         <div className="ap-card">
           <div className="ap-prod-layout">
             <img
-              src={producto.imagen_url || `/productos/${producto.id_producto}.jpg`}
+              src={resolverImagenProducto(producto)}
               alt={producto.nombre_producto}
               className="ap-prod-img"
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (img.src.includes('default.png')) {
-                  img.style.display = 'none';
-                } else {
-                  img.src = '/productos/default.png';
-                }
-              }}
+              onError={(e) => aplicarFallbackImagenProducto(e.currentTarget, producto.referencia_producto)}
             />
 
             <div className="ap-prod-info">

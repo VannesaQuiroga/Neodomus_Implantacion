@@ -9,6 +9,7 @@ import '@styles/productos-publicos.css';
 
 interface Producto {
   id_producto: number;
+  referencia_producto?: string | null;
   nombre_producto: string;
   precio_venta_producto: number;
   imagen_url?: string | null;
