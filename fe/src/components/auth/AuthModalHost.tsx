@@ -38,7 +38,8 @@ const AuthModalHost = () => {
       <div
         key={step}
         className="auth-modal-content"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
         style={{ animation: 'auth-modal-fade 0.2s ease' }}
       >
         {step === 'ingresar' && <Login />}

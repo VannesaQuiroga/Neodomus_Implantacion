@@ -87,7 +87,7 @@ const ProductosPublicos = () => {
   }, []);
 
   useEffect(() => {
-    const refetch = () => cargarProductos(true);
+    const refetch = () => { void cargarProductos(true); };
     const onVisibility = () => {
       if (document.visibilityState === 'visible') refetch();
     };
