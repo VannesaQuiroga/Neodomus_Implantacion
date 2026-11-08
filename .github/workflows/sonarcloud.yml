@@ -33,6 +33,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Instala dependencias TS para que Sonar resuelva los tsconfig.json
+      # (p. ej. movil/tsconfig.json extiende expo/tsconfig.base).
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.3.4 --activate
+
+      - name: Install frontend dependencies
+        shell: bash
+        working-directory: fe
+        run: pnpm install --frozen-lockfile
+
+      - name: Install mobile dependencies
+        shell: bash
+        working-directory: movil
+        run: pnpm install --frozen-lockfile
+
       - name: SonarCloud Scan
         uses: sonarsource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
