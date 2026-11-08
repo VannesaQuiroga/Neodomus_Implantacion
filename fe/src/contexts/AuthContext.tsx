@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(base);
         setRol(base.rol);
         setIsAuthenticated(true);
-        refreshUserProfile();
+        void refreshUserProfile();
       } catch (err: any) {
         const status = err?.response?.status;
         if (status === 401) {
@@ -232,7 +232,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setUser(base);
               setRol(base.rol);
               setIsAuthenticated(true);
-              refreshUserProfile();
+              void refreshUserProfile();
               return;
             } catch {
               // Refresh funcionó pero la sesión sigue inválida
@@ -268,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     };
-    validarSesionInicial().finally(() => {
+    void validarSesionInicial().finally(() => {
       (window as any).__neodomus_validando_sesion = false;
       setLoading(false);
     });
@@ -278,7 +278,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // pestaña devuelven 401/403. El hook de notificaciones dispara este
     // evento y aquí se re-sincroniza el rol recordado con la cookie real.
     const revalidar = () => {
-      validarSesionInicial().finally(() => setLoading(false));
+      void validarSesionInicial().finally(() => setLoading(false));
     };
     window.addEventListener('neodomus:revalidar-sesion', revalidar);
 

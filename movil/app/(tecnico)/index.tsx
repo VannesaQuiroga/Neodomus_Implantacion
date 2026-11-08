@@ -125,7 +125,7 @@ export default function TecnicoDashboard() {
   };
 
   useEffect(() => {
-    fetchAll();
+    void fetchAll();
     const id = setInterval(fetchAll, 60000);
     return () => clearInterval(id);
   }, []);
@@ -166,7 +166,7 @@ export default function TecnicoDashboard() {
       setToast(nuevoEstado === "Finalizada" ? "Cita completada" : "Estado actualizado");
       setModalOpen(false);
       setSelectedCita(null);
-      fetchAll();
+      void fetchAll();
     } catch (e: any) {
       setToast(e?.message || "Error al actualizar");
     }
@@ -207,7 +207,7 @@ export default function TecnicoDashboard() {
       });
       setToast("Entrega marcada como recogida");
       setConfirmRecogida(null);
-      fetchAll();
+      void fetchAll();
     } catch (e: any) {
       setToast(e?.message || "Error al actualizar entrega");
     }

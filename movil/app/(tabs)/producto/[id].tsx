@@ -533,8 +533,8 @@ export default function ProductoDetalleScreen() {
                   }}
                   onBlur={() => {
                     const raw = (displayCantidad ?? String(cantidad)).trim();
-                    let num = parseInt(raw, 10);
-                    if (raw === "" || isNaN(num) || num < 1) num = 1;
+                    let num = Number.parseInt(raw, 10);
+                    if (raw === "" || Number.isNaN(num) || num < 1) num = 1;
                     if (stockDisponible > 0 && num > stockDisponible) num = stockDisponible;
                     setCantidad(num);
                     setDisplayCantidad(undefined);

@@ -188,7 +188,7 @@ const AdminNovedades = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     const i = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(i);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,16 +206,16 @@ const AdminNovedades = () => {
       if (filtroEstado && n.estado_novedad !== filtroEstado) return false;
       if (filtroTipo && n.tipo_novedad !== filtroTipo) return false;
       if (filtroPrioridad && n.prioridad !== filtroPrioridad) return false;
-      if (filtroTecnico && n.id_tecnico !== parseInt(filtroTecnico)) return false;
+      if (filtroTecnico && n.id_tecnico !== Number.parseInt(filtroTecnico)) return false;
       if (filtroPedido) {
-        const num = parseInt(filtroPedido);
+        const num = Number.parseInt(filtroPedido);
         if (!n.id_pedido || n.id_pedido !== num) return false;
       }
       if (filtroRelacion === 'pedido' && !n.id_pedido) return false;
       if (filtroRelacion === 'cita' && !n.id_cita) return false;
       if (filtroRelacion === 'devolucion' && !n.id_devolucion) return false;
       if (filtroRelacion === 'pedido_cita' && (!n.id_pedido || !n.id_cita)) return false;
-      if (filtroCliente && n.id_cliente !== parseInt(filtroCliente)) return false;
+      if (filtroCliente && n.id_cliente !== Number.parseInt(filtroCliente)) return false;
       if (filtroConEvidencia === 'si' && (!n.evidencias || n.evidencias.length === 0)) return false;
       if (filtroConEvidencia === 'no' && n.evidencias && n.evidencias.length > 0) return false;
       if (q) {
@@ -299,9 +299,9 @@ const AdminNovedades = () => {
       await api.post(`/novedades/${detalle.id_novedad}/cupon`, {
         codigo: cuponCodigo.trim().toUpperCase(),
         tipo_descuento: cuponTipo,
-        valor_descuento: parseFloat(cuponValor),
+        valor_descuento: Number.parseFloat(cuponValor),
         fecha_vencimiento: cuponVence || undefined,
-        usos_maximos: parseInt(cuponUsos) || 1,
+        usos_maximos: Number.parseInt(cuponUsos) || 1,
       });
       setToast({ msg: 'Cupón generado y cliente notificado', tipo: 'ok' });
       setMostrarCupon(false);
@@ -374,7 +374,7 @@ const AdminNovedades = () => {
     setEnviandoCambio(true);
     try {
       await api.put(`/novedades/${detalle.id_novedad}/cambiar-tecnico`, {
-        id_nuevo_tecnico: parseInt(nuevoTecnicoId),
+        id_nuevo_tecnico: Number.parseInt(nuevoTecnicoId),
         motivo: motivoCambio.trim() || undefined,
       });
       setToast({ msg: 'Técnico cambiado y notificaciones enviadas', tipo: 'ok' });
@@ -629,14 +629,14 @@ const AdminNovedades = () => {
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
                     {n.mensaje_cliente ? (
-                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaPaperPlane style={{ marginRight: 4 }} /> Enviado
                       </span>
                     ) : '—'}
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.solucion_cliente ? '#46d06f' : '#8f8f8f' }}>
                     {n.solucion_cliente ? (
-                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaCheck style={{ marginRight: 4 }} /> {n.cliente_visible ? 'Visible' : 'Oculta'}
                       </span>
                     ) : '—'}

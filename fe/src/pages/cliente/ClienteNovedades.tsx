@@ -122,7 +122,7 @@ const ClienteNovedades = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     const cargarCupones = () => api.get<CuponCliente[]>('/novedades/cliente/mis-cupones')
       .then((res) => setCupones(res.data || []))
       .catch(() => setCupones([]));
@@ -329,14 +329,14 @@ const ClienteNovedades = () => {
                   <td style={{ fontSize: '0.82rem', color: '#9f9f9f' }}>{formatFechaCorta(n.fecha_reporte)}</td>
                   <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
                     {n.mensaje_cliente ? (
-                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaPaperPlane style={{ marginRight: 4 }} /> Mensaje recibido
                       </span>
                     ) : '—'}
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.solucion_cliente ? '#46d06f' : '#8f8f8f' }}>
                     {n.solucion_cliente ? (
-                      <span style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaCheck style={{ marginRight: 4 }} /> Solución
                       </span>
                     ) : '—'}

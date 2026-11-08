@@ -130,7 +130,7 @@ const TechnicianEntregas = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     return () => detenerUbicacion();
   }, []);
 
@@ -445,7 +445,7 @@ const TechnicianEntregas = () => {
                   capture="environment"
                   style={{ display: 'none' }}
                   onChange={(ev) => {
-                    subirEvidencias(e.id_pedido, ev.target.files);
+                    void subirEvidencias(e.id_pedido, ev.target.files);
                     ev.target.value = '';
                   }}
                 />
@@ -516,7 +516,7 @@ const TechnicianEntregas = () => {
                         capture="environment"
                         style={{ display: 'none' }}
                         onChange={(ev) => {
-                          confirmarRecogida(r.id_devolucion, ev.target.files);
+                          void confirmarRecogida(r.id_devolucion, ev.target.files);
                           ev.target.value = '';
                         }}
                       />

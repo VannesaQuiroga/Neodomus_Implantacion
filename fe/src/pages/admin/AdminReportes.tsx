@@ -92,7 +92,7 @@ const AdminReportes = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,7 +120,7 @@ const AdminReportes = () => {
   const mesLabel = (mes: string | null | undefined) => {
     if (!mes) return t('adm.reportes.sinFecha');
     const [y, m] = mes.split('-');
-    return `${MESES[(parseInt(m, 10) || 1) - 1] ?? m} ${y}`;
+    return `${MESES[(Number.parseInt(m, 10) || 1) - 1] ?? m} ${y}`;
   };
 
   const maxVentas = Math.max(...(datos?.pedidos_por_mes ?? []).map((p) => p.ventas), 0) || 1;

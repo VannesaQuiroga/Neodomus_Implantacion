@@ -156,7 +156,7 @@ const ACCIONES_PLATAFORMA: Record<
 const formatoFecha = (iso?: string | null) => {
   if (!iso) return '';
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
+  if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('es-CO', {
     day: '2-digit',
     month: 'short',
@@ -167,7 +167,7 @@ const formatoFecha = (iso?: string | null) => {
 const formatoFechaHora = (fecha?: string | null, hora?: string | null) => {
   if (!fecha) return '';
   const d = new Date(`${fecha}T${hora || '00:00'}`);
-  if (isNaN(d.getTime())) return '';
+  if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('es-CO', {
     day: '2-digit',
     month: 'short',
@@ -178,7 +178,7 @@ const formatoFechaHora = (fecha?: string | null, hora?: string | null) => {
 const timestampFechaHora = (fecha?: string | null, hora?: string | null) => {
   if (!fecha) return 0;
   const ts = Date.parse(`${fecha}T${hora || '00:00'}`);
-  return isNaN(ts) ? 0 : ts;
+  return Number.isNaN(ts) ? 0 : ts;
 };
 
 const nombreServicio = (tipo?: string | null) => {

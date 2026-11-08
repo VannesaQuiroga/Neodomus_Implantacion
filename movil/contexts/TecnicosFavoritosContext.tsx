@@ -56,7 +56,7 @@ export function TecnicosFavoritosProvider({
   // Cargar la lista correspondiente a la identidad actual.
   useEffect(() => {
     let activo = true;
-    cargarClave(correoUsuario ? clavePorCorreo(correoUsuario) : CLAVE_VISITANTE).then((lista) => {
+    void cargarClave(correoUsuario ? clavePorCorreo(correoUsuario) : CLAVE_VISITANTE).then((lista) => {
       if (activo) setFavoritos(lista);
     });
     return () => {
@@ -104,7 +104,7 @@ export function TecnicosFavoritosProvider({
   useEffect(() => {
     if (!correoUsuario) return;
     let activo = true;
-    (async () => {
+    void (async () => {
       try {
         const visitante = await AsyncStorage.getItem(CLAVE_VISITANTE);
         if (!visitante) return;

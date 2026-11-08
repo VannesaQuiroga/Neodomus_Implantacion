@@ -130,7 +130,7 @@ const CarritoPage = () => {
         setSugeridos([]);
       }
     };
-    cargarSugeridos();
+    void cargarSugeridos();
   }, [idsCarrito]);
 
   // Sugeridos reutilizan la tarjeta completa de Productos (ProductoCard) con toda su lógica
@@ -142,8 +142,8 @@ const CarritoPage = () => {
     const medida = item.medida || item.tamaño;
     if (medida) params.set('medida', medida);
     if (item.metros != null) params.set('metros', String(item.metros));
-    if (item.venta_por_metros) params.set('cantidad', String(item.cantidad));
-    else params.set('cantidad', String(item.cantidad));
+    // La cantidad se transmite igual para corte por metros o por unidades.
+    params.set('cantidad', String(item.cantidad));
     if (item.venta_por_metros) params.set('unidades', String(item.cantidad));
     navigate(`/producto/${item.id_producto}?${params.toString()}`);
   };
@@ -304,8 +304,8 @@ const CarritoPage = () => {
                               setDisplayValues(prev => ({ ...prev, [itemKey(item)]: val }));
                             }}
                             onBlur={(e) => {
-                              const num = parseInt(e.target.value, 10);
-                              if (isNaN(num) || num < 1) {
+                              const num = Number.parseInt(e.target.value, 10);
+                              if (Number.isNaN(num) || num < 1) {
                                 const error = updateQuantity(itemKey(item), 1);
                                 if (error) showToast(error, 'error');
                               } else {

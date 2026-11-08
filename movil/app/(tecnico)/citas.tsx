@@ -77,7 +77,7 @@ export default function TecnicoCitasScreen() {
     } catch {}
     setLoading(false);
   };
-  useEffect(() => { fetchCitas(); }, []);
+  void useEffect(() => { fetchCitas(); }, []);
   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
 
   // Comunica con el backend mediante API `/tecnicos/citas/${id}/estado`.
@@ -86,7 +86,7 @@ export default function TecnicoCitasScreen() {
       await apiFetch(`/tecnicos/citas/${id}/estado`, { method: "PUT", body: JSON.stringify({ estado }) });
       setToast("Estado actualizado");
       setModal(false);
-      fetchCitas();
+      void fetchCitas();
     } catch (e: any) { setToast(e.message || "Error"); }
   };
 

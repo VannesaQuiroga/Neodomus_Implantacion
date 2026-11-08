@@ -489,7 +489,7 @@ const CheckoutPage = () => {
       }
       const fechaHora = new Date(`${s.fecha}T${s.hora || '08:00'}:00`);
       const limite = new Date(Date.now() + 3 * 60 * 60 * 1000);
-      if (isNaN(fechaHora.getTime()) || fechaHora < limite) {
+      if (Number.isNaN(fechaHora.getTime()) || fechaHora < limite) {
         setError('Los servicios se agendan con al menos 3 horas de anticipación. Si es para hoy, elige una hora posterior.');
         return;
       }
@@ -1134,16 +1134,16 @@ const CheckoutPage = () => {
                 {(metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito') && (
                   <>
                     <div className="checkout-field">
-                      <label>Número de tarjeta</label>
-                      <CardPaymentInput field="number"
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1137">Número de tarjeta</label>
+                      <CardPaymentInput id="nb-fesrcpagespublicCheckoutPagetsx1137" field="number"
                         placeholder="4242 4242 4242 4242"
                         value={pago.numero}
                         onValueChange={(value) => setPago({ ...pago, numero: value })}
                       />
                     </div>
                     <div className="checkout-field">
-                      <label>Titular de la tarjeta</label>
-                      <input
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1145">Titular de la tarjeta</label>
+                      <input id="nb-fesrcpagespublicCheckoutPagetsx1145"
                         type="text"
                         placeholder="Como aparece en la tarjeta"
                         value={pago.titular}
@@ -1152,16 +1152,16 @@ const CheckoutPage = () => {
                     </div>
                     <div className="checkout-field-row">
                       <div className="checkout-field">
-                        <label>Expiración</label>
-                        <CardPaymentInput field="expiry"
+                        <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1155">Expiración</label>
+                        <CardPaymentInput id="nb-fesrcpagespublicCheckoutPagetsx1155" field="expiry"
                           placeholder="MM/AA"
                           value={pago.expiracion}
                           onValueChange={(value) => setPago({ ...pago, expiracion: value })}
                         />
                       </div>
                       <div className="checkout-field">
-                        <label>CVV</label>
-                        <CardPaymentInput field="cvv"
+                        <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1163">CVV</label>
+                        <CardPaymentInput id="nb-fesrcpagespublicCheckoutPagetsx1163" field="cvv"
                           placeholder="123"
                           value={pago.cvv}
                           onValueChange={(value) => setPago({ ...pago, cvv: value })}
@@ -1172,8 +1172,8 @@ const CheckoutPage = () => {
                       Prueba: 4242 4242 4242 4242 (aprobada) · 4242 4242 4242 0001 (rechazada)
                     </p>
                     <div className="checkout-field">
-                      <label>Cuotas</label>
-                      <select
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1175">Cuotas</label>
+                      <select id="nb-fesrcpagespublicCheckoutPagetsx1175"
                         className="checkout-cuotas-select"
                         value={pago.cuotas}
                         onChange={(e) => setPago({ ...pago, cuotas: Number(e.target.value) })}
@@ -1189,8 +1189,8 @@ const CheckoutPage = () => {
 
                 {(metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito' || metodo === 'pse' || metodo === 'paypal') && (
                   <div className="checkout-field">
-                    <label>Resultado de simulación (entorno de prueba)</label>
-                    <select
+                    <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1192">Resultado de simulación (entorno de prueba)</label>
+                    <select id="nb-fesrcpagespublicCheckoutPagetsx1192"
                       value={pago.resultado_simulacion}
                       onChange={(e) => setPago({ ...pago, resultado_simulacion: e.target.value })}
                     >
@@ -1205,8 +1205,8 @@ const CheckoutPage = () => {
                 {metodo === 'pse' && (
                   <>
                     <div className="checkout-field">
-                      <label>Banco</label>
-                      <SelectorBanco
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1208">Banco</label>
+                      <SelectorBanco id="nb-fesrcpagespublicCheckoutPagetsx1208"
                         bancos={listaBancos}
                         value={pago.banco}
                         onChange={(banco) => setPago((prev) => ({ ...prev, banco }))}
@@ -1217,8 +1217,8 @@ const CheckoutPage = () => {
                       />
                     </div>
                     <div className="checkout-field">
-                      <label>Titular de la cuenta</label>
-                      <input
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1220">Titular de la cuenta</label>
+                      <input id="nb-fesrcpagespublicCheckoutPagetsx1220"
                         type="text"
                         placeholder="Nombre del titular"
                         value={pago.titular}
@@ -1230,8 +1230,8 @@ const CheckoutPage = () => {
 
                 {metodo === 'paypal' && (
                   <div className="checkout-field">
-                    <label>Correo de PayPal</label>
-                    <input
+                    <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1233">Correo de PayPal</label>
+                    <input id="nb-fesrcpagespublicCheckoutPagetsx1233"
                       type="email"
                       placeholder="Correo de tu cuenta PayPal"
                       value={pago.correo_paypal}
@@ -1246,8 +1246,8 @@ const CheckoutPage = () => {
                 {metodo === 'punto_pago' && (
                   <>
                     <div className="checkout-field">
-                      <label>Punto de pago</label>
-                      <select
+                      <label htmlFor="nb-fesrcpagespublicCheckoutPagetsx1249">Punto de pago</label>
+                      <select id="nb-fesrcpagespublicCheckoutPagetsx1249"
                         value={pago.punto_pago}
                         onChange={(e) => setPago({ ...pago, punto_pago: e.target.value })}
                       >

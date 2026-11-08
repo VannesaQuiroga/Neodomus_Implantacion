@@ -11,6 +11,7 @@ from app.models.contacto import Contacto
 from app.models.roles_usuario import RolesUsuario
 from app.models.user import User
 from app.utils.security import get_current_employee
+from app.utils.fechas import ahora_utc_naiva
 
 router = APIRouter(tags=["Contacto"])
 
@@ -137,7 +138,7 @@ def responder_consulta(
     if upd.get("estado") == "respondida":
         consulta.estado = "respondida"
         consulta.responded_by = admin.id_usuario
-        consulta.responded_at = datetime.utcnow()
+        consulta.responded_at = ahora_utc_naiva()
     elif upd.get("estado") == "pendiente":
         consulta.estado = "pendiente"
         consulta.responded_by = None

@@ -128,7 +128,7 @@ export default function TecnicoMensajesScreen() {
         setLoading(false);
       }
     };
-    cargar();
+    void cargar();
   }, []);
 
   const activa = conversaciones.find((c) => c.id === activaId) || null;
@@ -140,7 +140,7 @@ export default function TecnicoMensajesScreen() {
       const siguiente = prev.map((c) =>
         c.id === id ? { ...c, leido: true } : c,
       );
-      guardarConversaciones(siguiente);
+      void guardarConversaciones(siguiente);
       return siguiente;
     });
   };
@@ -158,7 +158,7 @@ export default function TecnicoMensajesScreen() {
           ? { ...c, mensajes: [...c.mensajes, nuevo] }
           : c,
       );
-      guardarConversaciones(siguiente);
+      void guardarConversaciones(siguiente);
       return siguiente;
     });
     setTextoEnviar("");

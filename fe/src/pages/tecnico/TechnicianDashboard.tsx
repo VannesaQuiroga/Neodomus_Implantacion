@@ -192,7 +192,7 @@ const TechnicianDashboard = () => {
   const [passGuardando, setPassGuardando] = useState(false);
 
   useEffect(() => {
-    fetchCitas();
+    void fetchCitas();
     const interval = setInterval(fetchCitas, 60000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -846,7 +846,7 @@ const TechnicianDashboard = () => {
                   capture="environment"
                   style={{ display: 'none' }}
                   onChange={(ev) => {
-                    subirEvidenciasEntrega(e.id_pedido, ev.target.files);
+                    void subirEvidenciasEntrega(e.id_pedido, ev.target.files);
                     ev.target.value = '';
                   }}
                 />
@@ -919,7 +919,7 @@ const TechnicianDashboard = () => {
                       capture="environment"
                       style={{ display: 'none' }}
                       onChange={(ev) => {
-                        subirEvidenciaRecogida(r.id_devolucion, ev.target.files?.[0]);
+                        void subirEvidenciaRecogida(r.id_devolucion, ev.target.files?.[0]);
                         ev.target.value = '';
                       }}
                     />

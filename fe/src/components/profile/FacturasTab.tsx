@@ -62,7 +62,7 @@ const FacturasTab = () => {
 
   useEffect(() => {
     let activo = true;
-    (async () => {
+    void (async () => {
       try {
         const res = await api.get<Pedido[]>('/pedidos/mis-pedidos');
         if (!activo) return;

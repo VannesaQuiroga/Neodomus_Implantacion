@@ -53,7 +53,7 @@ const ClientDashboard = () => {
         console.error('Error cargando categorías:', error);
       }
     };
-    fetchCategorias();
+    void fetchCategorias();
   }, []);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ const ClientDashboard = () => {
         if (!silencioso) setLoading(false);
       }
     };
-    fetchProductos();
+    void fetchProductos();
     const refetch = () => fetchProductos(true);
     const onVisibility = () => {
       if (document.visibilityState === 'visible') refetch();
@@ -279,8 +279,8 @@ const ClientDashboard = () => {
                                 setDisplayValues(prev => ({ ...prev, [producto.id_producto]: val }));
                               }}
                               onBlur={(e) => {
-                                const num = parseInt(e.target.value, 10);
-                                if (isNaN(num) || num < 1) {
+                                const num = Number.parseInt(e.target.value, 10);
+                                if (Number.isNaN(num) || num < 1) {
                                   setCantidades(prev => ({ ...prev, [producto.id_producto]: 1 }));
                                   setDisplayValues(prev => ({ ...prev, [producto.id_producto]: '' }));
                                 } else {

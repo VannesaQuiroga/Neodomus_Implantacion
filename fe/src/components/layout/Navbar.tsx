@@ -187,7 +187,7 @@ const Navbar = () => {
               </>
             ) : (
               <div className="user-menu" ref={dropdownRef}>
-                <div className="user-welcome" onClick={toggleDropdown}>
+                <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="user-welcome" onClick={toggleDropdown}>
                   <div className="welcome-text">
                     <span className="welcome-greeting">{esFemenino ? t('nav.bienvenida') : t('nav.bienvenido')}</span>
                     <span className="welcome-name">{nombreCompleto}</span>

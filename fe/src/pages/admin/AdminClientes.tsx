@@ -103,7 +103,7 @@ const AdminClientes = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
   }, []);
 
   const filtrados = clientes.filter((c) => {

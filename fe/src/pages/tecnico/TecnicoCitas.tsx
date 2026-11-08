@@ -101,7 +101,7 @@ const TecnicoCitas = () => {
   };
 
   useEffect(() => {
-    fetchCitas();
+    void fetchCitas();
     const interval = setInterval(fetchCitas, 10000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,7 +180,7 @@ const TecnicoCitas = () => {
         id_comision: reagendando.id_comision_c ?? 0,
       });
       setToastReagendar({ msg: t('tec.reagendada'), tipo: 'success' });
-      fetchCitas();
+      void fetchCitas();
       setTimeout(() => cancelarReagendar(), 2000);
     } catch (err: any) {
       console.error(err);
@@ -538,8 +538,8 @@ const TecnicoCitas = () => {
       )}
 
       {reagendando && (
-        <div className="ap-modal-overlay" onClick={cancelarReagendar}>
-          <div className="ap-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal-overlay" onClick={cancelarReagendar}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-head">
               <div>
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

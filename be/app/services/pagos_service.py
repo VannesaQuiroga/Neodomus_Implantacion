@@ -9,10 +9,12 @@ localmente: genera números de transacción ficticios y estados
 
 from __future__ import annotations
 
-import random
+import secrets
+from datetime import datetime, timedelta
+
+from app.utils.fechas import ahora_utc_naiva
 import re
 import string
-from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 
@@ -76,20 +78,20 @@ RESULTADOS_VALIDOS = ("aprobado", "rechazado", "pendiente")
 def _generar_numero_transaccion(prefix: str = "PAY") -> str:
     """Genera una referencia única simulada, p. ej. NEO-PAY-2026-7F3KQ2."""
     anio = datetime.now().strftime("%Y")
-    sufijo = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    sufijo = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     return f"NEO-{prefix}-{anio}-{sufijo}"
 
 
 def _generar_referencia_punto_pago() -> str:
     """Referencia ficticia tipo NEODOMUS-2026-000123."""
     anio = datetime.now().strftime("%Y")
-    numero = random.randint(1, 999999)
+    numero = secrets.randbelow(999999) + 1
     return f"NEODOMUS-{anio}-{numero:06d}"
 
 
 def _generar_codigo_punto_pago() -> str:
     """Código de pago ficticio tipo Efecty (números), p. ej. 5021 4839 7761 2045."""
-    bloques = ["".join(random.choices(string.digits, k=4)) for _ in range(4)]
+    bloques = ["".join(secrets.choice(string.digits) for _ in range(4)) for _ in range(4)]
     return " ".join(bloques)
 
 
@@ -293,7 +295,7 @@ def procesar_pago(
 def confirmar_pago_pendiente(pago) -> dict:
     """Confirma un pago pendiente (punto de pago) marcándolo como aprobado."""
     pago.estado = "aprobado"
-    pago.fecha_pago = datetime.utcnow()
+    pago.fecha_pago = ahora_utc_naiva()
     return {
         "estado": pago.estado,
         "numero_transaccion": pago.numero_transaccion,

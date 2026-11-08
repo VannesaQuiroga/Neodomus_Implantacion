@@ -283,7 +283,7 @@ const CitasPage = () => {
         if (activo) setTecnicosLoading(false);
       }
     };
-    fetchTecnicos();
+    void fetchTecnicos();
     // Tiempo real: si otro usuario reserva a un técnico en la misma hora,
     // deja de aparecer como disponible sin recargar la página.
     const interval = setInterval(fetchTecnicos, 10000);
@@ -403,7 +403,7 @@ const CitasPage = () => {
         if (activo) setCargandoHoras(false);
       }
     };
-    cargarHoras();
+    void cargarHoras();
     // Actualización en tiempo real: si otro usuario agenda/edita una cita con
     // este técnico, las horas ocupadas cambian sin recargar la página.
     const interval = setInterval(cargarHoras, 10000);
@@ -447,7 +447,7 @@ const CitasPage = () => {
         if (activo) setAplazandoCargandoHoras(false);
       }
     };
-    cargar();
+    void cargar();
     const interval = setInterval(cargar, 10000);
     return () => { activo = false; clearInterval(interval); };
   }, [aplazandoId, aplazandoFecha, citas, horasRefreshKey]);
@@ -1419,8 +1419,8 @@ const CitasPage = () => {
                         />
                       </div>
                       <div className="citas-field">
-                        <label className="citas-label">CVV</label>
-                        <input
+                        <label htmlFor="nb-fesrcpagesclienteCitasPagetsx1422" className="citas-label">CVV</label>
+                        <input id="nb-fesrcpagesclienteCitasPagetsx1422"
                           type="text"
                           inputMode="numeric"
                           className="citas-input"
@@ -1481,8 +1481,8 @@ const CitasPage = () => {
                   )}
                   {metodoPago === 'paypal' && (
                     <div className="citas-field">
-                      <label className="citas-label">PayPal</label>
-                      <input
+                      <label htmlFor="nb-fesrcpagesclienteCitasPagetsx1484" className="citas-label">PayPal</label>
+                      <input id="nb-fesrcpagesclienteCitasPagetsx1484"
                         type="email"
                         className="citas-input"
                         placeholder="tucorreo@ejemplo.com"
@@ -1535,7 +1535,7 @@ const CitasPage = () => {
 
         {calificandoCita && (
           <div className="citas-modal-overlay">
-            <div className="citas-modal" onClick={(e) => e.stopPropagation()}>
+            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="citas-modal" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
                 className="citas-modal-close-x"

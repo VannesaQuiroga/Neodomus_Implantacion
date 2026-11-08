@@ -110,7 +110,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     // Tiempo real: refresco silencioso cada 30 s para ver datos actuales.
     const intervalo = window.setInterval(() => cargar(true), 10000);
     return () => window.clearInterval(intervalo);
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
                         <div className="ap-chart-bar-row" key={p.mes}>
                           <span className="ap-chart-row-mes">{`${new Date(
                             Number(y),
-                            (parseInt(m, 10) || 1) - 1,
+                            (Number.parseInt(m, 10) || 1) - 1,
                             1
                           ).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CO', { month: 'short' })} ${y}`}</span>
                           <div

@@ -68,7 +68,7 @@ const AdminPerfil = () => {
         setCargando(false);
       }
     };
-    cargarPerfil();
+    void cargarPerfil();
   }, [user]);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ const AdminPerfil = () => {
     try {
       const body: Record<string, unknown> = { ...payload };
       const tel = String(body.telefono_usuario ?? '').replace(/\D/g, '');
-      body.telefono_usuario = tel ? parseInt(tel, 10) : null;
+      body.telefono_usuario = tel ? Number.parseInt(tel, 10) : null;
       await api.put('/users/me', body);
       if (typeof body.first_name === 'string' && typeof body.last_name === 'string') {
         setNombre(body.first_name.trim());

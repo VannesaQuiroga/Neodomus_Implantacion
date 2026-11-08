@@ -13,6 +13,7 @@ from app.models.solicitud_habilitacion_empleado import SolicitudHabilitacionEmpl
 from app.models.user import User
 from app.schemas.solicitud import AdminSolicitudEmpleadoResponse, AdminSolicitudResponse
 from app.utils.security import get_current_employee
+from app.utils.fechas import ahora_utc_naiva
 
 router = APIRouter(prefix="/admin/account-requests", tags=["Solicitudes de cuenta"])
 
@@ -232,7 +233,7 @@ async def _resolver(solicitud_id: int, db: Session, aprobar: bool, admin: User) 
 
     solicitud.estado = "aprobada" if aprobar else "rechazada"
     solicitud.resuelta_por = admin.id_usuario
-    solicitud.resuelta_at = datetime.utcnow()
+    solicitud.resuelta_at = ahora_utc_naiva()
     if aprobar and solicitud.tipo in TIPOS_ACTIVACION:
         cliente.is_active = TIPOS_ACTIVACION[solicitud.tipo]
 
@@ -264,7 +265,7 @@ async def habilitar_cuenta(
     cliente.is_active = True
     solicitud.estado = "aprobada"
     solicitud.resuelta_por = admin.id_usuario
-    solicitud.resuelta_at = datetime.utcnow()
+    solicitud.resuelta_at = ahora_utc_naiva()
 
     db.add(solicitud)
     db.commit()
@@ -366,7 +367,7 @@ async def _resolver_empleado(
 
     solicitud.estado = "aprobada" if aprobar else "rechazada"
     solicitud.resuelta_por = admin.id_usuario
-    solicitud.resuelta_at = datetime.utcnow()
+    solicitud.resuelta_at = ahora_utc_naiva()
     if aprobar:
         usuario.is_active = True
         usuario.desactivado_hasta = None

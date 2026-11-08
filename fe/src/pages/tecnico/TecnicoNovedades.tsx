@@ -236,7 +236,7 @@ const TecnicoNovedades = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     const intervalo = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -595,17 +595,16 @@ const TecnicoNovedades = () => {
                 {/* ── PASO 1: Buscar cliente ──────────────────── */}
                 {paso === 'cliente' && (
                   <div>
-                    <label className="ap-form-label">Buscar cliente</label>
+                    <label htmlFor="nb-fesrcpagestecnicoTecnicoNovedadestsx598" className="ap-form-label">Buscar cliente</label>
                     <p style={{ fontSize: '0.78rem', color: '#8f8f8f', margin: '0 0 8px' }}>Nombre, documento, email o telefono</p>
                     <div style={{ position: 'relative' }}>
                       <div className="ap-search" style={{ maxWidth: '100%' }}>
                         <FaMagnifyingGlass />
-                        <input
+                        <input id="nb-fesrcpagestecnicoTecnicoNovedadestsx598"
                           type="text"
                           placeholder="Escribe para buscar..."
                           value={textoCliente}
                           onChange={(e) => onBuscarCliente(e.target.value)}
-                          autoFocus
                         />
                         {buscandoClientes && (
                           <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>

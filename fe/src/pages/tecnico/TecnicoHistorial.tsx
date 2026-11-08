@@ -117,7 +117,7 @@ const TecnicoHistorial = () => {
   };
 
   useEffect(() => {
-    fetchCitas();
+    void fetchCitas();
     const interval = setInterval(fetchCitas, 60000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,7 +135,7 @@ const TecnicoHistorial = () => {
         console.error('Error al cargar entregas:', err);
       }
     };
-    cargarEntregas();
+    void cargarEntregas();
     return () => {
       activo = false;
     };

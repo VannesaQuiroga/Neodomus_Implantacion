@@ -80,13 +80,13 @@ const AdminConsultas = () => {
   };
 
   useEffect(() => {
-    cargarTodo();
+    void cargarTodo();
   }, []);
 
   useEffect(() => {
     const intervalo = window.setInterval(() => {
-      cargarSolicitudes();
-      cargarCuentas();
+      void cargarSolicitudes();
+      void cargarCuentas();
     }, 30000);
     return () => window.clearInterval(intervalo);
   }, []);

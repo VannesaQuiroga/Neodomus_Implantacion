@@ -30,7 +30,7 @@ export default function TecnicoNotificacionesScreen() {
     setLoading(false);
   };
 
-  useEffect(() => { cargar(); }, []);
+  void useEffect(() => { cargar(); }, []);
   useEffect(() => { if (!toast) return; const t=setTimeout(()=>setToast(null),2500); return()=>clearTimeout(t); }, [toast]);
 
   // Comunica con el backend mediante API "/notificaciones/leer-todas".

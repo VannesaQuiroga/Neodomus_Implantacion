@@ -285,7 +285,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   };
 
   useEffect(() => {
-    cargarPedidos();
+    void cargarPedidos();
   }, []);
 
   // Comunica con el backend mediante POST `/pedidos/${pedidoId}/confirmar-pago`.
@@ -334,7 +334,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     if (seguimientoDe == null || seguimiento?.estado_entrega !== 'En camino') return;
     const pid = seguimientoDe;
     pollRef.current = window.setInterval(() => {
-      cargarSeguimiento(pid);
+      void cargarSeguimiento(pid);
     }, 15000);
     return () => {
       if (pollRef.current) {
@@ -563,9 +563,9 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                   onClick={() => {
                     const nuevo = !abierto;
                     setExpanded(nuevo ? pedido.id_pedido : null);
-                    if (nuevo) cargarNovedadesPedido();
+                    if (nuevo) void cargarNovedadesPedido();
                     if (nuevo && pedidoCompletado(pedido)) {
-                      cargarResenas(pedido);
+                      void cargarResenas(pedido);
                       setSeguimientoDe(null);
                       setSeguimiento(null);
                     }
@@ -1030,8 +1030,8 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
       {/* ── Modal: wizard de solicitud de devolución ── */}
       {wizardPedido && (
-        <div className="pf-modal-backdrop" onClick={cerrarWizard}>
-          <div className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()}>
+        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={cerrarWizard}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
               <h3>
                 <FaRotateLeft /> Solicitar devolución · Pedido #{wizardPedido.id_pedido}
@@ -1087,7 +1087,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           {agotada ? (
                             <span className="pf-dev-agotada">Ya devuelto / en proceso</span>
                           ) : (
-                            <span className="pf-dev-cantidades" onClick={(e) => e.preventDefault()}>
+                            <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-dev-cantidades" onClick={(e) => e.preventDefault()}>
                               <button
                                 type="button"
                                 aria-label="Quitar unidad"

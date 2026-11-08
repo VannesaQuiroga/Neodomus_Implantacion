@@ -64,7 +64,7 @@ const ProductosPublicos = () => {
         console.error('Error cargando categorías:', err);
       }
     };
-    fetchCategorias();
+    void fetchCategorias();
   }, []);
 
   // Comunica con el backend mediante GET '/productos/?limit=100'.
@@ -83,7 +83,7 @@ const ProductosPublicos = () => {
   };
 
   useEffect(() => {
-    cargarProductos();
+    void cargarProductos();
   }, []);
 
   useEffect(() => {

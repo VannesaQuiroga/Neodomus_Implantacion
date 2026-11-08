@@ -19,10 +19,8 @@
   position: absolute;
   inset: 0px;
 
-background-image: inherit;
-background-size: cover;
-background-position: center;
-background-repeat: no-repeat;
+  background-image: inherit;
+  background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
 

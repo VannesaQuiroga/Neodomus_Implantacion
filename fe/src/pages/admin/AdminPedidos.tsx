@@ -89,7 +89,7 @@ const AdminPedidos = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     const intervalo = window.setInterval(() => cargar(true), 30000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -201,7 +201,7 @@ const AdminPedidos = () => {
     setGuardandoId(pedido.id_pedido);
     try {
       await api.put(`/pedidos/admin/${pedido.id_pedido}/entrega`, {
-        id_tecnico: valor ? parseInt(valor, 10) : null,
+        id_tecnico: valor ? Number.parseInt(valor, 10) : null,
       });
       setToast({ msg: t('adm.pedidos.actualizado'), tipo: 'ok' });
       await cargar();

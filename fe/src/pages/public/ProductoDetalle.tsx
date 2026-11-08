@@ -280,7 +280,7 @@ const ProductoDetalle = () => {
         setLoading(false);
       }
     };
-    fetchProducto();
+    void fetchProducto();
   }, [id]);
 
   // Cargar productos recomendados: misma categoría primero, luego las demás
@@ -789,8 +789,8 @@ const ProductoDetalle = () => {
                               setDisplayUnidades(val);
                             }}
                             onBlur={(e) => {
-                              const num = parseInt(e.target.value, 10);
-                              if (isNaN(num) || num < 1) {
+                              const num = Number.parseInt(e.target.value, 10);
+                              if (Number.isNaN(num) || num < 1) {
                                 setUnidadesMetros(1);
                                 setDisplayUnidades('1');
                               } else {
@@ -856,8 +856,8 @@ const ProductoDetalle = () => {
                         setDisplayValue(val);
                       }}
                       onBlur={(e) => {
-                        const num = parseInt(e.target.value, 10);
-                        if (isNaN(num) || num < 1) {
+                        const num = Number.parseInt(e.target.value, 10);
+                        if (Number.isNaN(num) || num < 1) {
                           setCantidad(1);
                           setDisplayValue('1');
                         } else {

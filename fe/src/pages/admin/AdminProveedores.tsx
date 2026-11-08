@@ -57,7 +57,7 @@ const AdminProveedores = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     const handler = () => cargar();
     window.addEventListener('admin-producto-updated', handler);
     return () => window.removeEventListener('admin-producto-updated', handler);

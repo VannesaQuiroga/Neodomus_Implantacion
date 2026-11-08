@@ -80,7 +80,7 @@ export default function TecnicoDevolucionesScreen() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchWithHistorial(); }, []);
+  void useEffect(() => { fetchWithHistorial(); }, []);
   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
 
   // Reset filtros al cambiar de vista (opcional: mantener búsqueda pero reset estado/fecha/hora)
@@ -161,7 +161,7 @@ export default function TecnicoDevolucionesScreen() {
       fd.append("file", { uri: asset.uri, name: "evidencia.jpg", type: "image/jpeg" } as any);
       await apiFetch(`/devoluciones/${id}/evidencia-recogida`, { method: "POST", body: fd, headers: {} as any });
       setToast("Evidencia subida");
-      fetchWithHistorial();
+      void fetchWithHistorial();
     } catch (e: any) { setToast(e.message || "Error"); }
     setSubiendo(null);
   };
@@ -296,7 +296,7 @@ export default function TecnicoDevolucionesScreen() {
                 {selected.motivo ? <><Text style={styles.label}>{t("devoluciones.motivo")}</Text><Text style={styles.gris}>{selected.motivo}</Text></> : null}
                 <Text style={styles.label}>{t("devoluciones.preferencia")}</Text><Text style={styles.value}>{selected.preferencia || "No especificada"}</Text>
                 {selected.recogida_estado !== "Recogida" && vista === "pendientes" && (
-                  <Pressable onPress={() => { setDetalleVisible(false); subirEvidencia(selected.id_devolucion); }} disabled={subiendo === selected.id_devolucion} style={[styles.btn, subiendo === selected.id_devolucion && { opacity: 0.5 }]}>
+                  void <Pressable onPress={() => { setDetalleVisible(false); subirEvidencia(selected.id_devolucion); }} disabled={subiendo === selected.id_devolucion} style={[styles.btn, subiendo === selected.id_devolucion && { opacity: 0.5 }]}>
                     <FontAwesome6 name="camera" size={12} color="#141414" />
                     <Text style={styles.btnTxt}>{subiendo === selected.id_devolucion ? "Subiendo..." : t("devoluciones.subirEvidencia")}</Text>
                   </Pressable>

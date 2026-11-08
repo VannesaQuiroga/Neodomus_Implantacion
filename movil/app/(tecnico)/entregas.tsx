@@ -116,7 +116,7 @@ export default function TecnicoEntregasScreen() {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     return () => detenerUbicacion();
   }, []);
 

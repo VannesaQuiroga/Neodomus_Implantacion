@@ -260,7 +260,7 @@ const AdminProductoDetalle = () => {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -313,17 +313,17 @@ const AdminProductoDetalle = () => {
 
   const validarVariante = (v: VarianteForm): string | null => {
     if (!v.nombre.trim()) return t('adm.productoDetalle.errorNombreVariante');
-    const stock = parseInt(v.stock, 10);
+    const stock = Number.parseInt(v.stock, 10);
     if (Number.isNaN(stock) || stock < 0) return t('adm.productoDetalle.errorStockVariante');
     if (v.precio.trim() !== '') {
-      const precioNum = parseFloat(v.precio);
+      const precioNum = Number.parseFloat(v.precio);
       if (Number.isNaN(precioNum) || precioNum <= 0) {
         return t('adm.productoDetalle.errorPrecioVariante');
       }
     }
     if (form.tiene_medidas) {
-      const ancho = parseInt(v.ancho_cm, 10);
-      const alto = parseInt(v.alto_cm, 10);
+      const ancho = Number.parseInt(v.ancho_cm, 10);
+      const alto = Number.parseInt(v.alto_cm, 10);
       if (Number.isNaN(ancho) || ancho <= 0 || Number.isNaN(alto) || alto <= 0) {
         return t('adm.productoDetalle.errorMedidasVariante');
       }
@@ -332,11 +332,11 @@ const AdminProductoDetalle = () => {
   };
 
   const payloadDeVariante = (v: VarianteForm) => {
-    const precioNum = v.precio.trim() === '' ? null : parseFloat(v.precio);
+    const precioNum = v.precio.trim() === '' ? null : Number.parseFloat(v.precio);
     const anchoNum =
-      form.tiene_medidas && v.ancho_cm.trim() !== '' ? parseInt(v.ancho_cm, 10) : null;
+      form.tiene_medidas && v.ancho_cm.trim() !== '' ? Number.parseInt(v.ancho_cm, 10) : null;
     const altoNum =
-      form.tiene_medidas && v.alto_cm.trim() !== '' ? parseInt(v.alto_cm, 10) : null;
+      form.tiene_medidas && v.alto_cm.trim() !== '' ? Number.parseInt(v.alto_cm, 10) : null;
     return {
       nombre: v.nombre.trim(),
       hex: v.hex.trim() || null,
@@ -347,17 +347,17 @@ const AdminProductoDetalle = () => {
       alto_cm: altoNum,
       precio: precioNum,
       imagen_url: v.imagen_url.trim() || null,
-      stock: parseInt(v.stock, 10),
+      stock: Number.parseInt(v.stock, 10),
     };
   };
 
   const validar = () => {
     if (!form.nombre_producto.trim()) return t('adm.productoDetalle.errorNombreProducto');
-    const precio = parseFloat(form.precio_venta_producto);
+    const precio = Number.parseFloat(form.precio_venta_producto);
     if (!precio || precio <= 0) return t('adm.productoDetalle.errorPrecioVenta');
-    const stock = parseInt(form.stock_producto, 10);
+    const stock = Number.parseInt(form.stock_producto, 10);
     if (Number.isNaN(stock) || stock < 0) return t('adm.productoDetalle.errorStock');
-    const descuento = form.descuento_activo.trim() === '' ? null : parseFloat(form.descuento_activo);
+    const descuento = form.descuento_activo.trim() === '' ? null : Number.parseFloat(form.descuento_activo);
     if (descuento != null && (Number.isNaN(descuento) || descuento < 0 || descuento > 100)) {
       return t('adm.productoDetalle.errorDescuento');
     }
@@ -391,27 +391,27 @@ const AdminProductoDetalle = () => {
         nombre_producto: form.nombre_producto.trim(),
         marca: form.marca?.trim() || null,
         referencia_producto: form.referencia_producto.trim() || null,
-        precio_venta_producto: parseFloat(form.precio_venta_producto),
-        precio_compra_producto: form.precio_compra_producto ? parseFloat(form.precio_compra_producto) : null,
-        id_cate_pr: form.id_cate_pr ? parseInt(form.id_cate_pr, 10) : null,
-        id_proveedor_pr: form.id_proveedor_pr ? parseInt(form.id_proveedor_pr, 10) : null,
+        precio_venta_producto: Number.parseFloat(form.precio_venta_producto),
+        precio_compra_producto: form.precio_compra_producto ? Number.parseFloat(form.precio_compra_producto) : null,
+        id_cate_pr: form.id_cate_pr ? Number.parseInt(form.id_cate_pr, 10) : null,
+        id_proveedor_pr: form.id_proveedor_pr ? Number.parseInt(form.id_proveedor_pr, 10) : null,
         imagen_url: form.imagen_url.trim() || null,
         colores_producto: form.colores_producto.trim() || null,
         color_hex: /^#[0-9a-fA-F]{6}$/.test(form.color_hex) ? form.color_hex : null,
         tamaño: form.tamaño.trim() || null,
-        stock_producto: parseInt(form.stock_producto, 10),
+        stock_producto: Number.parseInt(form.stock_producto, 10),
         estado_producto: form.estado_producto,
-        descuento_activo: form.descuento_activo.trim() === '' ? null : parseFloat(form.descuento_activo),
+        descuento_activo: form.descuento_activo.trim() === '' ? null : Number.parseFloat(form.descuento_activo),
         promocion_hasta: form.promocion_hasta || null,
         descripcion_producto: form.descripcion_producto.trim() || null,
         caracteristicas_producto:
           caractLista.map((c) => c.trim()).filter(Boolean).join('\n') || null,
         es_nuevo_producto: form.es_nuevo_producto,
         venta_por_metros: form.venta_por_metros,
-        tecnicos_requeridos: Math.max(0, parseInt(form.tecnicos_requeridos, 10) || 0),
+        tecnicos_requeridos: Math.max(0, Number.parseInt(form.tecnicos_requeridos, 10) || 0),
         dificultad_instalacion: form.dificultad_instalacion || null,
         tiempo_estimado_horas:
-          form.tiempo_estimado_horas.trim() === '' ? null : parseFloat(form.tiempo_estimado_horas),
+          form.tiempo_estimado_horas.trim() === '' ? null : Number.parseFloat(form.tiempo_estimado_horas),
         tiene_medidas: form.tiene_medidas,
         especializaciones_ids: form.especializaciones_ids,
       };
@@ -535,7 +535,7 @@ const AdminProductoDetalle = () => {
 
   const formatoPrecio = (valor: number) => `$${valor.toLocaleString('es-CO')}`;
 
-  const requiereTecnicos = parseInt(form.tecnicos_requeridos, 10) > 0;
+  const requiereTecnicos = Number.parseInt(form.tecnicos_requeridos, 10) > 0;
 
   const toggleRequiereTecnicos = () => {
     setCampo('tecnicos_requeridos', requiereTecnicos ? '0' : '1');
@@ -1406,7 +1406,7 @@ const AdminProductoDetalle = () => {
 
       {confirmarBorrar && (
         <div className="ap-modal-overlay">
-          <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <h3>
               <FaTriangleExclamation style={{ color: '#ff8f93', marginRight: 8 }} />
               {t('adm.productoDetalle.eliminarTitulo')}
