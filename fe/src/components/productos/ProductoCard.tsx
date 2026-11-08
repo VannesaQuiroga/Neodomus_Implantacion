@@ -218,8 +218,8 @@ const ProductoCard = ({ producto }: Props) => {
 
   const handleCantidadBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const raw = e.target.value.trim();
-    const num = parseInt(raw, 10);
-    if (raw === '' || isNaN(num) || num < 1) {
+    const num = Number.parseInt(raw, 10);
+    if (raw === '' || Number.isNaN(num) || num < 1) {
       setCantidad(1);
       setDisplayValue('1');
     } else {
@@ -388,10 +388,10 @@ const ProductoCard = ({ producto }: Props) => {
                       }}
                       onBlur={(e) => {
                         const raw = e.target.value.trim();
-                        const num = parseInt(raw, 10);
+                        const num = Number.parseInt(raw, 10);
                         const stock = stockDisponible;
                         const maxU = Number.isFinite(stock) ? Math.max(1, Math.floor(stock / metros) || 1) : Infinity;
-                        if (raw === '' || isNaN(num) || num < 1) {
+                        if (raw === '' || Number.isNaN(num) || num < 1) {
                           setUnidades(1);
                         } else {
                           setUnidades(num > maxU ? maxU : num);

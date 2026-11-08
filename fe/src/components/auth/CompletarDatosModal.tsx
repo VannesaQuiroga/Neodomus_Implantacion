@@ -48,8 +48,8 @@ const CompletarDatosModal = () => {
     setMessage('');
     setError('');
 
-    const doc = parseInt(documento, 10);
-    const tel = parseInt(telefono, 10);
+    const doc = Number.parseInt(documento, 10);
+    const tel = Number.parseInt(telefono, 10);
     if (!doc || doc <= 0) {
       setError('Ingresa un número de documento válido');
       return;
@@ -66,7 +66,7 @@ const CompletarDatosModal = () => {
     setLoading(true);
     try {
       await api.put('/clients/me', {
-        id_tipo_documento_c: parseInt(tipoDocumento, 10),
+        id_tipo_documento_c: Number.parseInt(tipoDocumento, 10),
         documento_cliente: doc,
         telefono_cliente: tel,
         address: direccion.trim(),
