@@ -1,4 +1,14 @@
 import { ADMIN_TRADUCCIONES } from './adminTranslations';
+import { AUTH_TRADUCCIONES } from './authTranslations';
+import { CHECKOUT_TRADUCCIONES } from './checkoutTranslations';
+import { PROFILE_TABS_TRADUCCIONES } from './profileTabsTranslations';
+import { PROFILE_ACCOUNT_TRADUCCIONES } from './profileAccountTranslations';
+import { NOVEDADES_TRADUCCIONES } from './novedadesTranslations';
+import { ADMIN_EXTRAS_TRADUCCIONES } from './adminExtrasTranslations';
+import { PUBLIC_TRADUCCIONES } from './publicTranslations';
+import { LEGAL_HOME_TRADUCCIONES } from './legalHomeTranslations';
+import { PRODUCT_TRANSLATIONS } from './productTranslations';
+import { NOTIFICATION_TRANSLATIONS } from './notificationTranslations';
 
 export type Idioma = 'es' | 'en';
 
@@ -784,6 +794,16 @@ export const TRADUCCIONES_BASE: Record<string, Record<string, string>> = {
 
 export const TRADUCCIONES: Record<string, Record<string, string>> = {
   ...TRADUCCIONES_BASE,
+  ...AUTH_TRADUCCIONES,
+  ...CHECKOUT_TRADUCCIONES,
+  ...PROFILE_TABS_TRADUCCIONES,
+  ...PROFILE_ACCOUNT_TRADUCCIONES,
+  ...NOVEDADES_TRADUCCIONES,
+  ...ADMIN_EXTRAS_TRADUCCIONES,
+  ...PUBLIC_TRADUCCIONES,
+  ...LEGAL_HOME_TRADUCCIONES,
+  ...PRODUCT_TRANSLATIONS,
+  ...NOTIFICATION_TRANSLATIONS,
   ...ADMIN_TRADUCCIONES,
 };
 
@@ -799,4 +819,39 @@ export function construirT(idioma: string): TFunc {
       texto,
     );
   };
+}
+
+/** Localiza un mensaje fijo o parametrizado sin cambiar su dato de origen. */
+export function traducirMensajeNotificacion(mensaje: string, idioma: Idioma): string {
+  if (!mensaje || idioma === 'es') return mensaje;
+
+  for (const traduccion of Object.values(TRADUCCIONES)) {
+    const textoEs = traduccion.es;
+    const textoEn = traduccion.en;
+    if (!textoEs || !textoEn) continue;
+
+    const partes = textoEs.split(/(\{[^}]+\})/g);
+    const nombres: string[] = [];
+    const patron = partes.map((parte) => {
+      const variable = /^\{([^}]+)\}$/.exec(parte);
+      if (variable) {
+        nombres.push(variable[1]);
+        return '(.+?)';
+      }
+      return parte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }).join('');
+    const capturas = new RegExp(`^${patron}$`).exec(mensaje);
+    if (!capturas) continue;
+
+    return nombres.reduce(
+      (texto, nombre, indice) => texto.replaceAll(`{${nombre}}`, capturas[indice + 1]),
+      textoEn,
+    );
+  }
+  // Persisted notifications can append optional details to a known sentence.
+  // Translate recognized static fragments while preserving unknown/user data.
+  return Object.values(TRADUCCIONES).reduce((texto, traduccion) => {
+    if (!traduccion.es || !traduccion.en || traduccion.es.includes('{')) return texto;
+    return texto.replaceAll(traduccion.es, traduccion.en);
+  }, mensaje);
 }
