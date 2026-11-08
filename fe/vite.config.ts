@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+  // El bind mount de node_modules puede ser de solo lectura para el usuario
+  // node; en Docker la caché de optimización se redirige a un directorio temporal.
+  cacheDir: process.env.NEODOMUS_VITE_CACHE_DIR || 'node_modules/.vite',
   plugins: [react()],
   resolve: {
     alias: {

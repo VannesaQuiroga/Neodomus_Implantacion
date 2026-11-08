@@ -420,6 +420,8 @@ docker compose ps
 
 Esperar a que MySQL indique estado `healthy` antes de continuar. El servicio MinIO no declara un healthcheck en la definición actual; validar su endpoint de readiness o sus logs. Para despliegue productivo, no ejecutar esta configuración tal cual: sustituir bind mounts, `--reload`, puertos públicos directos y tags flotantes por una composición de producción revisada.
 
+El frontend se ejecuta como usuario sin privilegios y su caché de dependencias Vite se dirige a /tmp/neodomus-vite-cache dentro del contenedor, evitando escribir en el volumen node_modules. Al modificar esta configuración, recrear el servicio frontend para tomar el entorno actualizado.
+
 ### 5.6 Inicialización y migración del esquema
 
 1. Verificar que el contenedor MySQL está saludable y que el respaldo preinstalación/previo al cambio está creado y verificado.
