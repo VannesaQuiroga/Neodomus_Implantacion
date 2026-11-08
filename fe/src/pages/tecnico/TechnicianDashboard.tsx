@@ -987,9 +987,18 @@ const TechnicianDashboard = () => {
             <div
               key={n.id}
               className={`novedad-item ap-notif-item ${n.leida ? '' : 'unread'}`}
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 if (!n.leida) marcarLeida(n.id);
                 if (n.accion?.to) navigate(n.accion.to);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  if (!n.leida) marcarLeida(n.id);
+                  if (n.accion?.to) navigate(n.accion.to);
+                }
               }}
               style={{ cursor: 'pointer' }}
             >
@@ -1243,7 +1252,7 @@ const TechnicianDashboard = () => {
                       disabled={subiendoEvidencia}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) subirEvidencia(selectedCita.id_cita, file);
+                        if (file) void subirEvidencia(selectedCita.id_cita, file);
                         e.target.value = '';
                       }}
                     />

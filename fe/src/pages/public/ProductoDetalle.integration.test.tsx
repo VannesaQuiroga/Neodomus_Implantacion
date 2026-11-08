@@ -160,10 +160,10 @@ describe('ProductoDetalle -> carrito -> checkout', () => {
     // silenciosamente y el carrito quedaria vacio (race de renders bajo
     // la suite completa).
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Aumentar cantidad' }).disabled).toBe(false);
+      expect((screen.getByRole('button', { name: 'Aumentar cantidad' }) as HTMLButtonElement).disabled).toBe(false);
     });
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Agregar al carrito' }).disabled).toBe(false);
+      expect((screen.getByRole('button', { name: 'Agregar al carrito' }) as HTMLButtonElement).disabled).toBe(false);
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Aumentar cantidad' }));

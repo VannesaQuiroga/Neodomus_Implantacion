@@ -511,7 +511,7 @@ export default function TecnicoEntregasScreen() {
                   {/* En camino → Entregado (with evidence) */}
                   {estado === "En camino" && (
                     <Pressable
-                      onPress={() => subirEvidencias(e.id_pedido)}
+                      onPress={() => void subirEvidencias(e.id_pedido)}
                       disabled={isSubiendoEvidencia}
                       style={[styles.btnOk, isSubiendoEvidencia && { opacity: 0.6 }]}
                     >

@@ -73,7 +73,7 @@ const ClientDashboard = () => {
       }
     };
     void fetchProductos();
-    const refetch = () => fetchProductos(true);
+    const refetch = () => { void fetchProductos(true); };
     const onVisibility = () => {
       if (document.visibilityState === 'visible') refetch();
     };
