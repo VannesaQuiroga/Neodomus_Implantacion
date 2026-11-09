@@ -6,9 +6,14 @@ variables de entorno ``ADMIN_EMAIL`` / ``ADMIN_PASSWORD`` (y opcionalmente
 
 Uso:
 
+    # host:
     cd be && uv run python ../scripts/crear_admin.py
     # o con variables locales:
     ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=... uv run python ../scripts/crear_admin.py
+
+    # dentro del contenedor api (scripts/ está montado en /app/scripts);
+    # si no pasas ADMIN_PASSWORD la pedirá por getpass sin eco:
+    docker exec -it -e ADMIN_EMAIL=... neodomus_api uv run python /app/scripts/crear_admin.py
 """
 from __future__ import annotations
 
@@ -17,14 +22,37 @@ import sys
 from getpass import getpass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "be"))
-os.chdir(ROOT / "be")
+SCRIPT_DIR = Path(__file__).resolve().parent
+# En el host es la raíz del repo (repo/scripts). En el contenedor api es /app:
+# compose monta scripts/ en /app/scripts y el código del backend vive directamente
+# en /app (el paquete 'app' está en /app/app).
+ROOT = SCRIPT_DIR.parent
+
+
+def _detectar_backend() -> Path:
+    """Localiza el directorio raíz del backend (el que contiene ``app/``).
+
+    En el host es ``<repo>/be``. Dentro del contenedor ``api`` no existe el
+    subdirectorio ``be``, así que se usa el directorio contenedor del script.
+    """
+    for candidato in (ROOT / "be", ROOT, Path("/app")):
+        if (candidato / "app").is_dir():
+            return candidato
+    raise RuntimeError(
+        "No se encontró el paquete 'app'. Ejecuta este script desde "
+        "repo/scripts (host: repo/scripts/crear_admin.py) o dentro del "
+        "contenedor api (/app/scripts/crear_admin.py)."
+    )
+
+
+BACKEND = _detectar_backend()
+sys.path.insert(0, str(BACKEND))
+os.chdir(BACKEND)
 
 try:
     from dotenv import load_dotenv
 
-    load_dotenv(ROOT / "be" / ".env")
+    load_dotenv(BACKEND / ".env")
 except Exception:
     pass
 
