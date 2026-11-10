@@ -48,6 +48,7 @@ const ICONO_TIPO: Record<TipoNotificacion, React.ReactNode> = {
   asignacion: <FaCalendarCheck />,
   recordatorio_cita: <FaStar />,
   recordatorio_producto: <FaStar />,
+  respuesta_soporte: <FaCircleInfo />,
 };
 
 const AdminNotificaciones = () => {
