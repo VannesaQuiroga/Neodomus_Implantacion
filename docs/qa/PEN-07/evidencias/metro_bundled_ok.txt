@@ -1,0 +1,33 @@
+# Evidencia PEN-07 — Bundle servido al emulador tras las correcciones (Metro)
+
+Sesión: 2026-11-10 · Canal estable: `adb reverse tcp:18082 tcp:18082` +
+deep link `exp://localhost:18082` · Salidas reales del dev server:
+
+```text
+Waiting on http://localhost:18081     (primer arranque con correcciones)
+...
+Android Bundled 3109ms node_modules\.pnpm\expo-router@57.0.21_5e322f59bf386fbf37fcb08961f2ffed\node_modules\expo-router\entry.js (1948 modules)
+
+Android Bundled 3375ms node_modules\.pnpm\expo-router@57.0.21_5e322f59bf386fbf37fcb08961f2ffed\node_modules\expo-router\entry.js (1948 modules)
+   [tras reinicio del emulador; canal adb reverse]
+
+Android Bundled 136ms node_modules\.pnpm\expo-router@57.0.21_...\node_modules\expo-router\entry.js (1 module)
+   [hot reload posterior]
+```
+
+Registros funcionales del dispositivo observados en el mismo log
+(recorrido cliente completado):
+
+```text
+LOG  [productos] ✓ backend respondió: total=10 data=10 categorías=10
+LOG  [productos] Render: productos=10 filtrados=10 visibles=10 busqueda="" categoria=null
+LOG  [checkout] Descargando PDF /api/v1/pedidos/11/factura
+LOG  [factura] Descargando PDF http://10.0.2.2:8000/api/v1/pedidos/11/factura → file:///data/user/0/host.exp.exponent/cache/.../factura_11.pdf
+LOG  [factura] download status=200 uri=file:///data/user/0/host.exp.exponent/cache/.../factura_11.pdf
+LOG  [factura] Archivo OK size=24959
+LOG  [productos] Primer visible: id=10 nombre="Batería recargable 18650" precio=18000 stock=119 imagen=null
+   [stock descontado de 120 a 119 tras la compra real]
+```
+
+Interpretación: sin errores de resolución ni de incompatibilidad; el bundle se
+sirvió y consumió en el emulador en los tres arranques documentados.

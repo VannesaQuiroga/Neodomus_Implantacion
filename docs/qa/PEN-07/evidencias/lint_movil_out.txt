@@ -1,0 +1,564 @@
+﻿
+C:\Users\valet\neodomus_main\movil\.expo\types\router.d.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+C:\Users\valet\neodomus_main\movil\app\(cliente)\novedades.tsx
+  11:3   warning  'Image' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  12:3   warning  'KeyboardAvoidingView' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  14:3   warning  'Platform' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  29:3   warning  'TIPOS_NOVEDAD' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  40:7   warning  'ICONO_TIPO' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  81:10  warning  'cargandoDetalle' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  96:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(cliente)\novedades.tsx:96:5
+  94 |
+  95 |   useEffect(() => {
+> 96 |     cargar();
+     |     ^^^^^^ Avoid calling setState() directly within an effect
+  97 |     const i = setInterval(() => cargar(true), 30000);
+  98 |     return () => clearInterval(i);
+  99 |   }, [cargar]);  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\checkout.tsx
+   61:34  warning  'usuario' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  136:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\checkout.tsx:136:7
+  134 |   useEffect(() => {
+  135 |     if (!tipoActivo || !fechaServicio || !horaServicio) {
+> 136 |       setTecnicosDisponibles([]);
+      |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  137 |       return;
+  138 |     }
+  139 |     let activo = true;  react-hooks/set-state-in-effect
+  452:36  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\checkout.tsx:452:36
+  450 |                 valor={fechaServicio}
+  451 |                 onChange={setFechaServicio}
+> 452 |                 minFecha={new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)}
+      |                                    ^^^^^^^^^^ Cannot call impure function
+  453 |               />
+  454 |               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+  455 |                 {Array.from({ length: 11 }, (_, i) => `${String(8 + i).padStart(2, "0")}:00`).map((h) => (                                                                                                                                                              react-hooks/purity
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\index.tsx
+  50:5  error  Error: This value cannot be modified
+
+This modifies a variable that React considers immutable.
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\index.tsx:50:5
+  48 |
+  49 |   React.useEffect(() => {
+> 50 |     anchoBarra.value = withTiming(1, {
+     |     ^^^^^^^^^^ `anchoBarra` cannot be modified
+  51 |       duration: 800,
+  52 |       easing: Easing.out(Easing.quad),
+  53 |     });  react-hooks/immutability
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\info.tsx
+  7:17  warning  'Pressable' is defined but never used  @typescript-eslint/no-unused-vars
+  8:10  warning  'router' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\pedidos.tsx
+  49:10  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\pedidos.tsx:49:10
+  47 |
+  48 |   useEffect(() => {
+> 49 |     void cargar();
+     |          ^^^^^^ Avoid calling setState() directly within an effect
+  50 |   }, [cargar]);
+  51 |
+  52 |   useEffect(() => {  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\perfil.tsx
+   1:1   warning  Unexpected Unicode BOM (Byte Order Mark)                                      unicode-bom
+  32:26  warning  'C:\Users\valet\neodomus_main\movil\services\api.ts' imported multiple times  import/no-duplicates
+  33:26  warning  'C:\Users\valet\neodomus_main\movil\services\api.ts' imported multiple times  import/no-duplicates
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\producto\[id].tsx
+  74:9   warning  'CARD_W' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  96:10  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\producto\[id].tsx:96:10
+  94 |
+  95 |   useEffect(() => {
+> 96 |     void cargar();
+     |          ^^^^^^ Avoid calling setState() directly within an effect
+  97 |   }, [cargar]);
+  98 |
+  99 |   // Productos recomendados: misma categor├¡a primero, luego las dem├ís  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\productos.tsx
+   63:40  warning  A `require()` style import is forbidden                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-require-imports
+  106:10  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\productos.tsx:106:10
+  104 |
+  105 |   useEffect(() => {
+> 106 |     void cargar();
+      |          ^^^^^^ Avoid calling setState() directly within an effect
+  107 |   }, [cargar]);
+  108 |
+  109 |   // Al volver a Productos tras una compra exitosa, recargar stock real del backend  react-hooks/set-state-in-effect
+  154:6   warning  React Hook useEffect has a missing dependency: 'visibles'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\calificaciones.tsx
+  41:9   warning  The 'todas' logical expression could make the dependencies of useMemo Hook (at line 53) change on every render. To fix this, wrap the initialization of 'todas' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  43:21  error    React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\cambiar-password.tsx
+  7:28  warning  'C' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\citas.tsx
+  81:26  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\citas.tsx:81:26
+  79 |     setLoading(false);
+  80 |   };
+> 81 |   useEffect(() => { void fetchCitas(); }, []);
+     |                          ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  82 |   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
+  83 |
+  84 |   // Comunica con el backend mediante API `/tecnicos/citas/${id}/estado`  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\clientes.tsx
+  17:11  warning  't' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\devoluciones.tsx
+  84:26  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\devoluciones.tsx:84:26
+  82 |   };
+  83 |
+> 84 |   useEffect(() => { void fetchWithHistorial(); }, []);
+     |                          ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  85 |   useEffect(() => { if (!toast) return; const tm = setTimeout(() => setToast(null), 2500); return () => clearTimeout(tm); }, [toast]);
+  86 |
+  87 |   // Reset filtros al cambiar de vista (opcional: mantener b├║squeda pero reset estado/fecha/hora)  react-hooks/set-state-in-effect
+  92:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\devoluciones.tsx:92:7
+  90 |     // but spec says filters should work combined, so we reset historial-specific filters when switching
+  91 |     if (vista === "pendientes") {
+> 92 |       setEstadoFiltro("todas");
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  93 |       setFechaFiltro("");
+  94 |       setHoraFiltro("");
+  95 |     }                                                                                          react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\entregas.tsx
+    7:3   warning  'Image' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   27:3   warning  'subirEvidencia' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  120:10  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\entregas.tsx:120:10
+  118 |
+  119 |   useEffect(() => {
+> 120 |     void cargar();
+      |          ^^^^^^ Avoid calling setState() directly within an effect
+  121 |     return () => detenerUbicacion();
+  122 |   }, []);
+  123 |                                                                                                                                                                                                                                                                       react-hooks/set-state-in-effect
+  121:18  error    Error: Cannot access variable before it is declared
+
+`detenerUbicacion` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\entregas.tsx:121:18
+  119 |   useEffect(() => {
+  120 |     void cargar();
+> 121 |     return () => detenerUbicacion();
+      |                  ^^^^^^^^^^^^^^^^ `detenerUbicacion` accessed before it is declared
+  122 |   }, []);
+  123 |
+  124 |   // ÔöÇÔöÇ Status update ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\entregas.tsx:228:3
+  226 |   // ÔöÇÔöÇ Location sharing ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  227 |
+> 228 |   const detenerUbicacion = () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 229 |     watchIdRef.current?.remove();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 230 |     watchIdRef.current = null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 231 |     setCompartiendoUbicacion(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 232 |   };
+      | ^^^^^ `detenerUbicacion` is declared here
+  233 |
+  234 |   // Comunica con el backend mediante API "/tecnicos/ubicacion".
+  235 |   const compartirUbicacion = async () => {  react-hooks/immutability
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\historial.tsx
+   62:11  warning  't' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   95:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\historial.tsx:95:5
+  93 |   // reset estado filter when switching tabs
+  94 |   useEffect(() => {
+> 95 |     setFiltroCitas("todas");
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  96 |     setFiltroEntrega("todas");
+  97 |   }, [vista]);
+  98 |                    react-hooks/set-state-in-effect
+  109:10  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\historial.tsx:109:10
+  107 |
+  108 |   useEffect(() => {
+> 109 |     void fetchCitas();
+      |          ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  110 |     const interval = setInterval(fetchCitas, 60000);
+  111 |     return () => clearInterval(interval);
+  112 |   }, []);  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\index.tsx
+    6:28  warning  'useMemo' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   19:13  warning  'FileSystem' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   20:13  warning  'ImagePicker' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   22:30  warning  'FadeIn' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   27:20  warning  'ApiError' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  129:10  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\index.tsx:129:10
+  127 |
+  128 |   useEffect(() => {
+> 129 |     void fetchAll();
+      |          ^^^^^^^^ Avoid calling setState() directly within an effect
+  130 |     const id = setInterval(fetchAll, 60000);
+  131 |     return () => clearInterval(id);
+  132 |   }, []);  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\mensajes.tsx
+   19:10  warning  'useScrollTopAlEntrar' is defined but never used                                                                    @typescript-eslint/no-unused-vars
+  132:6   warning  React Hook useEffect has a missing dependency: 'usuario?.nombre'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\notificaciones.tsx
+  34:26  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\notificaciones.tsx:34:26
+  32 |   };
+  33 |
+> 34 |   useEffect(() => { void cargar(); }, []);
+     |                          ^^^^^^ Avoid calling setState() directly within an effect
+  35 |   useEffect(() => { if (!toast) return; const t=setTimeout(()=>setToast(null),2500); return()=>clearTimeout(t); }, [toast]);
+  36 |
+  37 |   // Comunica con el backend mediante API "/notificaciones/leer-todas"  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\novedades.tsx
+    7:41  warning  'useMemo' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   31:3   warning  'FilterChip' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   32:3   warning  'FilterRow' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   33:3   warning  'ClearFiltersBtn' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   34:3   warning  'PickerModal' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   35:3   warning  'Tabs' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   41:3   warning  'ESTADOS_NOVEDAD' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   46:3   warning  'EvidenciaNovedad' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  132:10  warning  'novedadesCliente' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  133:10  warning  'cargandoCliente' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  207:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\novedades.tsx:207:5
+  205 |
+  206 |   useEffect(() => {
+> 207 |     cargar();
+      |     ^^^^^^ Avoid calling setState() directly within an effect
+  208 |     const i = setInterval(() => cargar(true), 30000);
+  209 |     return () => clearInterval(i);
+  210 |   }, [cargar]);                                                                    react-hooks/set-state-in-effect
+  214:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tecnico)\novedades.tsx:214:7
+  212 |   useEffect(() => {
+  213 |     if (vistaCliente) {
+> 214 |       cargarNovedadesCliente();
+      |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  215 |       const i = setInterval(() => cargarNovedadesCliente(), 30000);
+  216 |       return () => clearInterval(i);
+  217 |     }  react-hooks/set-state-in-effect
+  373:18  warning  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\app\_layout.tsx
+  58:11  warning  'enTabs' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\app\login.tsx
+  1:1  warning  Unexpected Unicode BOM (Byte Order Mark)  unicode-bom
+
+C:\Users\valet\neodomus_main\movil\components\public\AsistenteFlotante.tsx
+   68:25  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\valet\neodomus_main\movil\components\public\AsistenteFlotante.tsx:68:25
+   66 |
+   67 |   const panResponder = useRef(
+>  68 |     PanResponder.create({
+      |                         ^
+>  69 |       onStartShouldSetPanResponder: () => true,
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  70 |       onPanResponderGrant: (evento) => {
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 105 |       },
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |     }),
+      | ^^^^^^ Passing a ref to a function may read its value during render
+  107 |   ).current;
+  108 |
+  109 |   const ocultarFab = () => {  react-hooks/refs
+  102:11  error  Error: Cannot reassign variables declared outside of the component/hook
+
+Variable `fabPosicionGuardada` is declared outside of the component/hook. Reassigning this value during render is a form of side effect, which can cause unpredictable behavior depending on when the component happens to re-render. If this variable is used in rendering, use useState instead. Otherwise, consider updating it in an effect. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#side-effects-must-run-outside-of-render).
+
+C:\Users\valet\neodomus_main\movil\components\public\AsistenteFlotante.tsx:102:11
+  100 |           setChatAbierto(true);
+  101 |         } else {
+> 102 |           fabPosicionGuardada = { ...posicionRef.current };
+      |           ^^^^^^^^^^^^^^^^^^^ `fabPosicionGuardada` cannot be reassigned
+  103 |         }
+  104 |         inicioArrastre.current = null;
+  105 |       },                                                                                               react-hooks/globals
+  124:15  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\valet\neodomus_main\movil\components\public\AsistenteFlotante.tsx:124:15
+  122 |       {!oculto ? (
+  123 |         <Animated.View
+> 124 |           {...panResponder.panHandlers}
+      |               ^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  125 |           style={[styles.fabWrap, { left: posicion.x, top: posicion.y }]}
+  126 |           accessible
+  127 |           accessibilityRole="button"                                                                                                                                                                                                                                 react-hooks/refs
+
+C:\Users\valet\neodomus_main\movil\components\public\FormularioContacto.tsx
+  46:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\components\public\FormularioContacto.tsx:46:7
+  44 |   useEffect(() => {
+  45 |     if (usuario) {
+> 46 |       setNombre((actual) => actual || usuario.nombre);
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  47 |       setEmail((actual) => actual || usuario.correo);
+  48 |     }
+  49 |   }, [usuario]);  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\components\public\PantallaAyuda.tsx
+  84:23  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\components\public\PantallaAyuda.tsx:84:23
+  82 |
+  83 |   useEffect(() => {
+> 84 |     if (!faqsRemotos) setFaqs(faqsMock);
+     |                       ^^^^^^^ Avoid calling setState() directly within an effect
+  85 |     // El fallback sigue el idioma activo; las FAQs recibidas del servidor conservan su contenido.
+  86 |   }, [faqsMock, faqsRemotos]);
+  87 |  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\components\public\PantallaCitas.tsx
+  134:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\components\public\PantallaCitas.tsx:134:7
+  132 |     const diaSemana = fecha ? new Date(fecha + "T12:00:00").getDay() : null;
+  133 |     if (!fecha || diaSemana === 0) {
+> 134 |       setHorasDisponibles([]);
+      |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  135 |       return;
+  136 |     }
+  137 |     let activo = true;  react-hooks/set-state-in-effect
+  314:34  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\valet\neodomus_main\movil\components\public\PantallaCitas.tsx:314:34
+  312 |     if (cita.estado === "Finalizada" || cita.estado === "Cancelada") return false;
+  313 |     const fechaHora = new Date(`${cita.fecha}T${cita.hora}:00`);
+> 314 |     return fechaHora.getTime() - Date.now() >= 48 * 60 * 60 * 1000; // regla 48 h
+      |                                  ^^^^^^^^^^ Cannot call impure function
+  315 |   };
+  316 |
+  317 |   const confirmarCancelar = async () => {                                                                                                                                                                                                                                                                                                 react-hooks/purity
+
+C:\Users\valet\neodomus_main\movil\components\tecnico\Filtros.tsx
+   13:42  warning  'C' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  178:14  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\components\tecnico\Filtros.tsx:178:14
+  176 |     if (visible) {
+  177 |       const d = parseISODate(value);
+> 178 |       if (d) setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
+      |              ^^^^^^^^^ Avoid calling setState() directly within an effect
+  179 |       else setCursor(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  180 |     }
+  181 |   }, [visible, value]);  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\components\tecnico\TechnicianDrawer.tsx
+  48:11  warning  't' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\constants\api.ts
+  15:23  warning  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\valet\neodomus_main\movil\hooks\use-color-scheme.web.ts
+  12:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\hooks\use-color-scheme.web.ts:12:5
+  10 |
+  11 |   useEffect(() => {
+> 12 |     setHasHydrated(true);
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  13 |   }, []);
+  14 |
+  15 |   const colorScheme = useRNColorScheme();  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\hooks\useAuthImage.ts
+  43:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\hooks\useAuthImage.ts:43:7
+  41 |   useEffect(() => {
+  42 |     if (!url) {
+> 43 |       setEstado({ uri: null, loading: false, error: false });
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  44 |       return;
+  45 |     }
+  46 |     let activo = true;  react-hooks/set-state-in-effect
+
+C:\Users\valet\neodomus_main\movil\hooks\useScrollTopAlEntrar.ts
+  55:8  warning  React Hook useCallback has a missing dependency: 'ref'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\valet\neodomus_main\movil\services\cliente.services.ts
+  6:20  warning  'ApiError' is defined but never used  @typescript-eslint/no-unused-vars
+
+Ô£û 76 problems (29 errors, 47 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+

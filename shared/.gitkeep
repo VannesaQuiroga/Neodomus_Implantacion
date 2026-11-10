@@ -1,0 +1,3 @@
+# Carpeta compartida entre aplicaciones (referenciada por movil/metro.config.js como watchFolder).
+# PEN-07 (2026-11-10): se crea vacía para que Metro pueda arrancar en el entorno actual.
+# Ver docs/qa/PEN-07/defectos-encontrados.md (PEN07-DEF-002).

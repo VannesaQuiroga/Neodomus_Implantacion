@@ -1,0 +1,32 @@
+# Evidencia PEN-07 (DEF-002) — Metro no arranca por carpeta `../shared` ausente
+
+Comando: `npx expo start` (desde `movil/`) · Sesión: 2026-11-10
+Salida real (transcripción exacta de la sesión):
+
+```text
+Failed to construct transformer:  Error: ENOENT: no such file or directory, stat 'C:\Users\valet\neodomus_main\shared'
+    at Object.statSync (node:fs:1739:25)
+    at verifyRootExists (C:\Users\valet\neodomus_main\movil\node_modules\.pnpm\metro@0.84.5_supports-color@8.1.1\node_modules\metro\src\DeltaBundler\Transformer.js:156:17)
+    at Array.forEach (<anonymous>)
+    at new Transformer (C:\Users\valet\neodomus_main\movil\node_modules\.pnpm\metro@0.84.5_supports-color@8.1.1\node_modules\metro\src\DeltaBundler\Transformer.js:24:31)
+    at C:\Users\valet\neodomus_main\movil\node_modules\.pnpm\metro@0.84.5_supports-color@8.1.1\node_modules\metro\src\Bundler.js:25:29
+    at async Bundler.ready (...Bundler.js:62:5)
+    at async IncrementalBundler.ready (...IncrementalBundler.js:310:5)
+    at async Server.ready (...Server.js:1446:5)
+    at async runMetro (...index.flow.js:142:5)
+    at async createConnectMiddleware (...index.flow.js:147:23)
+  {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'stat',
+    path: 'C:\\Users\\valet\\neodomus_main\\shared'
+  }
+```
+
+Contexto: `movil/metro.config.js` (línea 5) declara
+`const sharedSource = path.resolve(__dirname, '../shared')` como watchFolder.
+La carpeta no existe en el repositorio y nunca existió (`git log --all -- shared`
+vacío; ningún import la referencia).
+
+Resolución aplicada: creación de `shared/.gitkeep` → Metro arrancó y sirvió el
+bundle completo (ver `metro_bundled_ok.txt`).

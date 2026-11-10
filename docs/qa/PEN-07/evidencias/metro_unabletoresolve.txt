@@ -1,0 +1,62 @@
+# Evidencia PEN-07 (DEF-004) — UnableToResolveError real en el bundle (expo-modules-core)
+
+Fuente: log del dev server Metro (`npx expo start`, puerto 18081) · 2026-11-10.
+Nota honesta: este estado se observó en pantalla (LogBox dentro de la app) pero
+NO se capturó como PNG (la captura de ese momento no se realizó); la prueba
+documental es el log real del dev server, transcrito aquí.
+
+Salida real (transcripción exacta):
+
+```text
+Unable to resolve "expo-modules-core" from "node_modules\.pnpm\expo-keep-awake@57.0.2_expo@57.0.22_react@19.2.3\node_modules\expo-keep-awake\src\index.ts"
+> 1 | import { type EventSubscription, UnavailabilityError } from 'expo-modules-core';
+    |                                                              ^
+ 2 | import { useEffect, useId } from 'react';
+ 3 |
+ 4 | import ExpoKeepAwake from './ExpoKeepAwake';
+
+Import stack:
+ node_modules\.pnpm\expo-keep-awake@57.0.2_.../node_modules\expo-keep-awake\src\index.ts
+ | import "expo-modules-core"
+ node_modules\.pnpm\expo@57.0.22_.../node_modules\expo\src\launch\withDevTools.tsx
+ | import "expo-keep-awake"
+ node_modules\.pnpm\expo@57.0.22_.../node_modules\expo\src\launch\registerRootComponent.tsx
+ | import "./withDevTools"
+ node_modules\.pnpm\expo@57.0.22_.../node_modules\expo\src\Expo.ts
+ | import "./launch/registerRootComponent"
+ node_modules\.pnpm\expo-router@57.0.21_.../node_modules\expo-router\build\utils\splash.js
+ | import "expo"
+ node_modules\.pnpm\expo-router@57.0.21_.../node_modules\expo-router\build\views\RootUnmatched.js
+ | import "../utils/splash"
+ node_modules\.pnpm\expo-router@57.0.21_.../node_modules\expo-router\build\ExpoRoot.js
+ | import "./views/RootUnmatched"
+ node_modules\.pnpm\expo-router@57.0.21_.../node_modules\expo-router\build\exports.js
+ | import "./ExpoRoot"
+ node_modules\.pnpm\expo-router@57.0.21_.../node_modules\expo-router\build\index.js
+ | import "./exports"
+ app\(tabs)\_layout.tsx
+ | import "expo-router"
+
+ app (require.context)
+```
+
+Diagnóstico en la sesión (hechos medidos):
+
+```text
+movil/node_modules/expo-modules-core        → False (ausente en la raíz)
+Total directorios en node_modules raíz      → 36 (solo dependencias directas)
+Store de pnpm: expo-modules-core@57.0.18_... (instalado en .pnpm, no publicado en raíz)
+```
+
+Resolución aplicada: `publicHoistPattern: ["*expo*"]` en `movil/pnpm-workspace.yaml`
+(+ `public-hoist-pattern[]=*expo*` en `.npmrc`) y reinstalación limpia:
+
+```text
+pnpm install --frozen-lockfile → Done
+node -e "console.log(require('./node_modules/expo/package.json').version)" → 57.0.22
+Test-Path .\node_modules\expo-modules-core → True
+Total directorios node_modules raíz → 548
+```
+
+Validación final pendiente de una corrida limpia por el equipo (el error no
+volvió a aparecer en los arranques de la sesión tras la corrección).

@@ -1,6 +1,14 @@
 allowBuilds:
   unrs-resolver: true
 
+# Configuración de dependencias para Metro (PEN-07).
+# Metro necesita resolver módulos transitivos de Expo (p. ej. expo-modules-core)
+# desde paquetes anidados; el modo aislado de pnpm no los publica en la raíz.
+# Con publicHoistPattern se enlazan al node_modules raíz solo los paquetes
+# expo*, suficiente para el resolutor de Metro sin duplicar todo el grafo.
+publicHoistPattern:
+  - "*expo*"
+
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.24'
   - '@expo/fingerprint@0.20.13'

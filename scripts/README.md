@@ -32,15 +32,15 @@ El modo SIMULATE_FAIL debe terminar con código 1 y sirve para verificar el mane
 Los usuarios de prueba usan una contraseña temporal con este patrón:
 
 ```
-123345678 + inicial del nombre en MAYÚSCULA + inicial del primer apellido en minúscula + .
+12345678 + inicial del nombre en MAYÚSCULA + inicial del primer apellido en minúscula + .
 ```
 
 | Email | Nombre | Contraseña temporal |
 |---|---|---|
-| `prueba.cliente@neodomus.com` | Prueba Cliente | `123345678Pc.` |
-| `cliente.demo@neodomus.com` | Carolina Mendez | `123345678Cm.` |
-| `admin@neodomus.com` | Admin Neodomus | `123345678An.` |
-| `tecnico@neodomus.com` | Tecnico Prueba | `123345678Tp.` |
+| `prueba.cliente@neodomus.com` | Prueba Cliente | `12345678Pc.` |
+| `cliente.demo@neodomus.com` | Carolina Mendez | `12345678Cm.` |
+| `admin@neodomus.com` | Admin Neodomus | `12345678An.` |
+| `tecnico@neodomus.com` | Tecnico Prueba | `12345678Tp.` |
 
 > ⚠️ Seguridad: la base de datos solo guarda el **hash bcrypt** de la contraseña,
 > nunca el texto plano. Las contraseñas de esta tabla son solo de referencia
