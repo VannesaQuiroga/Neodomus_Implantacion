@@ -85,3 +85,7 @@ be/app/tests/test_muestra_ventas.py
 
 # scripts personales one-off de backend (OAuth Gmail, migraciones puntuales)
 be/scripts/
+
+# capturas temporales de pruebas del emulador/navegador
+movil/.chrome_test.png
+movil/.expo_emulador_ok.png
