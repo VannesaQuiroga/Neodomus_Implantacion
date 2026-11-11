@@ -52,6 +52,7 @@ export const ADMIN_TRADUCCIONES_INSTALACIONES: Record<string, { es: string; en: 
   'adm.instalaciones.reembolsoCita': { es: 'Reembolsar una cita o pedido', en: 'Refund an appointment or order' },
   'adm.instalaciones.reembolsoSelecciona': { es: 'Selecciona una cita cancelada o pedido…', en: 'Select a cancelled appointment or order…' },
   'adm.instalaciones.reembolsoMonto': { es: 'Monto', en: 'Amount' },
+  'adm.instalaciones.reembolsoRetencion': { es: 'Retención admin (%)', en: 'Admin hold (%)' },
   'adm.instalaciones.reembolsoMotivo': { es: 'Motivo (opcional)', en: 'Reason (optional)' },
   'adm.instalaciones.reembolsar': { es: 'Reembolsar', en: 'Refund' },
   'adm.instalaciones.procesando': { es: 'Procesando…', en: 'Processing…' },

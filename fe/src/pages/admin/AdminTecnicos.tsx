@@ -793,7 +793,12 @@ const AdminTecnicos = () => {
       {/* ── Modal Historial del Técnico ── */}
       {historialTecnico && (
         <div className="modal-overlay">
-          <div className="modal-content ap-modal" role="dialog" aria-modal="true">
+          <div
+            className="modal-content ap-modal"
+            role="dialog"
+            aria-modal="true"
+            style={{ maxWidth: 850, height: '75vh' }}
+          >
             <div className="ap-modal-header">
               <h2 style={{ margin: 0, fontSize: 18, color: '#f0e6d2' }}>
                 Historial — {historialTecnico.first_name} {historialTecnico.last_name}
@@ -832,7 +837,7 @@ const AdminTecnicos = () => {
             </div>
 
             {/* Tabs */}
-            <div className="ap-tabs">
+            <div className="ap-tabs ap-tabs--modal">
               <button
                 type="button"
                 className={`ap-tab ${tabHistorial === 'servicios' ? 'active' : ''}`}

@@ -1794,10 +1794,12 @@
 }
 
 /* â”€â”€ Modales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* El backdrop debe cubrir el navbar ("position: sticky", z-index 90): si se
+   quedara debajo, los modales grandes aparecían recortados por él. */
 .pf-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 1000;
   background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
@@ -1806,13 +1808,26 @@
 }
 
 .pf-modal {
+  box-sizing: border-box;
   background: var(--pf-card);
   border: 1px solid rgba(212, 165, 75, 0.3);
   border-radius: 20px;
   padding: 24px;
   width: 100%;
   max-width: 440px;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Común a todos los modales del perfil: título a la izquierda y acciones a la derecha. */
+.pf-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
 
 .pf-modal-small .pf-modal-header {
@@ -1825,6 +1840,10 @@
   color: #fff;
   margin: 0;
   font-size: 1.1rem;
+  /* Con títulos largos el botón cerrar debe quedar a la derecha,
+     no caer debajo del título: el título cede el espacio sobrante. */
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .pf-modal-close {
@@ -1853,7 +1872,8 @@
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
+  /* Debe verse por encima del backdrop de los modales (z-index 1000). */
+  z-index: 1200;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3921,6 +3941,7 @@
   .pf-resena { padding: 12px; }
   .pf-resena-row { align-items: flex-start; flex-direction: column; gap: 6px; }
   .pf-resena-guardada { align-items: flex-start; }
+  .pf-modal { padding: 18px; border-radius: 16px; }
   .pf-dev-sol-head { align-items: flex-start; flex-wrap: wrap; }
   .pf-dev-sol-num { flex: 1 1 auto; }
   .pf-dev-items li { align-items: flex-start; flex-wrap: wrap; }

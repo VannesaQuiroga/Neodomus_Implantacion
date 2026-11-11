@@ -1,4 +1,5 @@
 import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
+import ModalPortal from '@components/common/ModalPortal';
 // Pantalla Perfil de Neodomus. Reúne el estado y las acciones de su vista.
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -660,35 +661,37 @@ const Perfil = () => {
 
       {/* ── Modal inhabilitar cuenta ─────────────────────────── */}
       {confirmarInhabilitar && (
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
-            <div className="pf-modal-header">
-              <h3>{t('perfil.inhabilitarCuenta')}</h3>
-              <button type="button" className="pf-modal-close" onClick={() => setConfirmarInhabilitar(false)} aria-label={t('common.cerrar')} disabled={enviandoSolicitud}>×</button>
-            </div>
-            <p className="pf-modal-text">{t('perfil.cuentaModal.mensaje')}</p>
-            <div className="pf-form-group" style={{ marginTop: 4 }}>
-              <label className="pf-form-label" htmlFor="pf-motivo">
-                {t('perfil.cuentaModal.motivoLabel')}
-              </label>
-              <textarea
-                id="pf-motivo"
-                className="pf-form-input pf-textarea"
-                value={motivoSolicitud}
-                onChange={(e) => setMotivoSolicitud(e.target.value)}
-                placeholder={t('perfil.cuentaModal.motivoPlaceholder')}
-                required
-                disabled={enviandoSolicitud}
-              />
-            </div>
-            <div className="pf-form-actions" style={{ marginTop: 16 }}>
-              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setConfirmarInhabilitar(false)} disabled={enviandoSolicitud}>{t('common.cancelar')}</button>
-              <button type="button" className="pf-btn pf-btn-danger" onClick={handleSolicitarInhabilitacion} disabled={enviandoSolicitud}>
-                <FaHourglassHalf /> {enviandoSolicitud ? t('perfil.cuentaModal.enviando') : t('perfil.cuentaModal.enviarSolicitud')}
-              </button>
+        <ModalPortal>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
+            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+              <div className="pf-modal-header">
+                <h3>{t('perfil.inhabilitarCuenta')}</h3>
+                <button type="button" className="pf-modal-close" onClick={() => setConfirmarInhabilitar(false)} aria-label={t('common.cerrar')} disabled={enviandoSolicitud}>×</button>
+              </div>
+              <p className="pf-modal-text">{t('perfil.cuentaModal.mensaje')}</p>
+              <div className="pf-form-group" style={{ marginTop: 4 }}>
+                <label className="pf-form-label" htmlFor="pf-motivo">
+                  {t('perfil.cuentaModal.motivoLabel')}
+                </label>
+                <textarea
+                  id="pf-motivo"
+                  className="pf-form-input pf-textarea"
+                  value={motivoSolicitud}
+                  onChange={(e) => setMotivoSolicitud(e.target.value)}
+                  placeholder={t('perfil.cuentaModal.motivoPlaceholder')}
+                  required
+                  disabled={enviandoSolicitud}
+                />
+              </div>
+              <div className="pf-form-actions" style={{ marginTop: 16 }}>
+                <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setConfirmarInhabilitar(false)} disabled={enviandoSolicitud}>{t('common.cancelar')}</button>
+                <button type="button" className="pf-btn pf-btn-danger" onClick={handleSolicitarInhabilitacion} disabled={enviandoSolicitud}>
+                  <FaHourglassHalf /> {enviandoSolicitud ? t('perfil.cuentaModal.enviando') : t('perfil.cuentaModal.enviarSolicitud')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

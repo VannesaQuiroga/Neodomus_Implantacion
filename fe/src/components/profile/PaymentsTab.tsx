@@ -5,6 +5,7 @@ import { getPagos, saveItem, PF_PAGOS_KEY, MetodoPago, TipoPago } from '@utils/p
 import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
+import ModalPortal from '@components/common/ModalPortal';
 
 const tipoLabelKey: Record<TipoPago, string> = {
   tarjeta: 'perfil.pagos.tipoTarjeta',
@@ -53,76 +54,78 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
   };
 
   return (
-    <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={onClose}>
-      <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="pf-modal-header">
-          <h3>{metodo ? t('perfil.pagos.editarTitulo') : t('perfil.pagos.agregarTitulo')}</h3>
-          <button type="button" className="pf-modal-close" onClick={onClose} aria-label={t('common.cerrar')}>×</button>
-        </div>
-        <form className="pf-form" onSubmit={submit}>
-          <div className="pf-form-group">
-            <span className="pf-form-label">{t('perfil.pagos.tipoMetodo')}</span>
-            <div className="pf-pay-type-select">
-              {(Object.keys(tipoLabelKey) as TipoPago[]).map((tipoKey) => (
-                <button
-                  type="button"
-                  key={tipoKey}
-                  className={`pf-pay-type-btn ${tipo === tipoKey ? 'active' : ''}`}
-                  onClick={() => setTipo(tipoKey)}
-                >
-                  {t(tipoLabelKey[tipoKey])}
-                </button>
-              ))}
-            </div>
+    <ModalPortal>
+      <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={onClose}>
+        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="pf-modal-header">
+            <h3>{metodo ? t('perfil.pagos.editarTitulo') : t('perfil.pagos.agregarTitulo')}</h3>
+            <button type="button" className="pf-modal-close" onClick={onClose} aria-label={t('common.cerrar')}>×</button>
           </div>
-          <div className="pf-form-group">
-            <label className="pf-form-label" htmlFor="pf-pay-titular">{t('perfil.pagos.titular')}</label>
-            <input
-              id="pf-pay-titular"
-              className="pf-form-input"
-              type="text"
-              value={titular}
-              onChange={(e) => setTitular(e.target.value)}
-              placeholder={t('perfil.pagos.placeholderTitular')}
-            />
-          </div>
-          <div className="pf-form-group">
-            <label className="pf-form-label" htmlFor="pf-pay-numero">
-              {tipo === 'tarjeta' ? t('perfil.pagos.numeroTarjeta') : tipo === 'nequi' ? t('perfil.pagos.numeroNequi') : t('perfil.pagos.cuentaBancaria')}
-            </label>
-            <input
-              id="pf-pay-numero"
-              className="pf-form-input"
-              type="text"
-              inputMode="numeric"
-              value={numero}
-              onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
-              placeholder={tipo === 'tarjeta' ? '1234 5678 9012 3456' : '300 123 4567'}
-            />
-          </div>
-          {tipo === 'tarjeta' && (
+          <form className="pf-form" onSubmit={submit}>
             <div className="pf-form-group">
-              <label className="pf-form-label" htmlFor="pf-pay-exp">{t('perfil.pagos.fechaVencimiento')}</label>
+              <span className="pf-form-label">{t('perfil.pagos.tipoMetodo')}</span>
+              <div className="pf-pay-type-select">
+                {(Object.keys(tipoLabelKey) as TipoPago[]).map((tipoKey) => (
+                  <button
+                    type="button"
+                    key={tipoKey}
+                    className={`pf-pay-type-btn ${tipo === tipoKey ? 'active' : ''}`}
+                    onClick={() => setTipo(tipoKey)}
+                  >
+                    {t(tipoLabelKey[tipoKey])}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pf-form-group">
+              <label className="pf-form-label" htmlFor="pf-pay-titular">{t('perfil.pagos.titular')}</label>
               <input
-                id="pf-pay-exp"
+                id="pf-pay-titular"
                 className="pf-form-input"
                 type="text"
-                value={expiracion}
-                onChange={(e) => setExpiracion(e.target.value.replace(/[^\d/]/g, ''))}
-                placeholder={t('perfil.pagos.placeholderVencimiento')}
+                value={titular}
+                onChange={(e) => setTitular(e.target.value)}
+                placeholder={t('perfil.pagos.placeholderTitular')}
               />
             </div>
-          )}
-          {error && <div className="pf-message-error">{error}</div>}
-          <div className="pf-form-actions">
-            <button type="button" className="pf-btn pf-btn-ghost" onClick={onClose}>{t('common.cancelar')}</button>
-            <button type="submit" className="pf-btn pf-btn-primary">
-              <FaCheck /> {metodo ? t('perfil.guardarCambios') : t('perfil.pagos.agregarMetodo')}
-            </button>
-          </div>
-        </form>
+            <div className="pf-form-group">
+              <label className="pf-form-label" htmlFor="pf-pay-numero">
+                {tipo === 'tarjeta' ? t('perfil.pagos.numeroTarjeta') : tipo === 'nequi' ? t('perfil.pagos.numeroNequi') : t('perfil.pagos.cuentaBancaria')}
+              </label>
+              <input
+                id="pf-pay-numero"
+                className="pf-form-input"
+                type="text"
+                inputMode="numeric"
+                value={numero}
+                onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
+                placeholder={tipo === 'tarjeta' ? '1234 5678 9012 3456' : '300 123 4567'}
+              />
+            </div>
+            {tipo === 'tarjeta' && (
+              <div className="pf-form-group">
+                <label className="pf-form-label" htmlFor="pf-pay-exp">{t('perfil.pagos.fechaVencimiento')}</label>
+                <input
+                  id="pf-pay-exp"
+                  className="pf-form-input"
+                  type="text"
+                  value={expiracion}
+                  onChange={(e) => setExpiracion(e.target.value.replace(/[^\d/]/g, ''))}
+                  placeholder={t('perfil.pagos.placeholderVencimiento')}
+                />
+              </div>
+            )}
+            {error && <div className="pf-message-error">{error}</div>}
+            <div className="pf-form-actions">
+              <button type="button" className="pf-btn pf-btn-ghost" onClick={onClose}>{t('common.cancelar')}</button>
+              <button type="submit" className="pf-btn pf-btn-primary">
+                <FaCheck /> {metodo ? t('perfil.guardarCambios') : t('perfil.pagos.agregarMetodo')}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
 
@@ -250,21 +253,23 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
       )}
 
       {eliminando && (
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setEliminando(null)}>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
-            <div className="pf-modal-header">
-              <h3>{t('perfil.pagos.eliminarTitulo')}</h3>
-              <button type="button" className="pf-modal-close" onClick={() => setEliminando(null)} aria-label={t('common.cerrar')}>×</button>
-            </div>
-            <p className="pf-modal-text">{t('perfil.pagos.eliminarMsg')}</p>
-            <div className="pf-form-actions">
-              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setEliminando(null)}>{t('common.cancelar')}</button>
-              <button type="button" className="pf-btn pf-btn-danger" onClick={confirmarEliminar}>
-                <FaTrashCan /> {t('common.eliminar')}
-              </button>
+        <ModalPortal>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setEliminando(null)}>
+            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+              <div className="pf-modal-header">
+                <h3>{t('perfil.pagos.eliminarTitulo')}</h3>
+                <button type="button" className="pf-modal-close" onClick={() => setEliminando(null)} aria-label={t('common.cerrar')}>×</button>
+              </div>
+              <p className="pf-modal-text">{t('perfil.pagos.eliminarMsg')}</p>
+              <div className="pf-form-actions">
+                <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setEliminando(null)}>{t('common.cancelar')}</button>
+                <button type="button" className="pf-btn pf-btn-danger" onClick={confirmarEliminar}>
+                  <FaTrashCan /> {t('common.eliminar')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

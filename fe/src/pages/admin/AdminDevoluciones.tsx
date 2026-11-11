@@ -411,46 +411,46 @@ const AdminDevoluciones = () => {
         ) : (
           <div className="ap-grid">
             {solicitudes.map((s) => (
-              <div className="ap-grid-item" key={s.id_solicitud}>
-                <div className="ap-grid-item-top">
+              <div className="ap-grid-item ap-dev-card" key={s.id_solicitud}>
+                <div className="ap-dev-card-head">
                   <span className="ap-initials">
                     {(s.cliente || '?').split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
                   </span>
-                  <span className={`ap-badge ${ESTADO_CLASE[s.estado] || ''}`}>{s.estado}</span>
+                  <div className="ap-dev-card-badges">
+                    <span className={`ap-badge ${s.tipo_devolucion === 'total' ? 'ok' : 'info'}`}>
+                      {s.tipo_devolucion === 'total' ? 'Total' : 'Parcial'}
+                    </span>
+                    <span className={`ap-badge ${ESTADO_CLASE[s.estado] || ''}`}>{s.estado}</span>
+                  </div>
                 </div>
-                <h4 style={{ margin: '10px 0 2px', fontSize: '0.95rem' }}>
-                  {s.numero} · Pedido #{s.id_pedido ?? '—'}
-                  <span
-                    className={`ap-badge ${s.tipo_devolucion === 'total' ? 'ok' : 'info'}`}
-                    style={{ marginLeft: 8 }}
-                  >
-                    {s.tipo_devolucion === 'total' ? 'Total' : 'Parcial'}
-                  </span>
-                </h4>
-                <p style={{ margin: 0, color: '#c9c0ab', fontSize: '0.8rem' }}>
-                  {s.cliente || '—'} · {formatFecha(s.created_at || '')}
-                </p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', fontWeight: 600 }}>
-                  {formatoPeso(s.monto_total)} · {s.items.length} producto(s)
-                </p>
-                {s.motivo_label && (
-                  <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: '#d4a54b' }}>
-                    Motivo: {s.motivo_label}
-                    {s.motivo_otro ? ` — “${s.motivo_otro}”` : ''}
-                  </p>
-                )}
-                {s.comentario && (
-                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#bdbdbd', overflowWrap: 'anywhere' }}>
-                    “{s.comentario}”
-                  </p>
-                )}
-                {s.motivo_rechazo && (
-                  <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#ff9b9b' }}>
-                    Rechazada: {s.motivo_rechazo}
-                  </p>
-                )}
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <h4 className="ap-dev-num">{s.numero}</h4>
+                <p className="ap-dev-ref">Pedido #{s.id_pedido ?? '—'} · {s.cliente || '—'} · {formatFecha(s.created_at || '')}</p>
+
+                <div className="ap-dev-stats">
+                  <div className="ap-dev-stat">
+                    <span className="ap-dev-stat-label">Valor a devolver</span>
+                    <strong className="ap-dev-stat-value">{formatoPeso(s.monto_total)}</strong>
+                  </div>
+                  <div className="ap-dev-stat">
+                    <span className="ap-dev-stat-label">Productos</span>
+                    <strong className="ap-dev-stat-value">{s.items.length}</strong>
+                  </div>
+                </div>
+
+                {s.motivo_label && (
+                  <div className="ap-dev-motivo">
+                    <span className="ap-dev-motivo-label">Motivo</span>
+                    <p>
+                      {s.motivo_label}
+                      {s.motivo_otro ? ` — “${s.motivo_otro}”` : ''}
+                    </p>
+                  </div>
+                )}
+                {s.comentario && <p className="ap-dev-comentario">“{s.comentario}”</p>}
+                {s.motivo_rechazo && <p className="ap-dev-rechazo">Rechazada: {s.motivo_rechazo}</p>}
+
+                <div className="ap-dev-actions">
                   {(s.estado === 'Solicitada' || s.estado === 'En revisión') && (
                     <>
                       {s.estado === 'Solicitada' && (
@@ -550,68 +550,83 @@ const AdminDevoluciones = () => {
               <p>{t('adm.devoluciones.crearDesc')}</p>
             </div>
             <div className="ap-tarifas-grid">
-              <div className="ap-tarifa-item" style={{ alignItems: 'stretch', gap: 8 }}>
-                <label className="ap-tarifa-nombre" htmlFor="dev-cita">
-                  {t('adm.instalaciones.reembolsoCita')}
-                </label>
-                <select
-                  id="dev-cita"
-                  className="ap-form-input"
-                  value={selReembolso}
-                  onChange={(e) => seleccionarElegible(e.target.value)}
-                >
-                  <option value="">{t('adm.instalaciones.reembolsoSelecciona')}</option>
-                  {elegibles.map((e) => (
-                    <option key={claveElegible(e)} value={claveElegible(e)}>
-                      {e.etiqueta} — {formatoPeso(e.monto_pagado)}
-                    </option>
-                  ))}
-                </select>
-                <div className="ap-tarifa-editar">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="ap-form-input"
-                    placeholder="% retención admin"
-                    value={retencionPct}
-                    onChange={(e) => setRetencionPct(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className="ap-form-input"
-                    placeholder={t('adm.instalaciones.reembolsoMotivo')}
-                    value={motivoReembolso}
-                    onChange={(e) => setMotivoReembolso(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="ap-btn ap-btn-primary"
-                    disabled={creandoReembolso || !selReembolso || !retencionPct}
-                    onClick={crearReembolso}
-                  >
-                    {creandoReembolso
-                      ? t('adm.instalaciones.procesando')
-                      : t('adm.instalaciones.reembolsar')}
-                  </button>
-                </div>
-                {selReembolso && retencionPct && (() => {
-                  const elegida = elegibles.find((e) => claveElegible(e) === selReembolso);
-                  if (!elegida) return null;
-                  const pct = Number.parseFloat(retencionPct);
-                  const alCliente = Math.round(elegida.monto_pagado * (1 - pct / 100));
-                  const retenido = elegida.monto_pagado - alCliente;
-                  return (
-                    <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: '0.8rem' }}>
-                      <span style={{ color: '#46d06f', fontWeight: 700 }}>
-                        Cliente recibe: {formatoPeso(alCliente)}
-                      </span>
-                      <span style={{ color: '#d4a54b', fontWeight: 700 }}>
-                        Admin retiene: {formatoPeso(retenido)} ({pct}%)
-                      </span>
+              <div className="ap-tarifa-item" style={{ alignItems: 'stretch' }}>
+                <div className="ap-dev-form">
+                  <div className="ap-form-group">
+                    <label className="ap-form-label" htmlFor="dev-cita">
+                      {t('adm.instalaciones.reembolsoCita')}
+                    </label>
+                    <select
+                      id="dev-cita"
+                      className="ap-form-select"
+                      value={selReembolso}
+                      onChange={(e) => seleccionarElegible(e.target.value)}
+                    >
+                      <option value="">{t('adm.instalaciones.reembolsoSelecciona')}</option>
+                      {elegibles.map((e) => (
+                        <option key={claveElegible(e)} value={claveElegible(e)}>
+                          {e.etiqueta} — {formatoPeso(e.monto_pagado)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ap-dev-form-row">
+                    <div className="ap-form-group">
+                      <label className="ap-form-label" htmlFor="dev-retencion">
+                        {t('adm.instalaciones.reembolsoRetencion')}
+                      </label>
+                      <input
+                        id="dev-retencion"
+                        type="number"
+                        min="0"
+                        max="100"
+                        className="ap-form-input"
+                        placeholder="15"
+                        value={retencionPct}
+                        onChange={(e) => setRetencionPct(e.target.value)}
+                      />
                     </div>
-                  );
-                })()}
+                    <div className="ap-form-group">
+                      <label className="ap-form-label" htmlFor="dev-motivo">
+                        {t('adm.instalaciones.reembolsoMotivo')}
+                      </label>
+                      <input
+                        id="dev-motivo"
+                        type="text"
+                        className="ap-form-input"
+                        value={motivoReembolso}
+                        onChange={(e) => setMotivoReembolso(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="ap-btn ap-btn-primary"
+                      disabled={creandoReembolso || !selReembolso || !retencionPct}
+                      onClick={crearReembolso}
+                    >
+                      {creandoReembolso
+                        ? t('adm.instalaciones.procesando')
+                        : t('adm.instalaciones.reembolsar')}
+                    </button>
+                  </div>
+                  {selReembolso && retencionPct && (() => {
+                    const elegida = elegibles.find((e) => claveElegible(e) === selReembolso);
+                    if (!elegida) return null;
+                    const pct = Number.parseFloat(retencionPct);
+                    const alCliente = Math.round(elegida.monto_pagado * (1 - pct / 100));
+                    const retenido = elegida.monto_pagado - alCliente;
+                    return (
+                      <p className="ap-dev-desglose">
+                        <span className="ap-dev-desglose-cliente">
+                          Cliente recibe: <strong>{formatoPeso(alCliente)}</strong>
+                        </span>
+                        <span className="ap-dev-desglose-admin">
+                          Admin retiene: <strong>{formatoPeso(retenido)} ({pct}%)</strong>
+                        </span>
+                      </p>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </div>
@@ -621,87 +636,82 @@ const AdminDevoluciones = () => {
               <h3><FaMoneyBillWave /> {t('adm.devoluciones.historialTitulo')}</h3>
               <p>{t('adm.devoluciones.historialDesc')}</p>
             </div>
-            <div className="ap-tarifas-grid">
-              {reembolsos.length === 0 ? (
-                <p style={{ color: '#9a8f78' }}>{t('adm.instalaciones.sinReembolsos')}</p>
-              ) : (
-                reembolsos.map((r) => (
-                  <div className="ap-tarifa-item" key={r.id_reembolso} style={{ alignItems: 'flex-start' }}>
-                    <div>
-                      <span className="ap-tarifa-nombre" style={{ display: 'block' }}>
-                        {r.referencia}
-                        {r.cliente_nombre ? ` · ${r.cliente_nombre}` : ''}
-                      </span>
-                      <span style={{ fontSize: '0.8rem', color: '#9a8f78' }}>
-                        {r.detalle ? `${r.detalle} · ` : ''}
-                        {r.numero_transaccion_reembolso || '—'}
-                      </span>
+            {reembolsos.length === 0 ? (
+              <p className="ap-dev-vacio">{t('adm.instalaciones.sinReembolsos')}</p>
+            ) : (
+              <div className="ap-dev-lista">
+                {reembolsos.map((r) => (
+                  <div className="ap-dev-registro" key={r.id_reembolso}>
+                    <div className="ap-dev-registro-head">
+                      <div className="ap-dev-registro-id">
+                        <strong>{r.referencia}{r.cliente_nombre ? ` · ${r.cliente_nombre}` : ''}</strong>
+                        <p className="ap-dev-registro-meta">
+                          {r.detalle ? `${r.detalle} · ` : ''}
+                          {r.numero_transaccion_reembolso || '—'}
+                        </p>
+                      </div>
+                      <div className="ap-dev-registro-monto">
+                        <strong>{formatoPeso(r.monto)}</strong>
+                        <span
+                          className={`ap-badge ${
+                            r.estado === 'Reembolsado' ? 'ok' : r.estado === 'Rechazado' ? 'err' : 'warn'
+                          }`}
+                        >
+                          {r.estado}
+                        </span>
+                      </div>
                     </div>
-                    <div className="ap-tarifa-valor">
-                      <strong>{formatoPeso(r.monto)}</strong>
-                      <span
-                        className={`ap-badge ${
-                          r.estado === 'Reembolsado' ? 'ok' : r.estado === 'Rechazado' ? 'err' : 'warn'
-                        }`}
-                      >
-                        {r.estado}
-                      </span>
-                      {(r.estado === 'Pendiente' || r.estado === 'Rechazado') && (
-                        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(212,165,75,0.06)', borderRadius: 10, border: '1px solid rgba(212,165,75,0.2)' }}>
-                          {r.costo_original != null && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.78rem', color: '#9f9f9f' }}>
-                              <span>Costo original:</span>
-                              <strong style={{ color: '#eaeaea' }}>{formatoPeso(r.costo_original)}</strong>
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <label
-                              htmlFor={`pct-${r.id_reembolso}`}
-                              style={{ fontSize: '0.72rem', color: '#9f9f9f', whiteSpace: 'nowrap' }}
-                            >
-                              % a reembolsar:
-                            </label>
-                            <input
-                              id={`pct-${r.id_reembolso}`}
-                              type="number"
-                              min="1"
-                              max="100"
-                              placeholder="85"
-                              value={porcentajes[r.id_reembolso] ?? ''}
-                              onChange={(e) =>
-                                setPorcentajes((prev) => ({
-                                  ...prev,
-                                  [r.id_reembolso]: e.target.value,
-                                }))
-                              }
-                              className="ap-form-input"
-                              style={{ width: 70, height: 32, fontSize: '0.8rem' }}
-                            />
-                            <span style={{ color: '#9f9f9f', fontSize: '0.78rem' }}>%</span>
-                            {porcentajes[r.id_reembolso] && (() => {
-                              const base = r.costo_original ?? r.monto;
-                              return (
-                                <span style={{ color: '#46d06f', fontSize: '0.82rem', fontWeight: 700 }}>
-                                  → {formatoPeso(base * Number.parseFloat(porcentajes[r.id_reembolso] || '0') / 100)} al cliente
-                                </span>
-                              );
-                            })()}
-                            <button
-                              type="button"
-                              className="ap-btn ap-btn-primary"
-                              disabled={procesandoReembolso === r.id_reembolso || !porcentajes[r.id_reembolso]}
-                              onClick={() => reprocesarReembolso(r.id_reembolso)}
-                            >
-                              <FaCircleCheck /> Confirmar reembolso
-                            </button>
+                    {(r.estado === 'Pendiente' || r.estado === 'Rechazado') && (
+                      <div className="ap-dev-proceso">
+                        {r.costo_original != null && (
+                          <div className="ap-dev-proceso-fila">
+                            <span>Costo original:</span>
+                            <strong>{formatoPeso(r.costo_original)}</strong>
                           </div>
+                        )}
+                        <div className="ap-dev-proceso-controles">
+                          <label htmlFor={`pct-${r.id_reembolso}`}>
+                            % a reembolsar:
+                          </label>
+                          <input
+                            id={`pct-${r.id_reembolso}`}
+                            type="number"
+                            min="1"
+                            max="100"
+                            placeholder="85"
+                            value={porcentajes[r.id_reembolso] ?? ''}
+                            onChange={(e) =>
+                              setPorcentajes((prev) => ({
+                                ...prev,
+                                [r.id_reembolso]: e.target.value,
+                              }))
+                            }
+                            className="ap-form-input ap-dev-pct-input"
+                          />
+                          <span className="ap-dev-proceso-pct">%</span>
+                          {porcentajes[r.id_reembolso] && (() => {
+                            const base = r.costo_original ?? r.monto;
+                            return (
+                              <span className="ap-dev-proceso-total">
+                                → {formatoPeso(base * Number.parseFloat(porcentajes[r.id_reembolso] || '0') / 100)} al cliente
+                              </span>
+                            );
+                          })()}
+                          <button
+                            type="button"
+                            className="ap-btn ap-btn-primary"
+                            disabled={procesandoReembolso === r.id_reembolso || !porcentajes[r.id_reembolso]}
+                            onClick={() => reprocesarReembolso(r.id_reembolso)}
+                          >
+                            <FaCircleCheck /> Confirmar reembolso
+                          </button>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -773,7 +783,7 @@ const AdminDevoluciones = () => {
       {/* ── Modal: detalle de la solicitud ── */}
       {detalleSol && (
         <div className="ap-modal-overlay">
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()}>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal ap-modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 850 }}>
             <div className="ap-modal-head">
               <h3>Devolución {detalleSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setDetalleSol(null)}>×</button>

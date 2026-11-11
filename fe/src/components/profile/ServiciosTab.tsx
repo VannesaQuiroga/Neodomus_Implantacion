@@ -13,6 +13,7 @@ import {
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
+import ModalPortal from '@components/common/ModalPortal';
 
 const TIPO_SERVICIO: Record<string, string> = {
   instalacion: 'citas.instalacion',
@@ -337,8 +338,9 @@ const ServiciosTab = () => {
 
       {/* Modal de calificación */}
       {calificandoCita && (
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+        <ModalPortal>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
+            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
             <div className="pf-modal-header">
               <h3><FaStar /> {t('perfil.servicios.modalTitulo')}</h3>
               <button type="button" className="pf-modal-close" onClick={() => setCalificandoCita(null)} aria-label={t('common.cerrar')}>
@@ -395,8 +397,9 @@ const ServiciosTab = () => {
                 {enviandoRating ? t('perfil.servicios.enviando') : <><FaStar /> {t('perfil.servicios.enviarCalificacion')}</>}
               </button>
             </div>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Toast */}

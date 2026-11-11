@@ -19,6 +19,7 @@ import api, { descargarFactura } from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
+import ModalPortal from '@components/common/ModalPortal';
 
 interface Detalle {
   id_detalle: number;
@@ -1049,16 +1050,17 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
 
       {/* ── Modal: wizard de solicitud de devolución ── */}
       {wizardPedido && (
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={cerrarWizard}>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()}>
-            <div className="pf-modal-header">
-              <h3>
-                <FaRotateLeft /> {t('perfil.pedidos.modalTitulo', { id: wizardPedido.id_pedido })}
-              </h3>
-              <button type="button" className="pf-modal-close" onClick={cerrarWizard} aria-label={t('common.cerrar')}>
-                <FaXmark />
-              </button>
-            </div>
+        <ModalPortal>
+          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={cerrarWizard}>
+            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()}>
+              <div className="pf-modal-header">
+                <h3>
+                  <FaRotateLeft /> {t('perfil.pedidos.modalTitulo', { id: wizardPedido.id_pedido })}
+                </h3>
+                <button type="button" className="pf-modal-close" onClick={cerrarWizard} aria-label={t('common.cerrar')}>
+                  <FaXmark />
+                </button>
+              </div>
 
             {cargandoEleg || !elegibilidad ? (
               <p className="pf-dev-cargando">{t('perfil.pedidos.cargandoProductos')}</p>
@@ -1236,7 +1238,8 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
               </>
             )}
           </div>
-        </div>
+          </div>
+        </ModalPortal>
       )}
     </div>
   );

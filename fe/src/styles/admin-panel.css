@@ -1407,11 +1407,29 @@
   color: #6b6b6b;
 }
 
-.ap-cita-modal {
+/* Encabezado ancho completo del detalle de cita/devolución (600px): se declara
+   con doble clase para ganar a .ap-modal sin depender del orden del archivo. */
+.ap-modal.ap-cita-modal {
+  --cita-pad-y: 26px;
+  --cita-pad-x: 28px;
   width: 600px;
   max-width: 94vw;
   max-height: 88vh;
-  overflow-y: auto;
+  padding: var(--cita-pad-y) var(--cita-pad-x);
+}
+
+/* El encabezado del detalle permanece visible mientras se recorre el
+   contenido (historial del cliente, evidencias) en un modal largo. */
+.ap-cita-modal > .ap-cita-modal-head {
+  position: sticky;
+  /* El ancla sticky de Chrome se mide contra el borde del contenido del
+     scroller: se compensa el padding para que quede pegado al borde real. */
+  top: calc(-1 * var(--cita-pad-y) - 1px);
+  z-index: 1;
+  margin: calc(-1 * var(--cita-pad-y)) calc(-1 * var(--cita-pad-x));
+  padding: calc(var(--cita-pad-y) - 4px) var(--cita-pad-x) 12px;
+  background: #1c1c1c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ap-cliente-historial {
@@ -1547,7 +1565,10 @@
 .ap-cliente-historial-sin-fotos { color: #888; font-size: 0.75rem; }
 
 @media (max-width: 560px) {
-  .ap-cita-modal { padding: 20px 16px; }
+  .ap-modal.ap-cita-modal {
+    --cita-pad-y: 20px;
+    --cita-pad-x: 16px;
+  }
   .ap-cliente-historial { padding: 12px; }
   .ap-cliente-historial-head,
   .ap-cliente-historial-cita-head { flex-wrap: wrap; }
@@ -2014,6 +2035,10 @@
 }
 
 .ap-modal {
+  /* El overlay calcula el espacio con el padding (navbar + margen): si el
+     modal fuera content-box, el relleno y el borde se sumarían fuera del
+     max-height y el cuadro desbordaría la parte inferior de la pantalla. */
+  box-sizing: border-box;
   background: linear-gradient(180deg, #1c1c1c, #101010);
   border: 1px solid rgba(212, 165, 75, 0.35);
   border-radius: 20px;
@@ -2078,6 +2103,15 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* Los modales panel que usan .ap-modal-actions (en lugar de footer) mantienen
+   sus acciones siempre visibles al final, sin comprimirse. */
+.ap-modal-panel .ap-modal-actions {
+  flex-shrink: 0;
+  padding-top: 12px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .ap-modal-head {
   display: flex;
   align-items: flex-start;
@@ -2134,6 +2168,20 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 6px;
+}
+
+/* Móvil: menos aire interno y botones repartidos en fila completa. */
+@media (max-width: 560px) {
+  .ap-modal {
+    padding: 20px 18px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ap-modal-actions .ap-btn {
+    flex: 1 1 auto;
+  }
 }
 
 /* ── Toast / aviso ─────────────────────────────────────────── */
@@ -2517,22 +2565,56 @@
 }
 
 .modal-content {
+  box-sizing: border-box;
   background: #15120d;
   border: 1px solid rgba(212, 165, 75, 0.4);
   border-radius: 18px;
   padding: 32px 30px;
   max-width: 500px;
   width: 100%;
-  height: 75vh;
+  /* La altura se adapta al contenido y solo se acota para no salir de la
+     pantalla: un diálogo pequeño (confirmar habilitar/inhabilitar) nunca debe
+     estirarse a 75vh. Los modales que necesitan altura fija la definen aparte. */
+  max-height: calc(100vh - 40px);
   overflow: hidden;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
 }
 
-.ap-modal {
-  max-width: 850px;
+/* Diálogo de confirmación compacto (habilitar/inhabilitar cuentas y
+   similares): caja proporcional al contenido, sin espacios vacíos. */
+.modal-confirm-dialog {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border-radius: 14px;
+  background: #1a1714;
+  border: 1px solid rgba(212, 165, 75, 0.25);
 }
+
+@media (max-width: 520px) {
+  .modal-content {
+    padding: 24px 20px;
+  }
+}
+
+.modal-confirm-dialog h3 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: #f0e6d2;
+}
+
+.modal-confirm-dialog p {
+  color: #c9c0ab;
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* Modales con contenido extendido que ya definían su ancho propio
+   (historial de técnico/cliente): se declaran explícitamente en el JSX. */
 
 .ap-modal-header {
   display: flex;
@@ -2612,8 +2694,11 @@
   color: #7ee2a0;
 }
 
-/* ── Tabs de historial del cliente ── */
-.ap-tabs {
+/* ── Tabs de historial (variante de modal, a ancho completo) ──
+   Solo se usan dentro de los modales de historial de cliente/técnico;
+   la variante base .ap-tabs (pestañas en píldora) queda intacta para
+   las barras de pestañas de página. */
+.ap-tabs--modal {
   display: flex;
   gap: 4px;
   background: rgba(0, 0, 0, 0.3);
@@ -2622,7 +2707,7 @@
   margin-bottom: 16px;
 }
 
-.ap-tab {
+.ap-tabs--modal .ap-tab {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2639,18 +2724,18 @@
   justify-content: center;
 }
 
-.ap-tab:hover {
+.ap-tabs--modal .ap-tab:hover {
   color: #d4a54b;
   background: rgba(212, 165, 75, 0.08);
 }
 
-.ap-tab.active {
+.ap-tabs--modal .ap-tab.active {
   color: #141210;
   background: linear-gradient(135deg, #d4a54b, #b8862f);
   box-shadow: 0 2px 8px rgba(212, 165, 75, 0.3);
 }
 
-.ap-tab svg {
+.ap-tabs--modal .ap-tab svg {
   font-size: 14px;
 }
 
@@ -2688,12 +2773,17 @@
 }
 
 .pwd-reset-modal {
+  box-sizing: border-box;
   background: linear-gradient(180deg, #1a1714 0%, #0e0d0b 100%);
   border: 1px solid rgba(212, 165, 75, 0.35);
   border-radius: 24px;
   padding: 36px 32px 28px;
   max-width: 460px;
   width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3008,7 +3098,7 @@
 
 
 /* --------------------------------------------------------------
-   DEVOLUCIONES � panel admin (solicitudes)
+   DEVOLUCIONES — panel admin (solicitudes)
    -------------------------------------------------------------- */
 .ap-dev-items {
   list-style: none;
@@ -3032,6 +3122,296 @@
 .ap-dev-item small { color: #c9c0ab; font-size: 0.76rem; }
 .ap-dev-tecnico-select { max-width: 210px; font-size: 0.8rem; padding-top: 8px; padding-bottom: 8px; }
 
+/* ── Tarjeta de solicitud en el listado ───────────────────── */
+.ap-dev-card {
+  gap: 12px;
+  padding: 20px;
+}
+
+.ap-dev-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ap-dev-card-badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ap-dev-num {
+  margin: 2px 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ap-dev-num .ap-badge {
+  vertical-align: 2px;
+  margin-left: 8px;
+}
+
+.ap-dev-ref {
+  margin: 0;
+  color: #c9c0ab;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.ap-dev-stats {
+  display: flex;
+  gap: 10px;
+}
+
+.ap-dev-stat {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 9px 12px;
+}
+
+.ap-dev-stat-label {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9f9f9f;
+}
+
+.ap-dev-stat-value {
+  display: block;
+  margin-top: 3px;
+  color: #ffd98a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.ap-dev-motivo {
+  background: rgba(212, 165, 75, 0.07);
+  border: 1px solid rgba(212, 165, 75, 0.18);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.ap-dev-motivo-label {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #d4a54b;
+}
+
+.ap-dev-motivo p {
+  margin: 3px 0 0;
+  color: #e8d9b5;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ap-dev-comentario {
+  margin: 0;
+  color: #bdbdbd;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  font-style: italic;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ap-dev-rechazo {
+  margin: 0;
+  color: #ff9b9b;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Separación visual entre la información y las acciones. */
+.ap-dev-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+/* ── Formulario de reembolso manual ───────────────────────── */
+.ap-dev-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ap-dev-form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ap-dev-form-row .ap-form-group {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.ap-dev-form-row .ap-btn {
+  flex-shrink: 0;
+}
+
+.ap-dev-desglose {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.ap-dev-desglose strong { font-weight: 700; }
+.ap-dev-desglose-cliente strong { color: #46d06f; }
+.ap-dev-desglose-admin strong { color: #d4a54b; }
+
+/* ── Listado de reembolsos ────────────────────────────────── */
+.ap-dev-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ap-dev-registro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, rgba(24, 24, 24, 0.9), rgba(14, 14, 14, 0.93));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+}
+
+.ap-dev-registro-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ap-dev-registro-id {
+  min-width: 0;
+}
+
+.ap-dev-registro-id strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ap-dev-registro-meta {
+  margin: 3px 0 0;
+  color: #9a8f78;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ap-dev-registro-monto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.ap-dev-registro-monto strong {
+  color: var(--c-oro-claro, #d4a54b);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.ap-dev-proceso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(212, 165, 75, 0.06);
+  border: 1px solid rgba(212, 165, 75, 0.2);
+  border-radius: 12px;
+}
+
+.ap-dev-proceso-fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: #9f9f9f;
+}
+
+.ap-dev-proceso-fila strong {
+  color: #eaeaea;
+}
+
+.ap-dev-proceso-controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ap-dev-proceso-controles label {
+  font-size: 0.72rem;
+  color: #9f9f9f;
+  white-space: nowrap;
+}
+
+.ap-dev-pct-input {
+  width: 74px;
+  flex-shrink: 0;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 0.8rem;
+}
+
+.ap-dev-proceso-pct {
+  color: #9f9f9f;
+  font-size: 0.78rem;
+}
+
+.ap-dev-proceso-total {
+  color: #46d06f;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ap-dev-vacio {
+  margin: 0;
+  color: #9a8f78;
+  font-size: 0.85rem;
+}
+
 
 .ap-entrega-cita {
   display: flex;
@@ -3053,6 +3433,9 @@
 
 /* ── Scroll del historial ── */
 .ap-historial-scroll {
+  /* min-height: 0 permite que el área del historial se contraiga dentro del
+     modal cuando la ventana es baja (flex: el contenido con scroll, sin recortes). */
+  min-height: 0;
   max-height: 50vh;
   overflow-y: auto;
   padding-right: 4px;

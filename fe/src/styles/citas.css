@@ -1391,12 +1391,18 @@ input[type='date'].citas-input::-webkit-calendar-picker-indicator {
 }
 
 .citas-modal {
+  box-sizing: border-box;
   background: #181512;
   border: 1px solid rgba(212, 165, 75, 0.35);
   border-radius: 16px;
   padding: 24px;
   width: 100%;
   max-width: 440px;
+  /* Nunca sobresale del área visible: el scroll ocurre dentro del modal. */
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 
@@ -1583,6 +1589,7 @@ input[type='date'].citas-input::-webkit-calendar-picker-indicator {
 .citas-btn-confirmar-cancelacion:disabled { opacity: 0.65; cursor: wait; }
 
 @media (max-width: 520px) {
+  .citas-modal { padding: 20px 16px; }
   .citas-modal-cancelar { padding: 20px 16px; }
   .citas-modal-cancelar .citas-modal-actions,
   .citas-btn-confirmar-cancelacion { width: 100%; }

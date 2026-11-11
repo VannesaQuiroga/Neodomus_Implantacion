@@ -440,7 +440,7 @@ const AdminClientes = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="ap-tabs">
+                <div className="ap-tabs ap-tabs--modal">
                   <button
                     type="button"
                     className={`ap-tab ${tabHistorial === 'pedidos' ? 'active' : ''}`}
@@ -644,22 +644,21 @@ const AdminClientes = () => {
             onClick={() => !procesando && setConfirmModal(null)}
           >
             <motion.div
-              className="modal-content"
+              className="modal-confirm-dialog"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: 420, padding: 24, borderRadius: 12, background: '#1a1714', border: '1px solid rgba(212, 165, 75, 0.25)' }}
             >
-              <h3 style={{ margin: '0 0 12px', fontSize: 17, color: '#f0e6d2' }}>
+              <h3>
                 {confirmModal.accion === 'inhabilitar' ? 'Inhabilitar cuenta' : 'Habilitar cuenta'}
               </h3>
-              <p style={{ color: '#c9c0ab', margin: '0 0 16px', fontSize: 14 }}>
+              <p>
                 {confirmModal.accion === 'inhabilitar'
                   ? `¿Estás seguro de inhabilitar la cuenta de ${confirmModal.cliente.first_name} ${confirmModal.cliente.last_name}? El cliente no podrá iniciar sesión.`
                   : `¿Estás seguro de habilitar la cuenta de ${confirmModal.cliente.first_name} ${confirmModal.cliente.last_name}? El cliente podrá iniciar sesión nuevamente.`}
               </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <div className="ap-modal-actions">
                 <button
                   type="button"
                   className="ap-btn ap-btn-ghost"
