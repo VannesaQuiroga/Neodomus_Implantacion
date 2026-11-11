@@ -1,6 +1,9 @@
 FROM python:3.12-slim
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# uv se instala desde PyPI en lugar de copiarse de la imagen oficial de
+# ghcr.io, que provocaba "TLS handshake timeout" en Docker Desktop cuando
+# hay bloqueo o lentitud de red hacia ghcr.io (firewall/ISP).
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
