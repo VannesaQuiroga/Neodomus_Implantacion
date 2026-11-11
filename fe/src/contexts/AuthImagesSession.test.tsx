@@ -30,6 +30,11 @@ describe('AuthProvider e imágenes privadas', () => {
         if (!tabGet('access_token')) throw new Error('Sin sesión');
         return { data: new Blob(['evidencia sintética']) };
       }
+      if (url === '/auth/session') {
+        // Contrato actual del backend (fc0a1d7): googleLogin revalida el rol
+        // vigente consultando la sesión antes de aceptar la cuenta.
+        return { data: { user_type: 'client', rol: 'cliente', uid: '1' } };
+      }
       return { data: { first_name: 'Prueba', last_name: 'Cuenta', email: 'fixture@example.test',
         id_tipo_documento_c: 1, documento_cliente: 1, telefono_cliente: 1, address: 'Prueba' } };
     });

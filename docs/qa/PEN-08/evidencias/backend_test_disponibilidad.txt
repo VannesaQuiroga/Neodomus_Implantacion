@@ -1,0 +1,41 @@
+==============================================================================
+NEODOMUS - Suite backend (unittest)
+Root      : C:\Users\valet\neodomus_main
+Modo      : contenedor api (uv)
+Alcance   : modulo test_disponibilidad_productos
+Cobertura : no
+==============================================================================
+[1] Validando TEST_DATABASE_URL...
+  OK: base de pruebas validada 'neodomus_test' en db:3306.
+[2] Validando Docker y contenedor api...
+  OK: contenedor api corriendo.
+==============================================================================
+Ejecutando pruebas...
+test_admin_ve_y_edita_agotado (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_admin_ve_y_edita_agotado) ... [AUDIT] {"timestamp": "2026-11-11T06:35:55.823784+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+/app/.venv/lib/python3.12/site-packages/jose/jwt.py:311: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = timegm(datetime.utcnow().utctimetuple())
+/app/.venv/lib/python3.12/site-packages/pydantic/main.py:1051: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+ok
+test_agotado_oculto_no_se_publica_ni_por_api_directa (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_agotado_oculto_no_se_publica_ni_por_api_directa) ... [AUDIT] {"timestamp": "2026-11-11T06:35:56.917102+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+ok
+test_carrito_antiguo_no_compra_oculto_ni_variantes_agotadas (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_carrito_antiguo_no_compra_oculto_ni_variantes_agotadas) ... [AUDIT] {"timestamp": "2026-11-11T06:35:58.104768+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+ok
+test_metros_con_stock_minimo_visible_sin_redondear (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_metros_con_stock_minimo_visible_sin_redondear) ... [AUDIT] {"timestamp": "2026-11-11T06:35:59.536604+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+ok
+test_reposicion_conserva_ocultacion_manual (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_reposicion_conserva_ocultacion_manual) ... [AUDIT] {"timestamp": "2026-11-11T06:36:00.657705+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+ok
+test_ultima_unidad_se_vende_y_desaparece (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_ultima_unidad_se_vende_y_desaparece) ... [AUDIT] {"timestamp": "2026-11-11T06:36:01.737831+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+ok
+test_variantes_no_se_suman_ni_ignoran_stock_del_producto (app.tests.test_disponibilidad_productos.DisponibilidadProductosTestCase.test_variantes_no_se_suman_ni_ignoran_stock_del_producto) ... [AUDIT] {"timestamp": "2026-11-11T06:36:02.838463+00:00", "event": "LOGIN_SUCCESS", "email": "t1***************************@neodomus.com", "user_type": "employee", "ip": null}
+ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 8.275s
+
+OK
+==============================================================================
+[valet] Suite: backend/unittest    Resultado: PASADO    Codigo: 0    Duracion: 17,3s
+     Base validada: neodomus_test  |  Host: db:3306  |  Modo: docker
+     Comando: docker compose exec api uv run python -m unittest ...
+==============================================================================

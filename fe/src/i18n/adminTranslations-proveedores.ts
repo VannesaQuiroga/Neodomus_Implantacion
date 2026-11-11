@@ -26,7 +26,7 @@ export const ADMIN_TRADUCCIONES_PROVEEDORES: Record<string, { es: string; en: st
   'adm.proveedores.editarTitulo': { es: 'Editar proveedor', en: 'Edit supplier' },
   'adm.proveedores.nuevoTitulo': { es: 'Nuevo proveedor', en: 'New supplier' },
   'adm.proveedores.nombreLabel': { es: 'Nombre *', en: 'Name *' },
-  'adm.proveedores.nombrePlaceholder': { es: 'Ej: Proveedora Olímpica', en: 'e.g., Proveedora Olímpica' },
+  'adm.proveedores.nombrePlaceholder': { es: 'Ej: Sensores Inteligentes S.A.S.', en: 'e.g., Smart Sensors Inc.' },
   'adm.proveedores.contactoLabel': { es: 'Contacto', en: 'Contact' },
   'adm.proveedores.contactoPlaceholder': { es: 'Nombre de la persona de contacto', en: 'Contact person name' },
   'adm.proveedores.telefonoLabel': { es: 'Teléfono', en: 'Phone' },

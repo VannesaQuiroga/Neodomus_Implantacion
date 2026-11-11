@@ -15,8 +15,9 @@ Endpoints legados conservados: POST "" (una línea), PUT /{id}/estado,
 recogidas y evidencias del técnico, reasignación de técnico.
 """
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import uuid
 
@@ -180,7 +181,7 @@ def _notificar_solicitud_creada(db: Session, client: Cliente, solicitud) -> None
     )
 
     resumen_productos = ", ".join(
-        f"{l.cantidad}× {_nombre_linea(l, detalles_map, productos_map)}" for l in lineas
+        f"{_texto_cantidad_linea(l)} {_nombre_linea(l, detalles_map, productos_map)}" for l in lineas
     )
 
     # Administradores.
@@ -273,6 +274,14 @@ def _nombre_linea(linea: Devolucion, detalles_map: dict, productos_map: dict) ->
     return f"Producto #{linea.id_producto_d or '?'}"
 
 
+def _texto_cantidad_linea(linea: Devolucion) -> str:
+    """Cantidad legible de una línea: '2,5 m' para cortes, '2×' para unidades."""
+    if linea.cantidad_metros is not None:
+        metros = f"{Decimal(linea.cantidad_metros):f}".rstrip("0").rstrip(".")
+        return f"{metros.replace('.', ',')} m de"
+    return f"{linea.cantidad}×"
+
+
 @router.post("")
 def solicitar_devolucion(
     data: DevolucionCreate,
@@ -293,6 +302,9 @@ def solicitar_devolucion(
         )
     except dv_service.ItemInvalido as e:
         raise HTTPException(status_code=400, detail=e.mensaje)
+    except PermissionError as e:
+        # Pedido inexistente o de otro cliente (PEN-09: rechazo explícito).
+        raise HTTPException(status_code=404, detail=str(e))
 
     _notificar_solicitud_creada(db, client, solicitud)
 
@@ -311,10 +323,16 @@ def solicitar_devolucion(
 # Nuevo flujo: solicitudes con múltiples productos y cantidades
 # ──────────────────────────────────────────────────────────────────
 
-# Agrupa los campos de ItemDevolucionIn: id_producto, cantidad.
+# Longitud en metros del item: número o texto ("2,5"); el servicio valida
+# precisión (≤ 2 decimales) y que corresponda al corte completo (PEN-09).
+MetrosItem = Union[str, int, float]
+
+
+# Agrupa los campos de ItemDevolucionIn: id_producto, cantidad, metros.
 class ItemDevolucionIn(BaseModel):
     id_producto: int = Field(gt=0)
     cantidad: int = Field(default=1, ge=1)
+    metros: Optional[MetrosItem] = None
 
 
 # Agrupa los campos de SolicitudDevolucionCreate: id_pedido, items, motivo_tipo, motivo_otro, comentario.
@@ -359,6 +377,10 @@ def crear_solicitud_devolucion(
         )
     except dv_service.ItemInvalido as e:
         raise HTTPException(status_code=400, detail=e.mensaje)
+    except PermissionError as e:
+        # Pedido inexistente o de otro cliente: se rechaza sin exponer
+        # detalles internos (PEN-09 / seguridad).
+        raise HTTPException(status_code=404, detail=str(e))
 
     _notificar_solicitud_creada(db, client, solicitud)
     return dv_service.serializar_solicitud(db, solicitud)
@@ -477,7 +499,7 @@ def cambiar_estado_solicitud(
                 else {}
             )
             productos_txt = ", ".join(
-                f"{l.cantidad}× {_nombre_linea(l, {}, productos_map)}" for l in lineas
+                f"{_texto_cantidad_linea(l)} {_nombre_linea(l, {}, productos_map)}" for l in lineas
             )
             notificar_devolucion_cliente(
                 db,
@@ -688,6 +710,8 @@ async def subir_evidencia_recogida(
     ficha = db.query(Tecnico).filter(Tecnico.id_usuario_t == current_user.id_usuario).first()
     devolucion = (
         db.query(Devolucion)
+        .with_for_update()
+        .populate_existing()
         .filter(
             Devolucion.id_devolucion == id_devolucion,
             Devolucion.id_tecnico_recogida == (ficha.id_tecnico if ficha else -1),
@@ -699,6 +723,8 @@ async def subir_evidencia_recogida(
     if devolucion.estado != "Aprobada":
         raise HTTPException(status_code=400, detail="La devolución no está aprobada")
     if devolucion.recogida_estado == "Recogida":
+        # Idempotencia (PEN-10): la fila bloqueada garantiza que un doble
+        # envío (o dos técnicos) no re-integre el stock dos veces.
         raise HTTPException(status_code=400, detail="Esta recogida ya fue confirmada")
 
     if not file or not file.filename:
@@ -727,16 +753,45 @@ async def subir_evidencia_recogida(
     devolucion.fecha_recogida = datetime.now()
     devolucion.recogida_estado = "Recogida"
 
-    # El producto físicamente regresó: ahora sí entra al inventario
-    # (se reintegra la CANTIDAD devuelta, no una unidad fija).
+    # El producto físicamente regresó: ahora sí entra al inventario.
+    # Se reintegra la CANTIDAD EXACTA devuelta: metros del corte (2,5 m)
+    # para ventas por metros, unidades enteras para el resto (PEN-10).
     producto_devuelto = (
         db.query(Producto).filter(Producto.id_producto == devolucion.id_producto_d).first()
         if devolucion.id_producto_d
         else None
     )
+    stock_reintegrado_info = None
     if producto_devuelto:
-        producto_devuelto.stock_producto = (producto_devuelto.stock_producto or 0) + (
-            devolucion.cantidad or 1
+        # La variante (color/medida) se deduce de la descripción congelada
+        # del pedido para reintegrar también su stock, espejando el
+        # descuento del checkout.
+        from app.services.inventario_service import reintegrar_stock
+        from app.services.pedidos_service import _variante_por_descripcion
+
+        consulta_detalle = db.query(DetallePedido).filter(
+            DetallePedido.id_pedido_d == devolucion.id_pedido_d,
+            DetallePedido.id_producto_d == devolucion.id_producto_d,
+        )
+        if devolucion.cantidad_metros is not None:
+            # Corte por metros: el detalle correspondiente es el vendido por metros.
+            detalle_linea = consulta_detalle.filter(
+                DetallePedido.cantidad_metros.isnot(None)
+            ).first()
+            cantidad_reintegrar = Decimal(str(devolucion.cantidad_metros))
+        else:
+            detalle_linea = (
+                consulta_detalle.filter(DetallePedido.cantidad_metros.is_(None)).first()
+                or consulta_detalle.first()
+            )
+            cantidad_reintegrar = Decimal(int(devolucion.cantidad or 1))
+        variante = (
+            _variante_por_descripcion(producto_devuelto, detalle_linea.descripcion_detalle)
+            if detalle_linea is not None
+            else None
+        )
+        stock_reintegrado_info = reintegrar_stock(
+            db, producto_devuelto, variante, cantidad_reintegrar
         )
     db.commit()
 
@@ -838,6 +893,11 @@ async def subir_evidencia_recogida(
         "evidencia_recogida_url": _url_evidencia_devolucion(devolucion.id_devolucion, "recogida"),
         "fecha_recogida": devolucion.fecha_recogida.isoformat(),
         "stock_reintegrado": bool(producto_devuelto),
+        "cantidad_reintegrada": (
+            float(stock_reintegrado_info["cantidad_reintegrada"])
+            if stock_reintegrado_info
+            else None
+        ),
     }
 
 

@@ -68,7 +68,6 @@ def descontar_stock(
     notificar_stock_bajo: bool = True,
 ) -> dict:
     """Bloquea y descuenta stock del producto (y su variante si aplica).
-
     Retorna {'producto_agotado': bool, 'variante_agotada': bool}.
     Debe llamarse dentro de la transacción del pago; si falla la validación
     se lanza HTTPException y el rollback de la sesión deshace todo el pedido.
@@ -137,4 +136,56 @@ def descontar_stock(
     return {
         "producto_agotado": prod.stock_producto == 0,
         "variante_agotada": variante_agotada,
+    }
+
+
+def reintegrar_stock(
+    db: Session,
+    producto: Producto,
+    variante: ProductoVariante | None,
+    cantidad,
+) -> dict:
+    """Reintegra al inventario la cantidad exacta devuelta (espejo de
+    ``descontar_stock``, PEN-10).
+
+    La cantidad puede ser un entero (unidades) o un Decimal (metros del
+    corte): se repone EXACTAMENTE lo que se descontó en el checkout,
+    conservando la fracción (2,5 m → +2,5 m). Bloquea las filas con
+    SELECT ... FOR UPDATE y opera con aritmética decimal exacta. Debe
+    llamarse dentro de la transacción del confirmador; no hace commit.
+
+    Retorna la cantidad reintegrada y si se tocó variante."""
+    from decimal import Decimal
+
+    unidades = _decimal_cantidad(cantidad)
+    if unidades <= 0:
+        raise HTTPException(status_code=400, detail="La cantidad a reintegrar debe ser mayor a cero")
+
+    prod = (
+        db.query(Producto)
+        .with_for_update()
+        .populate_existing()
+        .filter(Producto.id_producto == producto.id_producto)
+        .first()
+    )
+    if not prod:
+        raise HTTPException(status_code=404, detail=f"Producto #{producto.id_producto} no existe")
+
+    var = None
+    if variante is not None:
+        var = (
+            db.query(ProductoVariante)
+            .with_for_update()
+            .populate_existing()
+            .filter(ProductoVariante.id == variante.id)
+            .first()
+        )
+
+    prod.stock_producto = Decimal(prod.stock_producto or 0) + unidades
+    if var is not None:
+        var.stock = Decimal(var.stock or 0) + unidades
+
+    return {
+        "cantidad_reintegrada": unidades,
+        "variante_reintegrada": var is not None,
     }

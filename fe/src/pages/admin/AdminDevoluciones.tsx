@@ -14,12 +14,15 @@ import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { formatMetros } from '@utils/metros';
 
 interface ItemDevolucion {
   id_devolucion: number;
   id_producto: number;
   producto: string;
   cantidad: number;
+  metros?: number | null;
+  venta_por_metros?: boolean;
   precio_unitario: number;
   subtotal_linea: number;
   estado_linea: string;
@@ -409,13 +412,19 @@ const AdminDevoluciones = () => {
             </div>
           </div>
         ) : (
-          <div className="ap-grid">
+          <div className="ap-grid ap-grid-devoluciones">
             {solicitudes.map((s) => (
               <div className="ap-grid-item ap-dev-card" key={s.id_solicitud}>
                 <div className="ap-dev-card-head">
                   <span className="ap-initials">
                     {(s.cliente || '?').split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
                   </span>
+                  <div className="ap-dev-card-titles">
+                    <h4 className="ap-dev-num">{s.numero}</h4>
+                    <p className="ap-dev-ref">
+                      Pedido #{s.id_pedido ?? '—'} · {formatFecha(s.created_at || '')}
+                    </p>
+                  </div>
                   <div className="ap-dev-card-badges">
                     <span className={`ap-badge ${s.tipo_devolucion === 'total' ? 'ok' : 'info'}`}>
                       {s.tipo_devolucion === 'total' ? 'Total' : 'Parcial'}
@@ -424,8 +433,10 @@ const AdminDevoluciones = () => {
                   </div>
                 </div>
 
-                <h4 className="ap-dev-num">{s.numero}</h4>
-                <p className="ap-dev-ref">Pedido #{s.id_pedido ?? '—'} · {s.cliente || '—'} · {formatFecha(s.created_at || '')}</p>
+                <p className="ap-dev-ref ap-dev-cliente">
+                  <span className="ap-dev-cliente-label">Cliente</span>
+                  {s.cliente || '—'}
+                </p>
 
                 <div className="ap-dev-stats">
                   <div className="ap-dev-stat">
@@ -719,7 +730,7 @@ const AdminDevoluciones = () => {
       {/* ── Modal: aprobar con resolución ── */}
       {aprobarSol && (
         <div className="ap-modal-overlay">
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+          <div className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="ap-modal-head">
               <h3>Aprobar {aprobarSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setAprobarSol(null)}>×</button>
@@ -753,7 +764,7 @@ const AdminDevoluciones = () => {
       {/* ── Modal: rechazar con motivo ── */}
       {rechazarSol && (
         <div className="ap-modal-overlay">
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+          <div className="ap-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="ap-modal-head">
               <h3>Rechazar {rechazarSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setRechazarSol(null)}>×</button>
@@ -783,7 +794,7 @@ const AdminDevoluciones = () => {
       {/* ── Modal: detalle de la solicitud ── */}
       {detalleSol && (
         <div className="ap-modal-overlay">
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal ap-modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 850 }}>
+          <div className="ap-modal ap-modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 850 }}>
             <div className="ap-modal-head">
               <h3>Devolución {detalleSol.numero}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setDetalleSol(null)}>×</button>
@@ -796,9 +807,20 @@ const AdminDevoluciones = () => {
                 <div className="ap-def"><span className="ap-def-label">Valor a devolver</span><span className="ap-def-value">{formatoPeso(detalleSol.monto_total)}</span></div>
                 <div className="ap-def full"><span className="ap-def-label">Cliente</span><span className="ap-def-value">{detalleSol.cliente}{detalleSol.cliente_email ? ` · ${detalleSol.cliente_email}` : ''}</span></div>
                 <div className="ap-def full"><span className="ap-def-label">Tipo</span><span className="ap-def-value">{detalleSol.tipo_devolucion === 'total' ? 'Devolución total del pedido' : 'Devolución parcial'}</span></div>
+                {detalleSol.resolucion && (
+                  <div className="ap-def">
+                    <span className="ap-def-label">Resolución</span>
+                    <span className="ap-def-value">{detalleSol.resolucion}</span>
+                  </div>
+                )}
+                {detalleSol.resuelta_at && (
+                  <div className="ap-def">
+                    <span className="ap-def-label">Decidida el</span>
+                    <span className="ap-def-value">{formatFecha(detalleSol.resuelta_at)}</span>
+                  </div>
+                )}
                 <div className="ap-def full"><span className="ap-def-label">Motivo</span><span className="ap-def-value">{detalleSol.motivo_label}{detalleSol.motivo_otro ? ` — ${detalleSol.motivo_otro}` : ''}</span></div>
                 {detalleSol.comentario && <div className="ap-def full"><span className="ap-def-label">Comentario del cliente</span><span className="ap-def-value">{detalleSol.comentario}</span></div>}
-                {detalleSol.resolucion && <div className="ap-def"><span className="ap-def-label">Resolución</span><span className="ap-def-value">{detalleSol.resolucion}</span></div>}
                 {detalleSol.motivo_rechazo && <div className="ap-def full"><span className="ap-def-label">Motivo del rechazo</span><span className="ap-def-value" style={{ color: '#ff8f93' }}>{detalleSol.motivo_rechazo}</span></div>}
                 {detalleSol.reembolso && (
                   <div className="ap-def full">
@@ -822,7 +844,9 @@ const AdminDevoluciones = () => {
                       <div>
                         <strong>{it.producto}</strong>
                         <small>
-                          {it.cantidad} × {formatoPeso(it.precio_unitario)} = {formatoPeso(it.subtotal_linea)}
+                          {it.venta_por_metros && it.metros != null
+                            ? `${formatMetros(it.metros)} m × ${formatoPeso(it.precio_unitario)}/m = ${formatoPeso(it.subtotal_linea)}`
+                            : `${it.cantidad} × ${formatoPeso(it.precio_unitario)} = ${formatoPeso(it.subtotal_linea)}`}
                           {' · '}
                           {recogidaHecha
                             ? 'Recogido por el técnico'

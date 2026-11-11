@@ -1,11 +1,13 @@
 // Presenta las valoraciones disponibles en el perfil del cliente.
-import { useEffect, useState } from 'react';
-import { FaRegStar, FaStar, FaUserTie, FaBoxOpen, FaPlus, FaTrashCan } from 'react-icons/fa6';
+// Aquí vive toda la información de reseñas: técnicos y productos de
+// pedidos entregados. Mis pedidos solo muestra la información de la compra.
+import { useEffect, useRef, useState } from 'react';
+import { FaBoxOpen, FaCamera, FaRegStar, FaStar, FaUserTie } from 'react-icons/fa6';
 import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
-import { getResenas, saveItem, PF_RESENAS_KEY, Resena } from '@utils/profileStorage';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
+import { pedidoCompletado } from '@utils/pedidos';
 
 interface ResenaTecnico {
   id_calificacion: number;
@@ -44,19 +46,30 @@ interface ResenaProducto {
   created_at?: string | null;
 }
 
-const productosSugeridos = [
-  'Kit domótica Neodomus Smart Home',
-  'Cámara IP 4K exterior',
-  'Sensor de movimiento Wi-Fi',
-  'Enchufe inteligente Wi-Fi',
-];
+// Datos mínimos de la respuesta de GET '/pedidos/mis-pedidos' que necesita
+// esta pestaña para detectar los productos que aún no tienen reseña.
+interface DetallePedidoCliente {
+  id_producto_d: number | null;
+  nombre: string;
+  es_servicio: boolean;
+}
 
-const PRODUCTO_CLAVE: Record<string, string> = {
-  'Kit domótica Neodomus Smart Home': 'perfil.resenas.productoSugerido.kit',
-  'Cámara IP 4K exterior': 'perfil.resenas.productoSugerido.camara',
-  'Sensor de movimiento Wi-Fi': 'perfil.resenas.productoSugerido.sensor',
-  'Enchufe inteligente Wi-Fi': 'perfil.resenas.productoSugerido.enchufe',
-};
+interface PedidoCliente {
+  id_pedido: number;
+  fecha?: string | null;
+  detalles: DetallePedidoCliente[];
+  estado_entrega?: string | null;
+  cita?: { estado: string } | null;
+  productos_calificables?: boolean;
+}
+
+// Producto de un pedido entregado que el cliente todavía no califica.
+interface ProductoPendiente {
+  id_pedido: number;
+  id_producto: number;
+  nombre: string;
+  fecha?: string | null;
+}
 
 const formatearFecha = (fecha?: string | null, locale = 'es-CO') => {
   if (!fecha) return '';
@@ -67,8 +80,8 @@ const formatearFecha = (fecha?: string | null, locale = 'es-CO') => {
   }
 };
 
-// Comunica con el backend mediante GET '/calificaciones/mis-dadas' y GET '/calificaciones/producto/mis-dadas'.
-const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () => void }) => {
+// Comunica con el backend mediante GET '/calificaciones/mis-dadas', GET '/calificaciones/producto/mis-dadas' y GET '/pedidos/mis-pedidos'.
+const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
   const { t, idioma } = useIdioma();
   const locale = idioma === 'en' ? 'en-US' : 'es-CO';
   const [seccion, setSeccion] = useState<'tecnicos' | 'productos'>('tecnicos');
@@ -76,11 +89,15 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
   const [resenasTecnicos, setResenasTecnicos] = useState<ResenaTecnico[]>([]);
   const [loadingTecnicos, setLoadingTecnicos] = useState(true);
   const [loadingProductos, setLoadingProductos] = useState(true);
-  const [resenasLocales, setResenasLocales] = useState<Resena[]>(getResenas());
-  const [mostrarFormLocal, setMostrarFormLocal] = useState(false);
-  const [productoLocal, setProductoLocal] = useState(productosSugeridos[0]);
-  const [ratingLocal, setRatingLocal] = useState(5);
-  const [comentarioLocal, setComentarioLocal] = useState('');
+
+  // Productos de pedidos entregados pendientes de calificar.
+  const [pendientesProducto, setPendientesProducto] = useState<ProductoPendiente[]>([]);
+  const [ratingProducto, setRatingProducto] = useState<Record<string, number>>({});
+  const [comentarioProducto, setComentarioProducto] = useState<Record<string, string>>({});
+  const [guardandoProducto, setGuardandoProducto] = useState<string | null>(null);
+  const fotosProducto = useRef<Record<string, File>>({});
+  const fotoProductoRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [nombresFoto, setNombresFoto] = useState<Record<string, string>>({});
 
   // Técnicos pendientes de calificar (citas finalizadas sin reseña).
   const [pendientes, setPendientes] = useState<CitaPendiente[]>([]);
@@ -92,6 +109,39 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
   const cargarResenasTecnicos = async () => {
     const res = await api.get<ResenaTecnico[]>('/calificaciones/mis-dadas');
     setResenasTecnicos(res.data || []);
+  };
+
+  // Carga las reseñas de productos y devuelve las claves pedido-producto ya calificadas.
+  const cargarResenasProductos = async (): Promise<Set<string>> => {
+    const res = await api.get<ResenaProducto[]>('/calificaciones/producto/mis-dadas');
+    setResenasProductos(res.data || []);
+    return new Set((res.data || []).map((r) => `${r.id_pedido}-${r.id_producto}`));
+  };
+
+  // Detecta los productos de pedidos entregados que aún no tienen reseña,
+  // combinando los pedidos del cliente con las calificaciones existentes.
+  const cargarPendientesProducto = async (calificadas: Set<string>) => {
+    try {
+      const res = await api.get<PedidoCliente[]>('/pedidos/mis-pedidos');
+      const pendientes: ProductoPendiente[] = [];
+      (res.data || []).forEach((pedido) => {
+        if (!pedidoCompletado(pedido)) return;
+        (pedido.detalles || []).forEach((detalle) => {
+          if (detalle.es_servicio || detalle.id_producto_d == null) return;
+          const clave = `${pedido.id_pedido}-${detalle.id_producto_d}`;
+          if (calificadas.has(clave)) return;
+          pendientes.push({
+            id_pedido: pedido.id_pedido,
+            id_producto: detalle.id_producto_d,
+            nombre: detalle.nombre,
+            fecha: pedido.fecha ?? null,
+          });
+        });
+      });
+      setPendientesProducto(pendientes);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -111,13 +161,17 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
       })
       .catch((err) => console.error(err));
 
-    api.get<ResenaProducto[]>('/calificaciones/producto/mis-dadas')
-      .then((res) => setResenasProductos(res.data || []))
-      .catch((err) => {
+    (async () => {
+      try {
+        const calificadas = await cargarResenasProductos();
+        await cargarPendientesProducto(calificadas);
+      } catch (err) {
         console.error(err);
         notify(t('perfil.resenas.errorCargarProductos'), 'error');
-      })
-      .finally(() => setLoadingProductos(false));
+      } finally {
+        setLoadingProductos(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,33 +210,64 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
     }
   };
 
-  const guardarResenaLocal = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!comentarioLocal.trim()) {
-      notify(t('perfil.resenas.errorComentario'), 'error');
+  // Comunica con el backend mediante POST '/calificaciones/producto', POST `/calificaciones/producto/${id_pedido}/${id_producto}/foto`; prepara FormData para enviar campos y archivos.
+  const guardarCalificacionProducto = async (producto: ProductoPendiente) => {
+    const clave = `${producto.id_pedido}-${producto.id_producto}`;
+    const nota = ratingProducto[clave] || 0;
+    if (!nota) {
+      notify(t('perfil.resenas.errorEstrellas'), 'error');
       return;
     }
-    const nueva: Resena = {
-      id: `r-${Date.now()}`,
-      producto: productoLocal,
-      productoImg: '/productos/1.jpg',
-      calificacion: ratingLocal,
-      comentario: comentarioLocal.trim(),
-      fecha: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }),
-    };
-    const siguiente = [nueva, ...resenasLocales];
-    setResenasLocales(siguiente);
-    saveItem(PF_RESENAS_KEY, siguiente);
-    setComentarioLocal('');
-    setMostrarFormLocal(false);
-    notify(t('perfil.resenas.guardadaLocal'), 'success');
-  };
-
-  const eliminarResenaLocal = (id: string) => {
-    const siguiente = resenasLocales.filter((resena) => resena.id !== id);
-    setResenasLocales(siguiente);
-    saveItem(PF_RESENAS_KEY, siguiente);
-    notify(t('perfil.resenas.eliminada'), 'info');
+    setGuardandoProducto(clave);
+    try {
+      await api.post('/calificaciones/producto', {
+        id_pedido: producto.id_pedido,
+        id_producto: producto.id_producto,
+        calificacion: nota,
+        comentario: comentarioProducto[clave]?.trim() || undefined,
+      });
+      // La foto es opcional; si falla no bloquea la calificación.
+      const foto = fotosProducto.current[clave];
+      if (foto) {
+        try {
+          const fd = new FormData();
+          fd.append('file', foto);
+          await api.post(
+            `/calificaciones/producto/${producto.id_pedido}/${producto.id_producto}/foto`,
+            fd,
+          );
+        } catch (err) {
+          console.error(err);
+        }
+        delete fotosProducto.current[clave];
+        setNombresFoto((prev) => {
+          const next = { ...prev };
+          delete next[clave];
+          return next;
+        });
+      }
+      notify(t('perfil.resenas.graciasProducto'), 'success');
+      setRatingProducto((prev) => {
+        const next = { ...prev };
+        delete next[clave];
+        return next;
+      });
+      setComentarioProducto((prev) => {
+        const next = { ...prev };
+        delete next[clave];
+        return next;
+      });
+      const calificadas = await cargarResenasProductos();
+      await cargarPendientesProducto(calificadas);
+    } catch (err: any) {
+      const detalle = err.response?.data?.detail;
+      notify(
+        typeof detalle === 'string' ? detalle : t('perfil.resenas.errorEnviarCalificacion'),
+        'error',
+      );
+    } finally {
+      setGuardandoProducto(null);
+    }
   };
 
   return (
@@ -257,9 +342,9 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                             </button>
                           ))}
                         </div>
-                        <input
-                          type="text"
+                        <textarea
                           className="pf-resena-comentario"
+                          rows={2}
                           placeholder={t('perfil.resenas.experienciaPlaceholder')}
                           maxLength={500}
                           value={comentarioPend[cita.id_cita] || ''}
@@ -344,43 +429,102 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
         </div>
       ) : (
         <div className="pf-resenas-seccion">
-          <div className="pf-resenas-cabecera">
-            <h3 className="pf-resenas-subtitulo">{t('carrito.productos')}</h3>
-            <div className="pf-resenas-acciones">
-              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => setMostrarFormLocal((actual) => !actual)}>
-                <FaPlus /> {mostrarFormLocal ? t('perfil.resenas.cerrarForm') : t('perfil.resenas.escribir')}
-              </button>
-              <button type="button" className="pf-btn pf-btn-primary" onClick={onGoOrders}>
-                <FaBoxOpen /> {t('perfil.resenas.calificarDesdePedidos')}
-              </button>
-            </div>
-          </div>
-          {mostrarFormLocal && (
-            <form className="pf-review-form" onSubmit={guardarResenaLocal}>
-              <div className="pf-form-grid">
-                <div className="pf-form-group">
-                  <label className="pf-form-label" htmlFor="pf-res-producto">{t('perfil.resenas.producto')}</label>
-                  <select id="pf-res-producto" className="pf-form-input" value={productoLocal} onChange={(e) => setProductoLocal(e.target.value)}>
-                    {productosSugeridos.map((nombre) => <option key={nombre} value={nombre}>{t(PRODUCTO_CLAVE[nombre] || nombre)}</option>)}
-                  </select>
-                </div>
-                <div className="pf-form-group">
-                  <span className="pf-form-label">{t('perfil.resenas.calificacion')}</span>
-                  <div className="pf-rating-input">
-                    {[1, 2, 3, 4, 5].map((nota) => (
-                      <button key={nota} type="button" className={nota <= ratingLocal ? 'on' : ''} aria-label={t('perfil.resenas.estrellas', { n: nota })} onClick={() => setRatingLocal(nota)}><FaStar /></button>
-                    ))}
-                  </div>
-                </div>
-                <div className="pf-form-group pf-form-span">
-                  <label className="pf-form-label" htmlFor="pf-res-comentario">{t('perfil.resenas.tuExperiencia')}</label>
-                  <textarea id="pf-res-comentario" className="pf-form-input pf-textarea" rows={3} value={comentarioLocal} onChange={(e) => setComentarioLocal(e.target.value)} placeholder={t('perfil.resenas.experienciaProductoPlaceholder')} />
-                </div>
+          {pendientesProducto.length > 0 && (
+            <>
+              <h3 className="pf-resenas-subtitulo">
+                <FaStar /> {t('perfil.resenas.porCalificar')}
+              </h3>
+              <p className="pf-resenas-hint">{t('perfil.resenas.porCalificarHint')}</p>
+              <div className="pf-review-list">
+                {pendientesProducto.map((producto) => {
+                  const clave = `${producto.id_pedido}-${producto.id_producto}`;
+                  return (
+                    <div className="pf-review-item" key={clave}>
+                      <div className="pf-review-main">
+                        <span className="pf-review-img pf-product-review-img">
+                          <FaBoxOpen />
+                        </span>
+                        <div className="pf-review-body">
+                          <div className="pf-review-top">
+                            <strong className="pf-review-producto">{producto.nombre}</strong>
+                            <span className="pf-review-fecha">{formatearFecha(producto.fecha, locale)}</span>
+                          </div>
+                          <span className="pf-review-fecha">{t('perfil.resenas.pedidoNumero', { id: producto.id_pedido })}</span>
+                          <div className="pf-stars-picker">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                aria-label={t('perfil.resenas.estrellas', { n: s })}
+                                className={(ratingProducto[clave] ?? 0) >= s ? 'on' : ''}
+                                onClick={() => setRatingProducto((prev) => ({ ...prev, [clave]: s }))}
+                              >
+                                <FaStar />
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            className="pf-resena-comentario"
+                            rows={2}
+                            placeholder={t('perfil.resenas.experienciaProductoPlaceholder')}
+                            maxLength={500}
+                            value={comentarioProducto[clave] || ''}
+                            onChange={(e) =>
+                              setComentarioProducto((prev) => ({ ...prev, [clave]: e.target.value }))
+                            }
+                          />
+                          <div className="pf-form-actions">
+                            <button
+                              type="button"
+                              className="pf-btn pf-btn-primary"
+                              disabled={guardandoProducto === clave}
+                              onClick={() => guardarCalificacionProducto(producto)}
+                            >
+                              {guardandoProducto === clave
+                                ? t('perfil.pedidos.enviando')
+                                : t('perfil.resenas.guardarCalificacion')}
+                            </button>
+                            <input
+                              ref={(el) => { fotoProductoRefs.current[clave] = el; }}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const archivo = e.target.files?.[0];
+                                if (archivo) {
+                                  fotosProducto.current[clave] = archivo;
+                                  setNombresFoto((prev) => ({ ...prev, [clave]: archivo.name }));
+                                }
+                                e.target.value = '';
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className={`pf-resena-foto ${nombresFoto[clave] ? 'seleccionada' : ''}`}
+                              title={t('perfil.resenas.adjuntarFotoTitle')}
+                              onClick={() => fotoProductoRefs.current[clave]?.click()}
+                            >
+                              <FaCamera />{' '}
+                              <span>{nombresFoto[clave] ? t('perfil.resenas.cambiarFoto') : t('perfil.resenas.adjuntarFoto')}</span>
+                            </button>
+                            {nombresFoto[clave] && (
+                              <span className="pf-resena-foto-nombre" title={nombresFoto[clave]}>
+                                {nombresFoto[clave]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="pf-form-actions"><button type="submit" className="pf-btn pf-btn-primary">{t('perfil.resenas.guardarResena')}</button></div>
-            </form>
+            </>
           )}
-          {resenasProductos.length > 0 && <h4 className="pf-resenas-subtitulo">{t('perfil.resenas.calificacionesPedidos')}</h4>}
+
+          <h3 className="pf-resenas-subtitulo">
+            <FaBoxOpen /> {t('perfil.resenas.calificacionesPedidos')}
+          </h3>
           {loadingProductos ? (
             <div className="pf-empty"><p>{t('perfil.resenas.cargandoProductos')}</p></div>
           ) : resenasProductos.length === 0 ? (
@@ -418,28 +562,6 @@ const ReviewsTab = ({ notify, onGoOrders }: { notify: NotifyFn; onGoOrders: () =
                 </div>
               ))}
             </div>
-          )}
-          {resenasLocales.length > 0 && (
-            <>
-              <h4 className="pf-resenas-subtitulo pf-resenas-locales-titulo">{t('perfil.resenas.guardadas')}</h4>
-              <div className="pf-review-list pf-review-list-locales" aria-label={t('perfil.resenas.guardadas')}>
-                {resenasLocales.map((resena) => (
-                  <div className="pf-review-item" key={resena.id}>
-                    <div className="pf-review-main">
-                      <span className="pf-review-img">
-                        <img src={resena.productoImg} alt={t(PRODUCTO_CLAVE[resena.producto] || resena.producto)} onError={(e) => { e.currentTarget.style.opacity = '0.12'; }} />
-                      </span>
-                      <div className="pf-review-body">
-                        <div className="pf-review-top"><strong className="pf-review-producto">{t(PRODUCTO_CLAVE[resena.producto] || resena.producto)}</strong><span className="pf-review-fecha">{resena.fecha}</span></div>
-                        <div className="pf-stars">{[1, 2, 3, 4, 5].map((nota) => <FaStar key={nota} className={nota <= resena.calificacion ? 'on' : 'off'} />)}</div>
-                        <p className="pf-review-comentario">{resena.comentario}</p>
-                      </div>
-                    </div>
-                    <div className="pf-review-actions"><button type="button" className="pf-icon-btn danger" onClick={() => eliminarResenaLocal(resena.id)} title={t('perfil.resenas.eliminarLocal')}><FaTrashCan /></button></div>
-                  </div>
-                ))}
-              </div>
-            </>
           )}
         </div>
       )}

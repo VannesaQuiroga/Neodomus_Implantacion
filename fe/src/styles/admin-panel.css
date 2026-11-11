@@ -3122,17 +3122,33 @@
 .ap-dev-item small { color: #c9c0ab; font-size: 0.76rem; }
 .ap-dev-tecnico-select { max-width: 210px; font-size: 0.8rem; padding-top: 8px; padding-bottom: 8px; }
 
+/* ── Cuadrícula de solicitudes (devoluciones) ──────────────── */
+/* Cuadrícula horizontal: varias tarjetas por fila en escritorio,
+   dos columnas en tablet y una en móvil, con tarjetas uniformes. */
+.ap-grid-devoluciones {
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
 /* ── Tarjeta de solicitud en el listado ───────────────────── */
 .ap-dev-card {
   gap: 12px;
-  padding: 20px;
+  padding: 18px 20px;
 }
 
 .ap-dev-card-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Identificador y pedido junto al avatar del cliente. */
+.ap-dev-card-titles {
+  flex: 1;
+  min-width: 0;
 }
 
 .ap-dev-card-badges {
@@ -3141,15 +3157,17 @@
   justify-content: flex-end;
   gap: 6px;
   flex-wrap: wrap;
-  min-width: 0;
+  max-width: 46%;
+  flex-shrink: 0;
 }
 
 .ap-dev-num {
-  margin: 2px 0;
+  margin: 0;
   color: #ffffff;
   font-size: 0.95rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .ap-dev-num .ap-badge {
@@ -3158,14 +3176,32 @@
 }
 
 .ap-dev-ref {
-  margin: 0;
+  margin: 2px 0 0;
   color: #c9c0ab;
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Fila de cliente bajo la cabecera, con etiqueta discreta. */
+.ap-dev-cliente {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ap-dev-cliente-label {
+  flex-shrink: 0;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9f9f9f;
 }
 
 .ap-dev-stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
   gap: 10px;
 }
 
@@ -3251,6 +3287,16 @@
   border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
+/* Botones de acción alineados y de dimensiones consistentes. */
+.ap-dev-actions .ap-btn {
+  flex: 1 1 auto;
+  min-width: 92px;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
 /* ── Formulario de reembolso manual ───────────────────────── */
 .ap-dev-form {
   display: flex;
@@ -3293,9 +3339,10 @@
 
 /* ── Listado de reembolsos ────────────────────────────────── */
 .ap-dev-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+  align-items: stretch;
 }
 
 .ap-dev-registro {
@@ -3306,6 +3353,7 @@
   background: linear-gradient(180deg, rgba(24, 24, 24, 0.9), rgba(14, 14, 14, 0.93));
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 14px;
+  min-width: 0;
 }
 
 .ap-dev-registro-head {
@@ -3410,6 +3458,36 @@
   margin: 0;
   color: #9a8f78;
   font-size: 0.85rem;
+}
+
+/* ── Responsive de devoluciones y reembolsos ──────────────── */
+/* Tablet: dos columnas cuando el ancho lo permite. */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .ap-grid-devoluciones,
+  .ap-dev-lista {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Móvil: una sola columna, sin desbordamientos. */
+@media (max-width: 640px) {
+  .ap-grid-devoluciones,
+  .ap-dev-lista {
+    grid-template-columns: 1fr;
+  }
+
+  .ap-dev-card-head {
+    flex-wrap: wrap;
+  }
+
+  .ap-dev-card-badges {
+    max-width: 100%;
+  }
+
+  .ap-dev-actions .ap-btn {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
 }
 
 

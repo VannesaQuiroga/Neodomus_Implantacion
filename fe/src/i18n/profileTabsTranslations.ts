@@ -38,22 +38,7 @@ export const PROFILE_TABS_TRADUCCIONES: Record<string, { es: string; en: string 
     'This coupon is no longer available',
   ),
   'perfil.pedidos.cuponVence': tr(' · Vence {fecha}', ' · Expires {fecha}'),
-  'perfil.pedidos.tuCalificacion': tr('Tu calificación', 'Your rating'),
-  'perfil.pedidos.calificacionDe5': tr('{n} de 5', '{n} out of 5'),
-  'perfil.pedidos.fotoProducto': tr('Foto de {nombre}', 'Photo of {nombre}'),
-  'perfil.pedidos.calificaProducto': tr('Califica este producto:', 'Rate this product:'),
-  'perfil.pedidos.estrellas': tr('{n} estrellas', '{n} stars'),
-  'perfil.pedidos.experienciaPlaceholder': tr(
-    'Cuéntanos tu experiencia (opcional)',
-    'Tell us about your experience (optional)',
-  ),
   'perfil.pedidos.enviando': tr('Enviando...', 'Sending...'),
-  'perfil.pedidos.enviar': tr('Enviar', 'Send'),
-  'perfil.pedidos.adjuntarFotoTitle': tr(
-    'Adjuntar foto del producto',
-    'Attach product photo',
-  ),
-  'perfil.pedidos.adjuntarFoto': tr('Adjuntar foto', 'Attach photo'),
   'perfil.pedidos.devoluciones': tr('Devoluciones', 'Returns'),
   'perfil.pedidos.devolucionNumero': tr('Devolución {numero}', 'Return {numero}'),
   'perfil.pedidos.devolucionRechazada': tr('Devolución rechazada', 'Return rejected'),
@@ -136,6 +121,18 @@ export const PROFILE_TABS_TRADUCCIONES: Record<string, { es: string; en: string 
     'Purchased: {comprados} · Price: {precio}',
   ),
   'perfil.pedidos.yaDevuelto': tr('Ya devuelto / en proceso', 'Already returned / in progress'),
+  'perfil.pedidos.corteCompleto': tr(
+    'Corte completo: {metros} m',
+    'Full cut: {metros} m',
+  ),
+  'perfil.pedidos.corteCompletoHint': tr(
+    'Los productos vendidos por metros se devuelven por el corte completo.',
+    'Products sold by meters are returned as the full cut.',
+  ),
+  'perfil.pedidos.compradosPrecioMetros': tr(
+    'Comprados: {metros} m · Precio: {precio}/m',
+    'Purchased: {metros} m · Price: {precio}/m',
+  ),
   'perfil.pedidos.quitarUnidad': tr('Quitar unidad', 'Remove unit'),
   'perfil.pedidos.agregarUnidad': tr('Agregar unidad', 'Add unit'),
   'perfil.pedidos.subtotalDevolver': tr('Subtotal a devolver:', 'Subtotal to refund:'),
@@ -193,18 +190,6 @@ export const PROFILE_TABS_TRADUCCIONES: Record<string, { es: string; en: string 
   'perfil.pedidos.errorEnviarSolicitud': tr(
     'No se pudo enviar la solicitud.',
     'We could not send the request.',
-  ),
-  'perfil.pedidos.errorEstrellas': tr(
-    'Selecciona una cantidad de estrellas antes de enviar.',
-    'Select a star rating before sending.',
-  ),
-  'perfil.pedidos.graciasCalificacion': tr(
-    '¡Gracias por tu calificación!',
-    'Thank you for your rating!',
-  ),
-  'perfil.pedidos.errorEnviarCalificacion': tr(
-    'No se pudo enviar tu calificación.',
-    'We could not send your rating.',
   ),
   'perfil.pedidos.paso.solicitada': tr('Solicitada', 'Requested'),
   'perfil.pedidos.paso.enRevision': tr('En revisión', 'Under review'),
@@ -309,21 +294,29 @@ export const PROFILE_TABS_TRADUCCIONES: Record<string, { es: string; en: string 
     'Cuando completes una cita, el técnico aparecerá aquí para que lo califiques.',
     'When you complete an appointment, the technician will appear here for you to rate.',
   ),
-  'perfil.resenas.escribir': tr('Escribir reseña', 'Write review'),
-  'perfil.resenas.cerrarForm': tr('Cerrar reseña', 'Close review'),
-  'perfil.resenas.calificarDesdePedidos': tr(
-    'Calificar desde mis pedidos',
-    'Rate from my orders',
-  ),
-  'perfil.resenas.producto': tr('Producto', 'Product'),
-  'perfil.resenas.calificacion': tr('Calificación', 'Rating'),
   'perfil.resenas.estrellas': tr('{n} estrellas', '{n} stars'),
-  'perfil.resenas.tuExperiencia': tr('Tu experiencia', 'Your experience'),
   'perfil.resenas.experienciaProductoPlaceholder': tr(
     'Cuéntanos qué te pareció el producto…',
     'Tell us what you thought of the product...',
   ),
-  'perfil.resenas.guardarResena': tr('Guardar reseña', 'Save review'),
+  'perfil.resenas.porCalificar': tr(
+    'Productos por calificar',
+    'Products to rate',
+  ),
+  'perfil.resenas.porCalificarHint': tr(
+    'Estos productos ya fueron entregados. Comparte cómo te fue con ellos.',
+    'These products were already delivered. Share how they worked for you.',
+  ),
+  'perfil.resenas.adjuntarFotoTitle': tr(
+    'Adjuntar foto del producto',
+    'Attach product photo',
+  ),
+  'perfil.resenas.adjuntarFoto': tr('Adjuntar foto', 'Attach photo'),
+  'perfil.resenas.cambiarFoto': tr('Cambiar foto', 'Change photo'),
+  'perfil.resenas.graciasProducto': tr(
+    '¡Gracias por calificar el producto!',
+    'Thank you for rating the product!',
+  ),
   'perfil.resenas.calificacionesPedidos': tr(
     'Calificaciones de tus pedidos',
     'Ratings from your orders',
@@ -337,31 +330,10 @@ export const PROFILE_TABS_TRADUCCIONES: Record<string, { es: string; en: string 
     'You have not rated any products from your orders yet.',
   ),
   'perfil.resenas.sinProductosHint': tr(
-    'Cuando un pedido sea entregado, podrás calificar sus productos desde Mis pedidos.',
-    'When an order is delivered, you can rate its products from My orders.',
+    'Cuando un pedido sea entregado, sus productos aparecerán aquí para que los califiques.',
+    'When an order is delivered, its products will appear here for you to rate.',
   ),
   'perfil.resenas.pedidoNumero': tr('Pedido #{id}', 'Order #{id}'),
-  'perfil.resenas.guardadas': tr(
-    'Reseñas guardadas en este perfil',
-    'Reviews saved in this profile',
-  ),
-  'perfil.resenas.eliminarLocal': tr('Eliminar reseña local', 'Delete local review'),
-  'perfil.resenas.productoSugerido.kit': tr(
-    'Kit domótica Neodomus Smart Home',
-    'Neodomus Smart Home automation kit',
-  ),
-  'perfil.resenas.productoSugerido.camara': tr(
-    'Cámara IP 4K exterior',
-    '4K outdoor IP camera',
-  ),
-  'perfil.resenas.productoSugerido.sensor': tr(
-    'Sensor de movimiento Wi-Fi',
-    'Wi-Fi motion sensor',
-  ),
-  'perfil.resenas.productoSugerido.enchufe': tr(
-    'Enchufe inteligente Wi-Fi',
-    'Wi-Fi smart plug',
-  ),
   'perfil.resenas.errorCargarTecnicos': tr(
     'No se pudieron cargar tus reseñas de técnicos.',
     'We could not load your technician reviews.',
@@ -382,13 +354,4 @@ export const PROFILE_TABS_TRADUCCIONES: Record<string, { es: string; en: string 
     'No se pudo enviar tu calificación.',
     'We could not send your rating.',
   ),
-  'perfil.resenas.errorComentario': tr(
-    'Escribe un comentario para tu reseña',
-    'Write a comment for your review',
-  ),
-  'perfil.resenas.guardadaLocal': tr(
-    'Reseña guardada en este perfil.',
-    'Review saved in this profile.',
-  ),
-  'perfil.resenas.eliminada': tr('Reseña eliminada', 'Review deleted'),
 };

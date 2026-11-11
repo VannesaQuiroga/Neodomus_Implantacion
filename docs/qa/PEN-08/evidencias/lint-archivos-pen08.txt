@@ -1,0 +1,33 @@
+﻿node.exe : npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of 
+npm.
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\carrito.tsx
+  18:35  warning  'TextInputInstance' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\producto\[id].tsx
+   81:9   warning  'CARD_W' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  103:10  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\valet\neodomus_main\movil\app\(tabs)\producto\[id].tsx:103:10
+  101 |
+  102 |   useEffect(() => {
+> 103 |     void cargar();
+      |          ^^^^^^ Avoid calling setState() directly within an effect
+  104 |   }, [cargar]);
+  105 |
+  106 |   // Productos recomendados: misma categor├¡a primero, luego las dem├ís  react-hooks/set-state-in-effect
+
+Ô£û 3 problems (1 error, 2 warnings)
+

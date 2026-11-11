@@ -339,10 +339,10 @@ const ServiciosTab = () => {
       {/* Modal de calificación */}
       {calificandoCita && (
         <ModalPortal>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
-            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+          <div className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
+            <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-servicios-calif-titulo">
             <div className="pf-modal-header">
-              <h3><FaStar /> {t('perfil.servicios.modalTitulo')}</h3>
+              <h3 id="pf-servicios-calif-titulo"><FaStar /> {t('perfil.servicios.modalTitulo')}</h3>
               <button type="button" className="pf-modal-close" onClick={() => setCalificandoCita(null)} aria-label={t('common.cerrar')}>
                 <FaXmark />
               </button>

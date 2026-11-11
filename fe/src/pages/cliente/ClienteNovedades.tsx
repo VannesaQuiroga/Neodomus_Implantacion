@@ -1,5 +1,5 @@
-import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
-// Pantalla ClienteNovedades de Neodomus. Reúne el estado y las acciones de su vista.
+﻿import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
+// Pantalla ClienteNovedades de Neodomus. ReÃºne el estado y las acciones de su vista.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +23,7 @@ import {
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
 import api from '@services/api';
+import { activarConTeclado } from '@utils/keyboard';
 import AuthImage from '@components/common/AuthImage';
 
 interface EvidenciaNovedad {
@@ -82,10 +83,10 @@ interface CuponCliente {
   activo?: boolean;
 }
 
-const ESTADOS = ['Pendiente', 'En revisión', 'Aprobada', 'Rechazada', 'Resuelta', 'Cerrada'];
+const ESTADOS = ['Pendiente', 'En revisiÃ³n', 'Aprobada', 'Rechazada', 'Resuelta', 'Cerrada'];
 
 const CLASE_ESTADO: Record<string, string> = {
-  Pendiente: 'warn', 'En revisión': 'info', Aprobada: 'ok',
+  Pendiente: 'warn', 'En revisiÃ³n': 'info', Aprobada: 'ok',
   Rechazada: 'err', Resuelta: 'ok', Cerrada: 'neutral',
 };
 const CLASE_PRIORIDAD: Record<string, string> = {
@@ -93,12 +94,12 @@ const CLASE_PRIORIDAD: Record<string, string> = {
 };
 
 const formatFecha = (f?: string | null) => {
-  if (!f) return '—';
+  if (!f) return 'â€”';
   return new Date(f).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
 const formatFechaCorta = (f?: string | null) => {
-  if (!f) return '—';
+  if (!f) return 'â€”';
   return new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
@@ -228,13 +229,13 @@ const ClienteNovedades = () => {
               <FaTicket style={{ color: '#d4a54b' }} /> Mis cupones disponibles
             </h2>
             <p style={{ margin: '6px 0 0', color: '#aaa', fontSize: 13 }}>
-              Los cupones que recibes por tus novedades aparecen aquí y puedes usarlos al pagar.
+              Los cupones que recibes por tus novedades aparecen aquÃ­ y puedes usarlos al pagar.
             </p>
           </div>
           {cupones.length > 0 && <Link to="/checkout" className="ap-btn ap-btn-primary">Usar en mi compra</Link>}
         </div>
         {cupones.length === 0 ? (
-          <p style={{ margin: '14px 0 0', color: '#999', fontSize: 13 }}>Todavía no tienes cupones disponibles.</p>
+          <p style={{ margin: '14px 0 0', color: '#999', fontSize: 13 }}>TodavÃ­a no tienes cupones disponibles.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 16 }}>
             {cupones.map((cupon) => (
@@ -245,7 +246,7 @@ const ClienteNovedades = () => {
                 </span>
                 <span style={{ display: 'block', color: '#aaa', fontSize: 12, marginTop: 5 }}>
                   {cupon.fecha_vencimiento ? `Vence el ${formatFechaCorta(cupon.fecha_vencimiento)}` : 'Sin fecha de vencimiento'}
-                  {' · '}{Math.max(0, cupon.usos_maximos - cupon.usos_realizados)} uso(s) disponible(s)
+                  {' Â· '}{Math.max(0, cupon.usos_maximos - cupon.usos_realizados)} uso(s) disponible(s)
                 </span>
               </article>
             ))}
@@ -271,7 +272,7 @@ const ClienteNovedades = () => {
           <FaMagnifyingGlass />
           <input
             type="text"
-            placeholder="Buscar por tipo, técnico, descripción..."
+            placeholder="Buscar por tipo, tÃ©cnico, descripciÃ³n..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -295,7 +296,7 @@ const ClienteNovedades = () => {
           <h3>{filtradas.length === 0 && busqueda ? 'Sin resultados' : 'Sin novedades'}</h3>
           <p>
             {filtradas.length === 0 && busqueda
-              ? 'No se encontraron novedades con tu búsqueda.'
+              ? 'No se encontraron novedades con tu bÃºsqueda.'
               : 'Aun no has reportado ninguna novedad.'}
           </p>
         </div>
@@ -306,7 +307,7 @@ const ClienteNovedades = () => {
               <tr>
                 <th>#</th>
                 <th>Tipo</th>
-                <th>Técnico</th>
+                <th>TÃ©cnico</th>
                 <th>Estado</th>
                 <th>Prioridad</th>
                 <th>Fecha</th>
@@ -319,7 +320,7 @@ const ClienteNovedades = () => {
                 <tr key={n.id_novedad}>
                   <td style={{ fontWeight: 700, color: '#d4a54b' }}>{n.id_novedad}</td>
                   <td style={{ fontSize: '0.85rem' }}>{n.tipo_novedad_label || n.tipo_novedad}</td>
-                  <td style={{ fontSize: '0.85rem' }}>{n.tecnico_nombre || '—'}</td>
+                  <td style={{ fontSize: '0.85rem' }}>{n.tecnico_nombre || 'â€”'}</td>
                   <td>
                     <span className={`ap-badge ${CLASE_ESTADO[n.estado_novedad] || 'neutral'}`}>
                       {n.estado_novedad_label || n.estado_novedad}
@@ -333,17 +334,17 @@ const ClienteNovedades = () => {
                   <td style={{ fontSize: '0.82rem', color: '#9f9f9f' }}>{formatFechaCorta(n.fecha_reporte)}</td>
                   <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
                     {n.mensaje_cliente ? (
-                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={0} onKeyDown={activarConTeclado} style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaPaperPlane style={{ marginRight: 4 }} /> Mensaje recibido
                       </span>
-                    ) : '—'}
+                    ) : 'â€”'}
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.solucion_cliente ? '#46d06f' : '#8f8f8f' }}>
                     {n.solucion_cliente ? (
-                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
-                        <FaCheck style={{ marginRight: 4 }} /> Solución
+                      <span role="button" tabIndex={0} onKeyDown={activarConTeclado} style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                        <FaCheck style={{ marginRight: 4 }} /> SoluciÃ³n
                       </span>
-                    ) : '—'}
+                    ) : 'â€”'}
                   </td>
                   <td>
                     <button
@@ -404,8 +405,8 @@ const ClienteNovedades = () => {
                     <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tipo_novedad_label || detalle.tipo_novedad}</div>
                   </div>
                   <div className="ap-def">
-                    <div className="ap-def-label"><FaUser style={{ marginRight: 4 }} />Técnico</div>
-                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tecnico_nombre || '—'}</div>
+                    <div className="ap-def-label"><FaUser style={{ marginRight: 4 }} />TÃ©cnico</div>
+                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tecnico_nombre || 'â€”'}</div>
                   </div>
                   {detalle.id_pedido && (
                     <div className="ap-def">
@@ -431,7 +432,7 @@ const ClienteNovedades = () => {
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <FaCircleInfo style={{ color: '#d4a54b', fontSize: '0.85rem' }} />
-                    <strong style={{ fontSize: '0.85rem', color: '#e6e6e6' }}>Descripción</strong>
+                    <strong style={{ fontSize: '0.85rem', color: '#e6e6e6' }}>DescripciÃ³n</strong>
                   </div>
                   <p style={{ margin: 0, color: '#bdbdbd', fontSize: '0.88rem', lineHeight: 1.65 }}>{detalle.descripcion_novedad}</p>
                 </div>
@@ -456,7 +457,7 @@ const ClienteNovedades = () => {
                   <div style={{ padding: '12px 14px', background: 'rgba(46, 160, 67, 0.08)', border: '1px solid rgba(46, 160, 67, 0.3)', borderRadius: 10, marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <FaCheck style={{ color: '#46d06f', fontSize: '0.8rem' }} />
-                      <strong style={{ fontSize: '0.82rem', color: '#46d06f' }}>Acción del admin</strong>
+                      <strong style={{ fontSize: '0.82rem', color: '#46d06f' }}>AcciÃ³n del admin</strong>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#c9c9c9' }}>{detalle.accion_admin}</p>
                   </div>
@@ -473,12 +474,12 @@ const ClienteNovedades = () => {
                   </div>
                 )}
 
-                {/* Solución para el cliente */}
+                {/* SoluciÃ³n para el cliente */}
                 {detalle.solucion_cliente && (
                   <div style={{ padding: '12px 14px', background: 'rgba(46, 160, 67, 0.08)', border: '1px solid rgba(46, 160, 67, 0.3)', borderRadius: 10, marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <FaCheck style={{ color: '#46d06f', fontSize: '0.8rem' }} />
-                      <strong style={{ fontSize: '0.82rem', color: '#46d06f' }}>Solución</strong>
+                      <strong style={{ fontSize: '0.82rem', color: '#46d06f' }}>SoluciÃ³n</strong>
                       <span style={{ fontSize: '0.7rem', color: '#8f8f8f', marginLeft: 'auto' }}>
                         {detalle.cliente_visible ? 'Visible para ti' : 'Restringida'}
                       </span>
@@ -489,7 +490,7 @@ const ClienteNovedades = () => {
 
                 {detalle.cupon && (
                   <div style={{ padding: '12px 14px', background: 'rgba(212,165,75,.1)', border: '1px dashed rgba(212,165,75,.55)', borderRadius: 10, marginBottom: 18 }}>
-                    <strong style={{ color: '#f1d27b' }}>Cupón de compensación: {detalle.cupon.codigo}</strong>
+                    <strong style={{ color: '#f1d27b' }}>CupÃ³n de compensaciÃ³n: {detalle.cupon.codigo}</strong>
                     <p style={{ margin: '5px 0', color: '#fff' }}>
                       {detalle.cupon.tipo_descuento === 'porcentaje'
                         ? `${detalle.cupon.valor_descuento}% de descuento`
@@ -498,7 +499,7 @@ const ClienteNovedades = () => {
                     <small style={{ color: '#fff' }}>
                       {detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos
                         ? 'Disponible para usar al pagar'
-                        : 'Este cupón ya no está disponible'}
+                        : 'Este cupÃ³n ya no estÃ¡ disponible'}
                     </small>
                   </div>
                 )}

@@ -103,6 +103,9 @@ class Reembolso(Base):
     id_reembolso = Column(Integer, primary_key=True, index=True)
     id_cita = Column(Integer, ForeignKey("citas.id_cita", ondelete="SET NULL"), nullable=True, index=True)
     id_pedido = Column(Integer, ForeignKey("pedidos.id_pedido", ondelete="SET NULL"), nullable=True, index=True)
+    # Solicitud de devolución que origina el reembolso (PEN-10). Único:
+    # impide en BD que una misma devolución genere dos reembolsos.
+    id_solicitud_origen = Column(Integer, nullable=True, unique=True, index=True)
     monto = Column(Float, nullable=False, default=0)
     estado = Column(String(20), nullable=False, default="Pendiente")
     motivo = Column(String(255), nullable=True)

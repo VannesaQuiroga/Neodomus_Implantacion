@@ -104,7 +104,7 @@ export const ADMIN_TRADUCCIONES_PRODUCTO_DETALLE: Record<string, { es: string; e
   'adm.productoDetalle.siEliminar': { es: 'Sí, eliminar', en: 'Yes, delete' },
   'adm.productoDetalle.nuevoProveedor': { es: 'Nuevo proveedor', en: 'New supplier' },
   'adm.productoDetalle.npNombre': { es: 'Nombre *', en: 'Name *' },
-  'adm.productoDetalle.phNombreProv': { es: 'Ej: Proveedora Olímpica', en: 'E.g.: Olímpica supplier' },
+  'adm.productoDetalle.phNombreProv': { es: 'Ej: Domótica Segura S.A.S.', en: 'E.g.: Secure Home Tech Inc.' },
   'adm.productoDetalle.npContacto': { es: 'Contacto', en: 'Contact' },
   'adm.productoDetalle.phContacto': { es: 'Nombre de la persona de contacto', en: 'Contact person name' },
   'adm.productoDetalle.npTelefono': { es: 'Teléfono', en: 'Phone' },

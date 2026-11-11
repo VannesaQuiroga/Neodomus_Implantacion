@@ -1295,9 +1295,9 @@ const AdminInstalaciones = () => {
 
       {citaACancelar && (
         <div className="ap-modal-overlay">
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="ap-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="adm-cancelar-cita-titulo">
             <div className="ap-modal-head">
-              <h3><FaBan /> Cancelar cita #{citaACancelar.id_cita}</h3>
+              <h3 id="adm-cancelar-cita-titulo"><FaBan /> Cancelar cita #{citaACancelar.id_cita}</h3>
               <button type="button" className="ap-modal-x" onClick={() => setCitaACancelar(null)} aria-label="Cerrar">
                 <FaXmark />
               </button>

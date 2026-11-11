@@ -24,11 +24,17 @@ def crear_reembolso(
     cita_id: int | None = None,
     pedido_id: int | None = None,
     numero_transaccion_original: str | None = None,
+    solicitud_origen_id: int | None = None,
 ) -> Reembolso:
-    """Registra un reembolso pendiente y lo procesa con el simulador."""
+    """Registra un reembolso pendiente y lo procesa con el simulador.
+
+    ``solicitud_origen_id`` vincula el reembolso con la solicitud de
+    devolución que lo originó (PEN-10); el índice único de esa columna
+    impide que la misma devolución genere dos reembolsos."""
     reembolso = Reembolso(
         id_cita=cita_id,
         id_pedido=pedido_id,
+        id_solicitud_origen=solicitud_origen_id,
         monto=round(float(monto or 0), 2),
         estado="Pendiente",
         motivo=(motivo or "")[:255] or None,

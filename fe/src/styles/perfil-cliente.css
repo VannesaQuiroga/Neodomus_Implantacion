@@ -1,4 +1,4 @@
-﻿/* â•â•â• Perfil de cliente Â· Neodomus â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* â•â•â• Perfil de cliente Â· Neodomus â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 :root {
   --pf-oro: #d4a54b;
@@ -1132,27 +1132,19 @@
   flex-wrap: wrap;
 }
 
-.pf-review-form {
-  margin-bottom: 20px;
+/* Comentario de una reseña: admite varias líneas con ENTER. */
+textarea.pf-resena-comentario {
+  resize: vertical;
+  min-height: 56px;
+  line-height: 1.5;
+  font-family: inherit;
 }
 
-.pf-rating-input {
-  display: flex;
-  gap: 6px;
-  font-size: 1.2rem;
-}
-
-.pf-rating-input button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--pf-muted);
-  padding: 2px;
-  font-size: inherit;
-}
-
-.pf-rating-input button.on {
-  color: var(--pf-oro);
+/* Reseña pendiente de calificar: espacio interior ordenado. */
+.pf-review-item .pf-form-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .pf-review-list {
@@ -2514,16 +2506,12 @@
   border-top: 1px solid rgba(212, 165, 75, 0.2);
 }
 
-.pf-resenas-cabecera {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.pf-resenas-cabecera .pf-resenas-subtitulo {
-  margin: 0;
+/* Nota descriptiva de las secciones de reseñas. */
+.pf-resenas-hint {
+  margin: 0 0 12px;
+  color: var(--pf-muted, #9f9f9f);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 /* â”€â”€ Selector TÃ©cnicos / Productos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -3105,21 +3093,7 @@
   white-space: nowrap;
 }
 
-.pf-resenas-acciones {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pf-resenas-locales-titulo {
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* â”€â”€ Devoluciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Devoluciones ── */
 .pf-dev-btn {
   display: inline-flex;
   align-items: center;
@@ -3874,6 +3848,10 @@
 }
 .pf-dev-cantidades button:disabled { opacity: 0.4; cursor: not-allowed; }
 .pf-dev-cantidades strong { min-width: 18px; text-align: center; }
+.pf-dev-metros {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .pf-dev-subtotal {
   display: flex;
   justify-content: space-between;

@@ -5,7 +5,9 @@
 // - Clave de línea para dedupe: id + color + medida/tamaño + metros (igual que web).
 // - Venta por metros: cantidad = unidades, metros = longitud por unidad.
 //   Total metros = metros * cantidad. Precio = precio_por_metro * total_metros.
-//   Clave incluye metros para distinguir 10m vs 20m del mismo producto.
+//   Clave incluye metros para distinguir cortes del mismo producto (1,5 m vs 2 m).
+// - Disponibilidad: el ítem guarda stock_maximo (m disponible de la línea) y
+//   updateMetros/updateQuantity lo respetan; la validación definitiva es del backend.
 // - Al cerrar sesión el carrito se vacía (igual que la web).
 // ─────────────────────────────────────────────────────────────
 
@@ -41,6 +43,8 @@ export interface ItemCarrito {
   venta_por_metros?: boolean;
   metros?: number;
   tecnicos_requeridos?: number;
+  /** Metraje máximo disponible para esta línea (venta por metros). */
+  stock_maximo?: number;
 }
 
 export const claveItemCarrito = (
@@ -61,10 +65,20 @@ interface CarritoContextValue {
   totalPrice: number;
   addItem: (
     producto: Producto,
-    opciones?: { cantidad?: number; metros?: number; color?: string; tamaño?: string; medida?: string; id_variante?: number },
+    opciones?: {
+      cantidad?: number;
+      metros?: number;
+      color?: string;
+      tamaño?: string;
+      medida?: string;
+      id_variante?: number;
+      /** Disponibilidad (m) de la línea al agregarla; se guarda para validar el carrito. */
+      stock_maximo?: number;
+    },
   ) => void;
   updateQuantity: (clave: string, cantidad: number) => void;
-  updateMetros: (clave: string, metros: number | string) => void;
+  /** Devuelve el error de disponibilidad (igual que la web) o null si se aplicó. */
+  updateMetros: (clave: string, metros: number | string) => string | null;
   removeItem: (clave: string) => void;
   clearCart: () => void;
 }
@@ -126,6 +140,7 @@ export function CarritoProvider({ children }: { children: React.ReactNode }) {
         tamaño,
         medida,
         id_variante,
+        stock_maximo,
       } = opciones;
 
       setItems((prev) => {
@@ -155,6 +170,7 @@ export function CarritoProvider({ children }: { children: React.ReactNode }) {
                   ...item,
                   // Misma longitud (clave incluye metros) → incrementar unidades (web).
                   cantidad: Math.max(1, (item.cantidad ?? 0) + cantidadSolicitada),
+                  stock_maximo: stock_maximo ?? item.stock_maximo,
                 }
               : item,
           );
@@ -177,6 +193,7 @@ export function CarritoProvider({ children }: { children: React.ReactNode }) {
             venta_por_metros: producto.venta_por_metros,
             metros: metrosSolicitado,
             tecnicos_requeridos: producto.tecnicos_requeridos,
+            stock_maximo,
           },
         ];
       });
@@ -194,15 +211,32 @@ export function CarritoProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const updateMetros = useCallback((clave: string, metros: number | string) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (claveItemCarrito(item) !== clave) return item;
-        const r = parseMetros(metros);
-        return r.valor != null ? { ...item, metros: r.valor } : item;
-      }),
-    );
-  }, []);
+  const updateMetros = useCallback<CarritoContextValue["updateMetros"]>(
+    (clave, metros) => {
+      const r = parseMetros(metros);
+      if (r.valor == null) {
+        return r.error ?? "Cantidad inválida";
+      }
+      const nuevosMetros = r.valor;
+      // Igual que la web: el ítem conoce su disponibilidad (stock_maximo, en m)
+      // y rechaza el cambio si la línea completa la excede. Sin límite guardado
+      // (ítems antiguos) no se bloquea localmente: el backend es la barrera final.
+      let error: string | null = null;
+      setItems((prev) =>
+        prev.map((item) => {
+          if (claveItemCarrito(item) !== clave) return item;
+          const stockMax = item.stock_maximo ?? Infinity;
+          if (nuevosMetros * (item.cantidad || 1) > stockMax) {
+            error = `Stock insuficiente: solo hay ${stockMax} m disponibles`;
+            return item;
+          }
+          return { ...item, metros: nuevosMetros };
+        }),
+      );
+      return error;
+    },
+    [],
+  );
 
   const removeItem = useCallback((clave: string) => {
     setItems((prev) => prev.filter((item) => claveItemCarrito(item) !== clave));

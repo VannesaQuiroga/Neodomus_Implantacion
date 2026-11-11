@@ -55,10 +55,10 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
 
   return (
     <ModalPortal>
-      <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={onClose}>
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="pf-modal-backdrop" onClick={onClose}>
+        <div className="pf-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-pay-titulo">
           <div className="pf-modal-header">
-            <h3>{metodo ? t('perfil.pagos.editarTitulo') : t('perfil.pagos.agregarTitulo')}</h3>
+            <h3 id="pf-pay-titulo">{metodo ? t('perfil.pagos.editarTitulo') : t('perfil.pagos.agregarTitulo')}</h3>
             <button type="button" className="pf-modal-close" onClick={onClose} aria-label={t('common.cerrar')}>×</button>
           </div>
           <form className="pf-form" onSubmit={submit}>
@@ -254,10 +254,10 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
 
       {eliminando && (
         <ModalPortal>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => setEliminando(null)}>
-            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+          <div className="pf-modal-backdrop" onClick={() => setEliminando(null)}>
+            <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-pay-eliminar-titulo">
               <div className="pf-modal-header">
-                <h3>{t('perfil.pagos.eliminarTitulo')}</h3>
+                <h3 id="pf-pay-eliminar-titulo">{t('perfil.pagos.eliminarTitulo')}</h3>
                 <button type="button" className="pf-modal-close" onClick={() => setEliminando(null)} aria-label={t('common.cerrar')}>×</button>
               </div>
               <p className="pf-modal-text">{t('perfil.pagos.eliminarMsg')}</p>

@@ -18,8 +18,11 @@ class SessionActualTestCase(BaseT1TestCase):
         cliente = self._crear_cliente("session")
         response = self._get("/api/v1/auth/session", headers=self._bearer(self._access(cliente)))
         self.assertEqual(response.status_code, 200, response.text)
+        # ``rol_label`` (traducción de presentación) se agregó al contrato en
+        # 22e89ba; en el idioma por defecto para el rol 'cliente' es 'Cliente'.
         self.assertEqual(response.json(), {
-            "user_type": "client", "rol": "cliente", "uid": str(cliente.id_cliente),
+            "user_type": "client", "rol": "cliente",
+            "rol_label": "Cliente", "uid": str(cliente.id_cliente),
         })
 
     def test_cookie_access_sigue_funcionando(self):

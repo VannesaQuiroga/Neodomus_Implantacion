@@ -1,0 +1,40 @@
+==============================================================================
+NEODOMUS - Suite backend (unittest)
+Root      : C:\Users\valet\neodomus_main
+Modo      : contenedor api (uv)
+Alcance   : modulo test_checkout_metros_http
+Cobertura : no
+==============================================================================
+[1] Validando TEST_DATABASE_URL...
+  OK: base de pruebas validada 'neodomus_test' en db:3306.
+[2] Validando Docker y contenedor api...
+  OK: contenedor api corriendo.
+==============================================================================
+Ejecutando pruebas...
+test_checkout_anonimo_rechazado_sin_efectos (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_checkout_anonimo_rechazado_sin_efectos) ... ok
+test_checkout_directo_marca_completado_y_reintento_idempotente (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_checkout_directo_marca_completado_y_reintento_idempotente) ... /app/.venv/lib/python3.12/site-packages/jose/jwt.py:311: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = timegm(datetime.utcnow().utctimetuple())
+ok
+test_checkout_directo_rollback_antes_de_commit (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_checkout_directo_rollback_antes_de_commit) ... ok
+test_importes_desde_servidor_y_no_persistencia (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_importes_desde_servidor_y_no_persistencia) ... ok
+test_metros_pendientes_confirmados_y_repetidos_por_http (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_metros_pendientes_confirmados_y_repetidos_por_http) ... ok
+test_precio_de_variante_prevalece_sobre_importes_del_navegador (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_precio_de_variante_prevalece_sobre_importes_del_navegador) ... ok
+test_precision_excesiva_rechazada_sin_pedido_ni_descuento (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_precision_excesiva_rechazada_sin_pedido_ni_descuento) ... ok
+test_reintento_autorizacion (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_reintento_autorizacion) ... ok
+test_reintento_aviso_fallido_no_repite_finalizacion (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_reintento_aviso_fallido_no_repite_finalizacion) ... ok
+test_reintento_estados_no_permitidos (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_reintento_estados_no_permitidos) ... ok
+test_reintento_fallo_antes_commit_revierte (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_reintento_fallo_antes_commit_revierte) ... ok
+test_reintento_historicos_ambiguos_null_en_conflicto (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_reintento_historicos_ambiguos_null_en_conflicto) ... ok
+test_reintentos_concurrentes_no_duplican (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_reintentos_concurrentes_no_duplican) ... ok
+test_tarjeta_datos_invalidos_no_crean_pedido (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_tarjeta_datos_invalidos_no_crean_pedido) ... ok
+test_tarjeta_rechazada_y_reintento_aprobado_no_duplica (app.tests.test_checkout_metros_http.CheckoutMetrosHTTPTestCase.test_tarjeta_rechazada_y_reintento_aprobado_no_duplica) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 5.950s
+
+OK
+==============================================================================
+[valet] Suite: backend/unittest    Resultado: PASADO    Codigo: 0    Duracion: 18,7s
+     Base validada: neodomus_test  |  Host: db:3306  |  Modo: docker
+     Comando: docker compose exec api uv run python -m unittest ...
+==============================================================================

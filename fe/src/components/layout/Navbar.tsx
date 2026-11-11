@@ -1,4 +1,4 @@
-// Componente de navegación y estructura visual: Navbar. Se reutiliza en las pantallas de su área.
+﻿// Componente de navegaciÃ³n y estructura visual: Navbar. Se reutiliza en las pantallas de su Ã¡rea.
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@contexts/AuthContext";
 import { useAuthModal } from "@contexts/AuthModalContext";
@@ -6,6 +6,7 @@ import { useCart } from "@contexts/CartContext";
 import { useState, useRef, useEffect } from "react";
 import { FaRightFromBracket, FaCartShopping } from "react-icons/fa6";
 import { getAvatar, getIniciales } from "@utils/profileStorage";
+import { activarConTeclado } from "@utils/keyboard";
 import { useIdioma } from "@i18n/IdiomaContext";
 import { useNotificacionesRol } from "../../hooks/useAdminNotificaciones";
 import NotificacionesBell from "./NotificacionesBell";
@@ -56,15 +57,15 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Si un administrador aprueba la inhabilitación de la cuenta, el backend
+  // Si un administrador aprueba la inhabilitaciÃ³n de la cuenta, el backend
   // desactiva al cliente y /clients/me responde 401; el interceptor renueva el
-  // token y, como el refresh también es rechazado, cierra la sesión al instante.
+  // token y, como el refresh tambiÃ©n es rechazado, cierra la sesiÃ³n al instante.
   useEffect(() => {
     if (rol !== "cliente") return;
     // Comunica con el backend mediante GET "/clients/me".
     const verificarCuenta = () => {
       api.get("/clients/me").catch(() => {
-        /* el interceptor maneja el 401 y cierra sesión */
+        /* el interceptor maneja el 401 y cierra sesiÃ³n */
       });
     };
     verificarCuenta();
@@ -105,7 +106,7 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Menú */}
+          {/* MenÃº */}
           <nav className="menu">
             {!rol ? (
               <>
@@ -187,7 +188,7 @@ const Navbar = () => {
               </>
             ) : (
               <div className="user-menu" ref={dropdownRef}>
-                <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="user-welcome" onClick={toggleDropdown}>
+                <div role="button" tabIndex={0} onKeyDown={activarConTeclado} className="user-welcome" onClick={toggleDropdown}>
                   <div className="welcome-text">
                     <span className="welcome-greeting">{esFemenino ? t('nav.bienvenida') : t('nav.bienvenido')}</span>
                     <span className="welcome-name">{nombreCompleto}</span>

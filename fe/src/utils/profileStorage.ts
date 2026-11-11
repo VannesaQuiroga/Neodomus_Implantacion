@@ -110,15 +110,6 @@ export interface Mensaje {
   cuerpo: string;
 }
 
-export interface Resena {
-  id: string;
-  producto: string;
-  productoImg: string;
-  calificacion: number;
-  comentario: string;
-  fecha: string;
-}
-
 export interface Tecnico {
   id: string;
   nombre: string;
@@ -150,7 +141,6 @@ export interface NotificacionPrefs {
 
 export const PF_PEDIDOS_KEY = 'pf_pedidos';
 export const PF_MENSAJES_KEY = 'pf_mensajes';
-export const PF_RESENAS_KEY = 'pf_resenas';
 export const PF_TECNICOS_KEY = 'pf_tecnicos';
 export const PF_PAGOS_KEY = 'pf_pagos';
 export const PF_IDIOMA_KEY = 'pf_idioma';
@@ -208,19 +198,6 @@ const defaultMensajes: Mensaje[] = [
   },
 ];
 
-const defaultResenas: Resena[] = [
-  {
-    id: 'r-1', producto: 'Kit domótica Neodomus', productoImg: '/productos/1.jpg', calificacion: 5,
-    comentario: 'Excelente calidad. La instalación fue rápida y los dispositivos se integraron sin problema con la app.',
-    fecha: '18 jun 2025',
-  },
-  {
-    id: 'r-2', producto: 'Sensor de movimiento Wi-Fi', productoImg: '/productos/5.jpg', calificacion: 4,
-    comentario: 'Muy buen sensor, aunque el empaque llegó un poco golpeado. Funciona perfecto.',
-    fecha: '3 jun 2025',
-  },
-];
-
 const defaultTecnicos: Tecnico[] = [
   {
     id: 't-1', nombre: 'Andrés Rojas', especialidad: 'Instalación y programación', valoracion: 4.9, trabajos: 214,
@@ -252,10 +229,6 @@ export function getPedidos(): Pedido[] {
 
 export function getMensajes(): Mensaje[] {
   return loadItem<Mensaje[]>(PF_MENSAJES_KEY, defaultMensajes);
-}
-
-export function getResenas(): Resena[] {
-  return loadItem<Resena[]>(PF_RESENAS_KEY, defaultResenas);
 }
 
 export function getTecnicos(): Tecnico[] {

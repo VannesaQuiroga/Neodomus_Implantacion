@@ -1,0 +1,86 @@
+﻿node.exe : npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of 
+npm.
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+React Compiler enabled
+Starting Metro Bundler
+
+Android Bundled 75682ms node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\entry.js (1748 modules)
+
+ÔÇ║ Assets (76):
+assets\images\blog1.jpeg (60KB)
+assets\images\blog2.jpeg (46KB)
+assets\images\blog3.jpeg (54KB)
+assets\images\FONDO.png (563KB)
+assets\images\Logo.jpg (17KB)
+assets\images\react-logo.png (3 variations | 14KB)
+assets\images\sobre.jpeg (60KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\100Thin_Italic\Inter_100Thin_Italic.ttf (347KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\100Thin\Inter_100Thin.ttf (343KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\200ExtraLight_Italic\Inter_200ExtraLight_Italic.ttf (347KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\200ExtraLight\Inter_200ExtraLight.ttf (343KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\300Light_Italic\Inter_300Light_Italic.ttf (347KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\300Light\Inter_300Light.ttf (343KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\400Regular_Italic\Inter_400Regular_Italic.ttf (346KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\400Regular\Inter_400Regular.ttf (342KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\500Medium_Italic\Inter_500Medium_Italic.ttf (346KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\500Medium\Inter_500Medium.ttf (343KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\600SemiBold_Italic\Inter_600SemiBold_Italic.ttf (347KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\600SemiBold\Inter_600SemiBold.ttf (344KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\700Bold_Italic\Inter_700Bold_Italic.ttf (348KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\700Bold\Inter_700Bold.ttf (344KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\800ExtraBold_Italic\Inter_800ExtraBold_Italic.ttf (349KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\800ExtraBold\Inter_800ExtraBold.ttf (345KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\900Black_Italic\Inter_900Black_Italic.ttf (349KB)
+node_modules\.pnpm\@expo-google-fonts+inter@0.4.2\node_modules\@expo-google-fonts\inter\900Black\Inter_900Black.ttf (345KB)
+node_modules\.pnpm\@expo-google-fonts+material-symbols@0.4.47\node_modules\@expo-google-fonts\material-symbols\400Regular\MaterialSymbols_400Regular.ttf (967KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\100Thin_Italic\Montserrat_100Thin_Italic.ttf (336KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\100Thin\Montserrat_100Thin.ttf (330KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\200ExtraLight_Italic\Montserrat_200ExtraLight_Italic.ttf (337KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\200ExtraLight\Montserrat_200ExtraLight.ttf (330KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\300Light_Italic\Montserrat_300Light_Italic.ttf (337KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\300Light\Montserrat_300Light.ttf (331KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\400Regular_Italic\Montserrat_400Regular_Italic.ttf (337KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\400Regular\Montserrat_400Regular.ttf (331KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\500Medium_Italic\Montserrat_500Medium_Italic.ttf (337KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\500Medium\Montserrat_500Medium.ttf (331KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\600SemiBold_Italic\Montserrat_600SemiBold_Italic.ttf (339KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\600SemiBold\Montserrat_600SemiBold.ttf (334KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\700Bold_Italic\Montserrat_700Bold_Italic.ttf (342KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\700Bold\Montserrat_700Bold.ttf (336KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\800ExtraBold_Italic\Montserrat_800ExtraBold_Italic.ttf (349KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\800ExtraBold\Montserrat_800ExtraBold.ttf (344KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\900Black_Italic\Montserrat_900Black_Italic.ttf (348KB)
+node_modules\.pnpm\@expo-google-fonts+montserrat@0.4.2\node_modules\@expo-google-fonts\montserrat\900Black\Montserrat_900Black.ttf (343KB)
+node_modules\.pnpm\@expo+vector-icons@15.0.3_e_732c7bace2101378640e7d65343e649e\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Brands.ttf (209KB)
+node_modules\.pnpm\@expo+vector-icons@15.0.3_e_732c7bace2101378640e7d65343e649e\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Regular.ttf (68KB)
+node_modules\.pnpm\@expo+vector-icons@15.0.3_e_732c7bace2101378640e7d65343e649e\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Solid.ttf (424KB)
+node_modules\.pnpm\@expo+vector-icons@15.0.3_e_732c7bace2101378640e7d65343e649e\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialIcons.ttf (357KB)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\arrow_down.png (9.5KB)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\arrow_right.xml (307B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\checkmark.xml (312B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\error.png (469B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\file.png (138B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\forward.png (188B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\pkg.png (364B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\react-navigation\elements\back-icon-mask.png (653B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\react-navigation\elements\back-icon.png (4 variations | 152B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\react-navigation\elements\clear-icon.png (4 variations | 425B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\react-navigation\elements\close-icon.png (4 variations | 235B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\react-navigation\elements\search-icon.png (4 variations | 599B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\sitemap.png (465B)
+node_modules\.pnpm\expo-router@58.0.30_af5d02860480bf1b19197fb9bf56fa3d\node_modules\expo-router\assets\unmatched.png (4.8KB)
+
+ÔÇ║ android bundles (1):
+_expo/static/js/android/entry-a9e6890a4f62e4b8ab94c3470fead201.hbc (4.8MB)
+
+ÔÇ║ Files (1):
+metadata.json (5KB)
+
+Exported: dist

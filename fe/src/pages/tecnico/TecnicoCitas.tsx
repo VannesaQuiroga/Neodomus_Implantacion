@@ -538,11 +538,11 @@ const TecnicoCitas = () => {
       )}
 
       {reagendando && (
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal-overlay" onClick={cancelarReagendar}>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <div className="ap-modal-overlay" onClick={cancelarReagendar}>
+          <div className="ap-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="tec-reagendar-titulo">
             <div className="ap-modal-head">
               <div>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 id="tec-reagendar-titulo" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FaCalendarDays style={{ color: '#d4a54b' }} /> {t('tec.reagendarTitulo')}
                 </h3>
                 <p style={{ color: '#9f9f9f', fontSize: '0.82rem', marginTop: 4 }}>{t('tec.reagendarSub')}</p>

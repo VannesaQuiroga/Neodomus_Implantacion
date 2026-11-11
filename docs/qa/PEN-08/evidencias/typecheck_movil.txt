@@ -1,0 +1,8 @@
+node.exe : $ tsc --noEmit
+En C:\Users\valet\AppData\Roaming\npm\pnpm.ps1: 24 Carácter: 5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.mjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ tsc --noEmit:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+

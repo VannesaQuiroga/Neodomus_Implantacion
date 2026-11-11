@@ -23,6 +23,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import PublicScreen from "@/components/public/PublicScreen";
 import ProductCard from "@/components/public/ProductCard";
+import { PASO_METROS, formatMetros } from "@/utils/metros";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIdioma } from "@/contexts/IdiomaContext";
@@ -53,9 +54,17 @@ export default function CarritoScreen() {
   const { autenticado, userType } = useAuth();
   const { t } = useIdioma();
   const [avisoLoginVisible, setAvisoLoginVisible] = useState(false);
+  // Aviso temporal (stock insuficiente al cambiar metros de una línea).
+  const [aviso, setAviso] = useState<string | null>(null);
   const scrollRef = useRef<ScrollViewInstance | null>(null);
   // Entrar al carrito desde otra sección → empezar arriba.
   useScrollTopAlEntrar(scrollRef);
+
+  useEffect(() => {
+    if (!aviso) return;
+    const temporizador = setTimeout(() => setAviso(null), 3000);
+    return () => clearTimeout(temporizador);
+  }, [aviso]);
 
   const finalizarCompra = () => {
     if (items.length === 0) return;
@@ -109,7 +118,12 @@ export default function CarritoScreen() {
                   key={claveItemCarrito(item)}
                   item={item}
                   onCantidad={(valor) => updateQuantity(claveItemCarrito(item), valor)}
-                  onMetros={(valor) => updateMetros(claveItemCarrito(item), valor)}
+                  onMetros={(valor) => {
+                    // La validación de disponibilidad vive en el contexto;
+                    // si la rechaza (stock cambió), se informa al usuario.
+                    const error = updateMetros(claveItemCarrito(item), valor);
+                    if (error) setAviso(error);
+                  }}
                   onQuitar={() => removeItem(claveItemCarrito(item))}
                 />
               ))}
@@ -254,6 +268,14 @@ export default function CarritoScreen() {
           </View>
         </View>
       </Modal>
+
+      {aviso && (
+        <View style={styles.avisoWrap} pointerEvents="none">
+          <View style={styles.avisoToast}>
+            <Text style={styles.avisoToastTexto}>{aviso}</Text>
+          </View>
+        </View>
+      )}
     </PublicScreen>
   );
 }
@@ -269,7 +291,18 @@ function TarjetaItem({  item,
   onQuitar: () => void;
 }) {
   const esMetros = !!item.venta_por_metros;
-  const cantidadEfectiva = esMetros ? (item.metros ?? 10) * (item.cantidad || 1) : item.cantidad;
+  const metrosActuales = item.metros ?? PASO_METROS;
+  const cantidadActual = Math.max(1, item.cantidad || 1);
+  const cantidadEfectiva = esMetros ? metrosActuales * cantidadActual : item.cantidad;
+  // Límites por disponibilidad real (PEN-08). Ítems guardados sin stock_maximo
+  // no se acotan localmente: la validación definitiva es del backend.
+  const stockMaximo = item.stock_maximo ?? Infinity;
+  const maxMetrosPorLinea = Number.isFinite(stockMaximo)
+    ? Math.floor((stockMaximo / cantidadActual) * 2) / 2
+    : Infinity;
+  const maxUnidadesPorLinea = Number.isFinite(stockMaximo)
+    ? Math.max(1, Math.floor(stockMaximo / metrosActuales) || 1)
+    : Infinity;
   // Misma resolución de imagen que Productos (cubre ítems guardados antes
   // del fix: si imagen vino null, aplica la convención /uploads/{id}.jpg).
   const urlImagen = urlImagenProducto({
@@ -306,7 +339,8 @@ function TarjetaItem({  item,
         )}
         {esMetros && (
           <Text style={styles.itemDetalle}>
-            {item.cantidad} × {item.metros ?? 10} m = {cantidadEfectiva} m total
+            {cantidadActual} × {formatMetros(metrosActuales)} m ={" "}
+            {formatMetros(cantidadEfectiva)} m total
           </Text>
         )}
 
@@ -316,15 +350,16 @@ function TarjetaItem({  item,
               <View style={styles.contador}>
                 <Pressable
                   style={styles.contadorBoton}
-                  onPress={() => onCantidad(Math.max(1, (item.cantidad || 1) - 1))}
+                  onPress={() => onCantidad(Math.max(1, cantidadActual - 1))}
                   accessibilityLabel="Reducir unidades"
                 >
                   <FontAwesome6 name="minus" size={10} color={C.blanco} />
                 </Pressable>
-                <Text style={styles.chipMetros}>{item.cantidad}</Text>
+                <Text style={styles.chipMetros}>{cantidadActual}</Text>
                 <Pressable
                   style={styles.contadorBoton}
-                  onPress={() => onCantidad((item.cantidad || 1) + 1)}
+                  onPress={() => onCantidad(Math.min(cantidadActual + 1, maxUnidadesPorLinea))}
+                  disabled={cantidadActual >= maxUnidadesPorLinea}
                   accessibilityLabel="Aumentar unidades"
                 >
                   <FontAwesome6 name="plus" size={10} color={C.blanco} />
@@ -333,15 +368,17 @@ function TarjetaItem({  item,
               <View style={styles.contador}>
                 <Pressable
                   style={styles.contadorBoton}
-                  onPress={() => onMetros(Math.max(10, (item.metros ?? 10) - 10))}
+                  onPress={() => onMetros(metrosActuales - PASO_METROS)}
+                  disabled={metrosActuales <= PASO_METROS}
                   accessibilityLabel="Reducir metros"
                 >
                   <FontAwesome6 name="minus" size={10} color={C.blanco} />
                 </Pressable>
-                <Text style={styles.chipMetros}>{item.metros ?? 10} m</Text>
+                <Text style={styles.chipMetros}>{formatMetros(metrosActuales)} m</Text>
                 <Pressable
                   style={styles.contadorBoton}
-                  onPress={() => onMetros(Math.min(50, (item.metros ?? 10) + 10))}
+                  onPress={() => onMetros(metrosActuales + PASO_METROS)}
+                  disabled={metrosActuales >= maxMetrosPorLinea}
                   accessibilityLabel="Aumentar metros"
                 >
                   <FontAwesome6 name="plus" size={10} color={C.blanco} />
@@ -683,6 +720,29 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontFamily: FontFamilies.bodyBold,
     minWidth: 34,
+    textAlign: "center",
+  },
+
+  avisoWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 90,
+    alignItems: "center",
+  },
+  avisoToast: {
+    backgroundColor: "rgba(0,0,0,0.92)",
+    borderWidth: 1,
+    borderColor: "#c9a227",
+    borderRadius: 40,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    maxWidth: "88%",
+  },
+  avisoToastTexto: {
+    color: "#f0c96f",
+    fontSize: 13,
+    fontFamily: FontFamilies.bodyMedium,
     textAlign: "center",
   },
 

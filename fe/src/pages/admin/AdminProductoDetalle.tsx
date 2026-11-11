@@ -1394,8 +1394,8 @@ const AdminProductoDetalle = () => {
 
       {confirmarBorrar && (
         <div className="ap-modal-overlay">
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="ap-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
+          <div className="ap-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="adm-borrar-producto-titulo">
+            <h3 id="adm-borrar-producto-titulo">
               <FaTriangleExclamation style={{ color: '#ff8f93', marginRight: 8 }} />
               {t('adm.productoDetalle.eliminarTitulo')}
             </h3>

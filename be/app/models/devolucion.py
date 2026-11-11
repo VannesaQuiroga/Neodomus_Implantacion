@@ -1,7 +1,8 @@
 # Persistencia de devolucion. Los campos y relaciones describen cómo SQLAlchemy guarda y enlaza estos registros.
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -53,6 +54,12 @@ class Devolucion(Base):
     fecha_entrega_cambio: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Cantidad de unidades devueltas de este producto (devolución parcial).
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    # Longitud devuelta en metros para productos vendidos por metros (corte).
+    # NULL para devoluciones por unidades enteras. DECIMAL(10,2) conserva la
+    # fracción exacta (2,5 m) sin pérdida de precisión (PEN-09).
+    cantidad_metros: Mapped[Decimal | None] = mapped_column(
+        Numeric(10, 2), nullable=True
+    )
     # Solicitud de devolución (cabecera) que agrupa esta línea.
     id_solicitud_dv: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True

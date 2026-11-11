@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Image } from "expo-image";
 import { router, type Href } from "expo-router";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -18,6 +18,12 @@ import {
   urlImagenProducto,
   type Producto,
 } from "@/services/productos.service";
+import {
+  esMetrajeValido,
+  formatMetros,
+  maxMetrajePermitido,
+  opcionesMetraje,
+} from "@/utils/metros";
 import { useFavoritos } from "@/contexts/FavoritosContext";
 import { useCart } from "@/contexts/CartContext";
 import { useIdioma } from "@/contexts/IdiomaContext";
@@ -25,8 +31,6 @@ import { useIdioma } from "@/contexts/IdiomaContext";
 interface ProductCardProps {
   producto: Producto;
 }
-
-const METROS_OPCIONES = [10, 20, 30, 40, 50];
 
 export default function ProductCard({ producto }: ProductCardProps) {
   const { esFavorito, toggleFavorito } = useFavoritos();
@@ -63,20 +67,44 @@ export default function ProductCard({ producto }: ProductCardProps) {
   const esPorMetros = !!producto.venta_por_metros;
 
   const stockTotal = React.useMemo(() => {
-    if (producto.variantes && producto.variantes.length > 0) {
-      return producto.variantes.reduce((a, v) => a + (v.stock || 0), 0);
+    // Máximo comprable en UNA línea: misma regla que el backend
+    // (disponibilidad_service.stock_disponible_producto) y la web:
+    // min(stock_producto, mejor variante); sin variantes, el stock del producto.
+    if (producto.stock_producto == null) return Infinity;
+    const variantes = producto.variantes ?? [];
+    if (variantes.length > 0) {
+      const mejorVariante = Math.max(0, ...variantes.map((v) => v.stock || 0));
+      return Math.min(producto.stock_producto, mejorVariante);
     }
-    return producto.stock_producto ?? Infinity;
+    return producto.stock_producto;
   }, [producto]);
 
   const stockDisponible = Number.isFinite(stockTotal) ? stockTotal : null;
   const esStockAgotado = stockDisponible !== null && stockDisponible <= 0;
   const esStockBajo = stockDisponible !== null && stockDisponible > 0 && stockDisponible <= 5;
-  const totalMetros = metros * unidades;
+  // ── Metraje (PEN-08) ──
+  // Máximo por línea = disponible / unidades; el corte seleccionado se acota a
+  // ese máximo DERIVÁNDOLO en el render (sin efectos): si la disponibilidad
+  // cambia, el valor válido se ajusta automáticamente sin renders en cascada.
+  const maxMetrosLinea =
+    stockDisponible !== null ? stockDisponible / Math.max(1, unidades) : Infinity;
+  const metrosEfectivos =
+    esPorMetros && stockDisponible !== null
+      ? Math.min(metros, maxMetrajePermitido(maxMetrosLinea))
+      : metros;
+  const opcionesMetros = React.useMemo(
+    () =>
+      esPorMetros && Number.isFinite(maxMetrosLinea)
+        ? opcionesMetraje(maxMetrosLinea)
+        : [],
+    [esPorMetros, maxMetrosLinea],
+  );
+  const sinCortesDisponibles = esPorMetros && opcionesMetros.length === 0;
+  const totalMetros = metrosEfectivos * unidades;
   // Precio mostrado en tarjeta: para productos sin metraje es unitario (no cambia con cantidad).
   // Para productos con metraje depende solo del metraje seleccionado, no de la cantidad de unidades.
-  const precioMostrar = esPorMetros ? precioFinal * metros : precioFinal;
-  const precioOriginalMostrar = esPorMetros ? producto.precio_venta_producto * metros : producto.precio_venta_producto;
+  const precioMostrar = esPorMetros ? precioFinal * metrosEfectivos : precioFinal;
+  const precioOriginalMostrar = esPorMetros ? producto.precio_venta_producto * metrosEfectivos : producto.precio_venta_producto;
 
   const abrirDetalle = () =>
     router.push(`/(tabs)/producto/${producto.id_producto}` as Href);
@@ -86,8 +114,17 @@ export default function ProductCard({ producto }: ProductCardProps) {
     setAgregando(true);
     setTimeout(() => setAgregando(false), 600);
     if (esPorMetros) {
+      // Solo cortes de 0,5 m dentro de la disponibilidad real (además del
+      // límite que impone el selector); el backend revalida al pagar.
+      if (!esMetrajeValido(metrosEfectivos, maxMetrosLinea)) return;
       if (totalMetros > stockTotal) return;
-      addItem(producto, { cantidad: unidades, metros });
+      addItem(producto, {
+        cantidad: unidades,
+        metros: metrosEfectivos,
+        // Disponibilidad real de la línea: la usa el carrito para validar
+        // cambios posteriores (la validación definitiva es del backend).
+        stock_maximo: Number.isFinite(stockTotal) ? stockTotal : undefined,
+      });
     } else {
       if (Number.isFinite(stockTotal) && cantidad > stockTotal) return;
       if (esStockAgotado) return;
@@ -112,12 +149,19 @@ export default function ProductCard({ producto }: ProductCardProps) {
   };
   const aumentarUnidades = () => {
     setDisplayUnidades(undefined);
-    const maxU = Number.isFinite(stockTotal) ? Math.max(1, Math.floor(stockTotal / metros) || 1) : Infinity;
+    const maxU = maxUnidadesPorLinea();
     setUnidades((u) => (u >= maxU ? u : u + 1));
   };
+  /** Máximo de unidades cuyo total (corte × unidades) cabe en el disponible. */
+  const maxUnidadesPorLinea = (): number => {
+    if (!Number.isFinite(stockTotal)) return Infinity;
+    return Math.max(1, Math.floor(stockTotal / metrosEfectivos) || 1);
+  };
   const handleMetrosChange = (m: number) => {
-    setMetros(m);
     setMostrarMetros(false);
+    // Solo se aceptan cortes de 0,5 m dentro de la disponibilidad real.
+    if (!esMetrajeValido(m, maxMetrosLinea)) return;
+    setMetros(m);
     if (Number.isFinite(stockTotal) && m * unidades > stockTotal) {
       const maxU = Math.max(1, Math.floor(stockTotal / m) || 1);
       if (unidades > maxU) setUnidades(maxU);
@@ -138,7 +182,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
     const raw = (displayUnidades ?? String(unidades)).trim();
     let num = Number.parseInt(raw, 10);
     if (raw === "" || Number.isNaN(num) || num < 1) num = 1;
-    const maxU = Number.isFinite(stockTotal) ? Math.max(1, Math.floor((stockTotal as number) / metros) || 1) : Infinity;
+    const maxU = maxUnidadesPorLinea();
     if (Number.isFinite(maxU) && num > (maxU as number)) num = maxU as number;
     if (num < 0) num = 1;
     setUnidades(num);
@@ -243,7 +287,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
           <View style={styles.precioDetalleWrap}>
             {esPorMetros ? (
               <Text style={styles.precioDetalle} numberOfLines={1}>
-                {precioFinal.toLocaleString()} COP / metro · {metros} m
+                {precioFinal.toLocaleString()} COP / metro · {formatMetros(metrosEfectivos)} m
               </Text>
             ) : (
               <Text style={styles.precioDetallePlaceholder} numberOfLines={1} />
@@ -286,7 +330,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
                       return;
                     }
                     let num = Number.parseInt(limpio, 10);
-                    const maxU = Number.isFinite(stockTotal) ? Math.max(1, Math.floor(stockTotal / metros) || 1) : Infinity;
+                    const maxU = maxUnidadesPorLinea();
                     if (Number.isFinite(maxU) && num > (maxU as number)) num = maxU as number;
                     setDisplayUnidades(String(num));
                   }}
@@ -301,33 +345,47 @@ export default function ProductCard({ producto }: ProductCardProps) {
                 />
                 <Pressable
                   onPress={aumentarUnidades}
-                  disabled={Number.isFinite(stockTotal) && unidades >= Math.max(1, Math.floor(stockTotal / metros) || 1)}
-                  style={[styles.cantidadBoton, Number.isFinite(stockTotal) && unidades >= Math.max(1, Math.floor(stockTotal / metros) || 1) && styles.botonDeshabilitado]}
+                  disabled={unidades >= maxUnidadesPorLinea()}
+                  style={[styles.cantidadBoton, unidades >= maxUnidadesPorLinea() && styles.botonDeshabilitado]}
                   hitSlop={6}
                 >
                   <FontAwesome6 name="plus" size={10} color={C.blanco} />
                 </Pressable>
               </View>
             </View>
-            <Pressable
-              style={styles.metrosSelector}
-              onPress={() => setMostrarMetros((v) => !v)}
-            >
-              <Text style={styles.metrosSelectorTexto}>{metros} metros</Text>
-              <FontAwesome6 name={mostrarMetros ? "chevron-up" : "chevron-down"} size={10} color={C.oroSuave} />
-            </Pressable>
-            {mostrarMetros && (
+            {sinCortesDisponibles ? (
               <View style={styles.metrosOpciones}>
-                {METROS_OPCIONES.map((m) => (
-                  <Pressable
-                    key={m}
-                    onPress={() => handleMetrosChange(m)}
-                    style={[styles.metroOpcion, metros === m && styles.metroOpcionActiva]}
-                  >
-                    <Text style={[styles.metroOpcionTexto, metros === m && styles.metroOpcionTextoActiva]}>{m} metros</Text>
-                  </Pressable>
-                ))}
+                <Text style={styles.metroAvisoTexto}>{t("productos.sinMedidasDisponibles")}</Text>
               </View>
+            ) : (
+              <>
+                <Pressable
+                  style={styles.metrosSelector}
+                  onPress={() => setMostrarMetros((v) => !v)}
+                >
+                  <Text style={styles.metrosSelectorTexto}>{formatMetros(metrosEfectivos)} metros</Text>
+                  <FontAwesome6 name={mostrarMetros ? "chevron-up" : "chevron-down"} size={10} color={C.oroSuave} />
+                </Pressable>
+                {mostrarMetros && (
+                  <View style={styles.metrosOpciones}>
+                    <ScrollView
+                      style={styles.metrosOpcionesLista}
+                      nestedScrollEnabled
+                      showsVerticalScrollIndicator
+                    >
+                      {opcionesMetros.map((m) => (
+                        <Pressable
+                          key={m}
+                          onPress={() => handleMetrosChange(m)}
+                          style={[styles.metroOpcion, metrosEfectivos === m && styles.metroOpcionActiva]}
+                        >
+                          <Text style={[styles.metroOpcionTexto, metrosEfectivos === m && styles.metroOpcionTextoActiva]}>{formatMetros(m)} metros</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </>
             )}
           </View>
         ) : (
@@ -633,6 +691,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f0f0f",
     overflow: "hidden",
     marginTop: 4,
+  },
+  metrosOpcionesLista: {
+    maxHeight: 220,
+  },
+  metroAvisoTexto: {
+    color: "#bdbdbd",
+    fontSize: 12.5,
+    fontFamily: FontFamilies.bodyMedium,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
   metroOpcion: {
     paddingVertical: 10,

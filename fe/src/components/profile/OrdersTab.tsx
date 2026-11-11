@@ -2,7 +2,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   FaBoxOpen,
-  FaCamera,
   FaChevronDown,
   FaChevronUp,
   FaCircleCheck,
@@ -12,14 +11,15 @@ import {
   FaMinus,
   FaPlus,
   FaRotateLeft,
-  FaStar,
   FaXmark,
 } from 'react-icons/fa6';
 import api, { descargarFactura } from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { formatMetros } from '@utils/metros';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
 import ModalPortal from '@components/common/ModalPortal';
+import { pedidoCompletado } from '@utils/pedidos';
 
 interface Detalle {
   id_detalle: number;
@@ -110,19 +110,13 @@ interface Seguimiento {
   ubicacion?: { latitud: number; longitud: number; actualizado_en: string } | null;
 }
 
-interface CalificacionProducto {
-  id_calificacion_producto: number;
-  id_producto: number;
-  calificacion: number;
-  comentario?: string | null;
-  foto_url?: string | null;
-}
-
 interface ItemDevolucion {
   id_devolucion: number;
   id_producto: number;
   producto: string;
   cantidad: number;
+  metros?: number | null;
+  venta_por_metros?: boolean;
   precio_unitario: number;
   subtotal_linea: number;
   estado_linea: string;
@@ -157,6 +151,10 @@ interface LineaElegible {
   cantidad_disponible: number;
   precio_unitario: number;
   monto_maximo: number;
+  /** Productos vendidos por metros: la devolución aplica al corte completo. */
+  venta_por_metros?: boolean;
+  metros_comprados?: number | null;
+  metros_disponibles?: number | null;
 }
 
 interface ElegibilidadInfo {
@@ -227,13 +225,6 @@ const pagoEstadoInfo = (estado?: string | null): { clave: string; clase: string 
   }
 };
 
-// El pedido está completado cuando el técnico marcó la entrega como
-// "Entregado" o cuando la cita de instalación quedó "Finalizada".
-const pedidoCompletado = (pedido: Pedido): boolean =>
-  pedido.productos_calificables === true ||
-  pedido.estado_entrega === 'Entregado' ||
-  pedido.cita?.estado === 'Finalizada';
-
 // Comunica con el backend mediante GET '/pedidos/mis-pedidos', POST `/pedidos/${pedidoId}/confirmar-pago`, GET `/pedidos/${pedidoId}/seguimiento` y otras peticiones de esta vista; prepara FormData para enviar campos y archivos.
 const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const { t, idioma } = useIdioma();
@@ -246,12 +237,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [confirmando, setConfirmando] = useState<number | null>(null);
   const [seguimientoDe, setSeguimientoDe] = useState<number | null>(null);
   const [seguimiento, setSeguimiento] = useState<Seguimiento | null>(null);
-  const [califsPorProducto, setCalifsPorProducto] = useState<Record<number, CalificacionProducto>>({});
   const [solicitudesDev, setSolicitudesDev] = useState<SolicitudDevolucion[]>([]);
-  const [ratingSel, setRatingSel] = useState<Record<number, number>>({});
-  const [comentarioSel, setComentarioSel] = useState<Record<number, string>>({});
-  const [guardandoCalif, setGuardandoCalif] = useState<number | null>(null);
-  const [fotosSeleccionadas, setFotosSeleccionadas] = useState<Record<number, string>>({});
 
   // ── Wizard de devolución (paso 1: productos · paso 2: motivo · paso 3: resumen) ──
   const [wizardPedido, setWizardPedido] = useState<Pedido | null>(null);
@@ -265,8 +251,6 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
   const [enviandoDev, setEnviandoDev] = useState(false);
   const [detalleSolAbierta, setDetalleSolAbierta] = useState<number | null>(null);
 
-  const fotoCalifRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const fotosCalif = useRef<Record<number, File>>({});
   const pollRef = useRef<number | null>(null);
 
   const cargarNovedadesPedido = async () => {
@@ -357,21 +341,8 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     };
   }, [seguimientoDe, seguimiento?.estado_entrega]);
 
-  // Comunica con el backend mediante GET `/calificaciones/producto/pedido/${pedido.id_pedido}`, GET '/devoluciones/mis-solicitudes'.
-  const cargarResenas = async (pedido: Pedido) => {
-    if (!pedidoCompletado(pedido)) return;
-    try {
-      const res = await api.get<{ calificaciones: CalificacionProducto[] }>(
-        `/calificaciones/producto/pedido/${pedido.id_pedido}`,
-      );
-      const mapa: Record<number, CalificacionProducto> = {};
-      (res.data?.calificaciones || []).forEach((c) => {
-        mapa[c.id_producto] = c;
-      });
-      setCalifsPorProducto(mapa);
-    } catch (err) {
-      console.error(err);
-    }
+  // Comunica con el backend mediante GET '/devoluciones/mis-solicitudes'.
+  const cargarDevoluciones = async () => {
     try {
       const res = await api.get<SolicitudDevolucion[]>('/devoluciones/mis-solicitudes');
       setSolicitudesDev(res.data || []);
@@ -419,16 +390,33 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
     });
   };
 
-  const itemsSeleccionados = (): { id_producto: number; cantidad: number }[] =>
+  // Los productos vendidos por metros se devuelven por el CORTE COMPLETO
+  // (backend PEN-09): el checkbox marca el corte entero, sin steppers.
+  const esLineaMetros = (linea: LineaElegible): boolean =>
+    Boolean(linea.venta_por_metros) && (linea.metros_disponibles ?? 0) > 0;
+
+  const itemsSeleccionados = (): {
+    id_producto: number;
+    cantidad: number;
+    metros?: number;
+  }[] =>
     Object.entries(seleccion)
-      .map(([pid, cant]) => ({ id_producto: Number(pid), cantidad: cant }))
-      .filter((i) => i.cantidad > 0);
+      .map(([pid, cant]) => {
+        const linea = elegibilidad?.productos.find((p) => p.id_producto === Number(pid));
+        if (linea?.venta_por_metros && linea.metros_disponibles != null) {
+          return { id_producto: Number(pid), cantidad: 1, metros: linea.metros_disponibles };
+        }
+        return { id_producto: Number(pid), cantidad: cant };
+      })
+      .filter((i) => (i.metros != null ? i.cantidad > 0 : i.cantidad > 0));
 
   const totalSeleccionado = (): number => {
     if (!elegibilidad) return 0;
     return itemsSeleccionados().reduce((acc, it) => {
       const linea = elegibilidad.productos.find((p) => p.id_producto === it.id_producto);
-      return acc + (linea ? linea.precio_unitario * it.cantidad : 0);
+      if (!linea) return acc;
+      const longitud = it.metros ?? it.cantidad;
+      return acc + linea.precio_unitario * longitud;
     }, 0);
   };
 
@@ -469,58 +457,12 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
         'success',
       );
       cerrarWizard();
-      await cargarResenas(wizardPedido);
+      await cargarDevoluciones();
     } catch (err: any) {
       const detalle = err.response?.data?.detail;
       notify(typeof detalle === 'string' ? detalle : t('perfil.pedidos.errorEnviarSolicitud'), 'error');
     } finally {
       setEnviandoDev(false);
-    }
-  };
-
-  // Comunica con el backend mediante POST '/calificaciones/producto', POST `/calificaciones/producto/${pedido.id_pedido}/${item.id_producto_d}/foto`; prepara FormData para enviar campos y archivos.
-  const guardarCalificacion = async (pedido: Pedido, item: Detalle) => {
-    if (!item.id_producto_d) return;
-    const nota = ratingSel[item.id_producto_d];
-    if (!nota) {
-      notify(t('perfil.pedidos.errorEstrellas'), 'error');
-      return;
-    }
-    setGuardandoCalif(item.id_producto_d);
-    try {
-      await api.post('/calificaciones/producto', {
-        id_pedido: pedido.id_pedido,
-        id_producto: item.id_producto_d,
-        calificacion: nota,
-        comentario: comentarioSel[item.id_producto_d]?.trim() || undefined,
-      });
-      // Subir foto si el cliente seleccionó una.
-      const foto = fotosCalif.current[item.id_producto_d];
-      if (foto) {
-        const fd = new FormData();
-        fd.append('file', foto);
-        try {
-          await api.post(
-            `/calificaciones/producto/${pedido.id_pedido}/${item.id_producto_d}/foto`,
-            fd,
-          );
-        } catch {
-          /* la foto es opcional; si falla no bloquea la calificación */
-        }
-        delete fotosCalif.current[item.id_producto_d];
-        setFotosSeleccionadas((prev) => {
-          const next = { ...prev };
-          delete next[item.id_producto_d!];
-          return next;
-        });
-      }
-      notify(t('perfil.pedidos.graciasCalificacion'), 'success');
-      await cargarResenas(pedido);
-    } catch (err: any) {
-      const detalle = err.response?.data?.detail;
-      notify(typeof detalle === 'string' ? detalle : t('perfil.pedidos.errorEnviarCalificacion'), 'error');
-    } finally {
-      setGuardandoCalif(null);
     }
   };
 
@@ -578,9 +520,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                   onClick={() => {
                     const nuevo = !abierto;
                     setExpanded(nuevo ? pedido.id_pedido : null);
-                    if (nuevo) void cargarNovedadesPedido();
-                    if (nuevo && pedidoCompletado(pedido)) {
-                      void cargarResenas(pedido);
+                    if (nuevo) {
+                      void cargarNovedadesPedido();
+                      if (pedidoCompletado(pedido)) {
+                        void cargarDevoluciones();
+                      }
                       setSeguimientoDe(null);
                       setSeguimiento(null);
                     }
@@ -641,117 +585,20 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     <div className="pf-detail-block">
                       <h4 className="pf-detail-title">{t('carrito.productos')}</h4>
                       <div className="pf-order-items">
-                        {pedido.detalles.map((item, idx) => {
-                          const esProducto = !item.es_servicio && item.id_producto_d != null;
-                          const calif = esProducto ? califsPorProducto[item.id_producto_d!] : undefined;
-                          return (
-                            <Fragment key={idx}>
-                              <div className="pf-order-item">
-                                <span className="pf-order-item-name">
-                                  {item.nombre}
-                                  {item.es_servicio ? ` ${t('perfil.pedidos.servicio')}` : ''}
-                                </span>
-                                <span className="pf-order-item-qty">
-                                  {item.metros != null ? `× ${item.metros} m` : `× ${item.cantidad}`}
-                                </span>
-                                <span className="pf-order-item-price">{formatoPeso(item.subtotal, locale)}</span>
-                              </div>
-                              {esProducto && pedidoCompletado(pedido) && (
-                                <div className="pf-resena">
-                                  {calif ? (
-                                    <div className="pf-resena-guardada">
-                                      <span className="pf-stars-static" aria-label={t('perfil.pedidos.calificacionDe5', { n: calif.calificacion })}>
-                                        {[1, 2, 3, 4, 5].map((s) => (
-                                          <FaStar key={s} className={s <= calif.calificacion ? 'on' : ''} />
-                                        ))}
-                                      </span>
-                                      {t('perfil.pedidos.tuCalificacion')}
-                                      {calif.comentario ? <em>“{calif.comentario}”</em> : null}
-                                      {calif.foto_url && (
-                                        <img className="pf-resena-foto-guardada" src={calif.foto_url} alt={t('perfil.pedidos.fotoProducto', { nombre: item.nombre })} />
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="pf-resena-form">
-                                      <div className="pf-resena-row">
-                                        <span className="pf-resena-label">{t('perfil.pedidos.calificaProducto')}</span>
-                                        <span className="pf-stars-picker">
-                                          {[1, 2, 3, 4, 5].map((s) => (
-                                            <button
-                                              key={s}
-                                              type="button"
-                                              aria-label={t('perfil.pedidos.estrellas', { n: s })}
-                                              className={(ratingSel[item.id_producto_d!] ?? 0) >= s ? 'on' : ''}
-                                              aria-pressed={(ratingSel[item.id_producto_d!] ?? 0) >= s}
-                                              onClick={() =>
-                                                setRatingSel((prev) => ({ ...prev, [item.id_producto_d!]: s }))
-                                              }
-                                            >
-                                              <FaStar />
-                                            </button>
-                                          ))}
-                                        </span>
-                                      </div>
-                                      <input
-                                        type="text"
-                                        className="pf-resena-comentario"
-                                        placeholder={t('perfil.pedidos.experienciaPlaceholder')}
-                                        maxLength={500}
-                                        value={comentarioSel[item.id_producto_d!] || ''}
-                                        onChange={(e) =>
-                                          setComentarioSel((prev) => ({
-                                            ...prev,
-                                            [item.id_producto_d!]: e.target.value,
-                                          }))
-                                        }
-                                      />
-                                      <div className="pf-resena-actions">
-                                        <button
-                                          type="button"
-                                          className="pf-resena-guardar"
-                                          disabled={guardandoCalif === item.id_producto_d}
-                                          onClick={() => guardarCalificacion(pedido, item)}
-                                        >
-                                          {guardandoCalif === item.id_producto_d ? t('perfil.pedidos.enviando') : t('perfil.pedidos.enviar')}
-                                        </button>
-                                        <input
-                                          ref={(el) => { fotoCalifRefs.current[item.id_producto_d!] = el; }}
-                                          type="file"
-                                          accept="image/*"
-                                          capture="environment"
-                                          style={{ display: 'none' }}
-                                          onChange={(ev) => {
-                                            if (ev.target.files?.[0]) {
-                                              fotosCalif.current[item.id_producto_d!] = ev.target.files[0];
-                                              setFotosSeleccionadas((prev) => ({
-                                                ...prev,
-                                                [item.id_producto_d!]: ev.target.files![0].name,
-                                              }));
-                                            }
-                                            ev.target.value = '';
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          className={`pf-resena-foto ${fotosSeleccionadas[item.id_producto_d!] ? 'seleccionada' : ''}`}
-                                          title={t('perfil.pedidos.adjuntarFotoTitle')}
-                                          onClick={() => fotoCalifRefs.current[item.id_producto_d!]?.click()}
-                                        >
-                                          <FaCamera /> <span>{fotosSeleccionadas[item.id_producto_d!] ? t('perfil.cambiarFoto') : t('perfil.pedidos.adjuntarFoto')}</span>
-                                        </button>
-                                        {fotosSeleccionadas[item.id_producto_d!] && (
-                                          <span className="pf-resena-foto-nombre" title={fotosSeleccionadas[item.id_producto_d!]}>
-                                            {fotosSeleccionadas[item.id_producto_d!]}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </Fragment>
-                          );
-                        })}
+                        {pedido.detalles.map((item, idx) => (
+                          <Fragment key={idx}>
+                            <div className="pf-order-item">
+                              <span className="pf-order-item-name">
+                                {item.nombre}
+                                {item.es_servicio ? ` ${t('perfil.pedidos.servicio')}` : ''}
+                              </span>
+                              <span className="pf-order-item-qty">
+                                {item.metros != null ? `× ${item.metros} m` : `× ${item.cantidad}`}
+                              </span>
+                              <span className="pf-order-item-price">{formatoPeso(item.subtotal, locale)}</span>
+                            </div>
+                          </Fragment>
+                        ))}
                       </div>
                     </div>
 
@@ -806,7 +653,11 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                                           {s.items.map((it) => (
                                             <li key={it.id_devolucion}>
                                               <span>{it.producto}</span>
-                                              <span className="pf-dev-item-cant">× {it.cantidad}</span>
+                                              <span className="pf-dev-item-cant">
+                                                {it.venta_por_metros && it.metros != null
+                                                  ? `× ${formatMetros(it.metros)} m`
+                                                  : `× ${it.cantidad}`}
+                                              </span>
                                               <span>{formatoPeso(it.subtotal_linea, locale)}</span>
                                             </li>
                                           ))}
@@ -1051,8 +902,8 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
       {/* ── Modal: wizard de solicitud de devolución ── */}
       {wizardPedido && (
         <ModalPortal>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={cerrarWizard}>
-            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()}>
+          <div className="pf-modal-backdrop" onClick={cerrarWizard}>
+            <div className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('perfil.pedidos.modalTitulo', { id: wizardPedido.id_pedido })}>
               <div className="pf-modal-header">
                 <h3>
                   <FaRotateLeft /> {t('perfil.pedidos.modalTitulo', { id: wizardPedido.id_pedido })}
@@ -1082,6 +933,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                     {elegibilidad.productos.map((linea) => {
                       const cant = seleccion[linea.id_producto] || 0;
                       const agotada = linea.cantidad_disponible === 0;
+                      const porMetros = esLineaMetros(linea);
                       return (
                         <label
                           key={linea.id_producto}
@@ -1101,16 +953,35 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                           <span className="pf-dev-linea-info">
                             <strong>{linea.nombre}</strong>
                             <small>
-                              {t('perfil.pedidos.compradosPrecio', {
-                                comprados: linea.cantidad_comprada,
-                                precio: formatoPeso(linea.precio_unitario, locale),
-                              })}
+                              {porMetros
+                                ? t('perfil.pedidos.compradosPrecioMetros', {
+                                    metros: formatMetros(linea.metros_disponibles ?? 0),
+                                    precio: formatoPeso(linea.precio_unitario, locale),
+                                  })
+                                : t('perfil.pedidos.compradosPrecio', {
+                                    comprados: linea.cantidad_comprada,
+                                    precio: formatoPeso(linea.precio_unitario, locale),
+                                  })}
                             </small>
+                            {porMetros && (
+                              <small>
+                                {t('perfil.pedidos.corteCompleto', {
+                                  metros: formatMetros(linea.metros_disponibles ?? 0),
+                                })}
+                                {' · '}
+                                {t('perfil.pedidos.corteCompletoHint')}
+                              </small>
+                            )}
                           </span>
                           {agotada ? (
                             <span className="pf-dev-agotada">{t('perfil.pedidos.yaDevuelto')}</span>
+                          ) : porMetros ? (
+                            // Corte completo: todo o nada; el backend valida la cantidad exacta.
+                            <strong className="pf-dev-metros">
+                              {formatMetros(linea.metros_disponibles ?? 0)} m
+                            </strong>
                           ) : (
-                            <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-dev-cantidades" onClick={(e) => e.preventDefault()}>
+                            <span className="pf-dev-cantidades">
                               <button
                                 type="button"
                                 aria-label={t('perfil.pedidos.quitarUnidad')}
@@ -1201,15 +1072,19 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
                       {itemsSeleccionados().map((it) => {
                         const linea = elegibilidad.productos.find((p) => p.id_producto === it.id_producto);
                         if (!linea) return null;
+                        const porMetros = it.metros != null;
+                        const longitud = it.metros ?? it.cantidad;
                         return (
                           <li key={it.id_producto}>
                             <span>{linea.nombre}</span>
                             <span className="pf-dev-item-cant">
-                              {it.cantidad === 1
-                                ? t('perfil.pedidos.unidad', { n: it.cantidad })
-                                : t('perfil.pedidos.unidades', { n: it.cantidad })}
+                              {porMetros
+                                ? `${formatMetros(longitud)} m`
+                                : it.cantidad === 1
+                                  ? t('perfil.pedidos.unidad', { n: it.cantidad })
+                                  : t('perfil.pedidos.unidades', { n: it.cantidad })}
                             </span>
-                            <span>{formatoPeso(linea.precio_unitario * it.cantidad, locale)}</span>
+                            <span>{formatoPeso(linea.precio_unitario * longitud, locale)}</span>
                           </li>
                         );
                       })}

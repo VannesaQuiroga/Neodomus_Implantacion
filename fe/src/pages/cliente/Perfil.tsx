@@ -633,7 +633,7 @@ const Perfil = () => {
               {activo === 'contrasena' && <PasswordTab notify={notify} />}
               {activo === 'pedidos' && <OrdersTab notify={notify} />}
               {activo === 'servicios' && <ServiciosTab />}
-              {activo === 'resenas' && <ReviewsTab notify={notify} onGoOrders={() => setActivo('pedidos')} />}
+              {activo === 'resenas' && <ReviewsTab notify={notify} />}
               {activo === 'reembolsos' && <ReembolsosCliente />}
               {activo === 'tecnicos' && <TechniciansTab />}
               {activo === 'facturas' && <FacturasTab />}
@@ -662,10 +662,10 @@ const Perfil = () => {
       {/* ── Modal inhabilitar cuenta ─────────────────────────── */}
       {confirmarInhabilitar && (
         <ModalPortal>
-          <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
-            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()}>
+          <div className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
+            <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-inhabilitar-titulo">
               <div className="pf-modal-header">
-                <h3>{t('perfil.inhabilitarCuenta')}</h3>
+                <h3 id="pf-inhabilitar-titulo">{t('perfil.inhabilitarCuenta')}</h3>
                 <button type="button" className="pf-modal-close" onClick={() => setConfirmarInhabilitar(false)} aria-label={t('common.cerrar')} disabled={enviandoSolicitud}>×</button>
               </div>
               <p className="pf-modal-text">{t('perfil.cuentaModal.mensaje')}</p>

@@ -1536,7 +1536,7 @@ const CitasPage = () => {
 
         {calificandoCita && (
           <div className="citas-modal-overlay">
-            <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="citas-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="citas-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="citas-calif-titulo">
               <button
                 type="button"
                 className="citas-modal-close-x"
@@ -1553,7 +1553,7 @@ const CitasPage = () => {
                   onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
               )}
-              <h3><FaStar /> Califica al técnico</h3>
+              <h3 id="citas-calif-titulo"><FaStar /> Califica al técnico</h3>
               <p className="citas-modal-sub">
                 {calificandoCita.nombre_tecnico || 'Técnico'} · {calificandoCita.tipo_servicio}
               </p>

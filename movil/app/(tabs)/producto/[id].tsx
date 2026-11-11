@@ -23,7 +23,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
-import { parseMetros, formatMetros } from "@/utils/metros";
+import {
+  esMetrajeValido,
+  formatMetros,
+  maxMetrajePermitido,
+  opcionesMetraje,
+  parseMetros,
+} from "@/utils/metros";
 import PublicNavbar from "@/components/public/PublicNavbar";
 import AsistenteFlotante from "@/components/public/AsistenteFlotante";
 import { useFavoritos } from "@/contexts/FavoritosContext";
@@ -46,7 +52,6 @@ import {
   paletaDeColores,
 } from "@/constants/variantes";
 
-const METROS_OPCIONES = [10, 20, 30, 40, 50];
 /** Altura estimada del tab bar (el tab bar real es nativo). */
 const TAB_BAR_ALTO = 66;
 
@@ -62,7 +67,9 @@ export default function ProductoDetalleScreen() {
   const [color, setColor] = useState("");
   const [tamano, setTamano] = useState("");
   const [metros, setMetros] = useState(10);
-  const [displayMetros, setDisplayMetros] = useState("10");
+  // Borrador del campo de metros: undefined muestra el estado (formatMetros),
+  // misma convención que displayCantidad para la cantidad de unidades.
+  const [displayMetros, setDisplayMetros] = useState<string | undefined>(undefined);
   const [metrosError, setMetrosError] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(1);
   const [displayCantidad, setDisplayCantidad] = useState<string | undefined>(undefined);
@@ -156,13 +163,59 @@ export default function ProductoDetalleScreen() {
   const conDescuento = producto ? tieneDescuento(producto) : false;
   const precioUnitario = varianteActiva?.precio ?? (producto ? precioFinalDe(producto) : 0);
   const esMetros = !!producto?.venta_por_metros;
-  const subtotal = esMetros ? precioUnitario * metros : precioUnitario * cantidad;
 
+  // Disponibilidad de la combinación elegida: acotada por el stock del producto
+  // (misma regla min(producto, variante) que la web y el backend).
   const stockDisponible = producto
     ? variantes.length > 0
-      ? varianteActiva?.stock ?? 0
+      ? varianteActiva
+        ? Math.min(
+            producto.stock_producto ?? Infinity,
+            varianteActiva.stock || 0,
+          )
+        : 0
       : producto.stock_producto ?? 0
     : 0;
+
+  // ── Metraje (PEN-08) ──
+  // El corte seleccionado se acota al máximo comprable DERIVÁNDOLO en el
+  // render (sin efectos): si la disponibilidad cambia, el valor válido se
+  // ajusta automáticamente. Las opciones van en pasos de 0,5 m.
+  const metrosEfectivos = esMetros
+    ? Math.min(metros, maxMetrajePermitido(stockDisponible))
+    : metros;
+  const opcionesMetrajeLista = useMemo(
+    () => (esMetros ? opcionesMetraje(stockDisponible) : []),
+    [esMetros, stockDisponible],
+  );
+  const subtotal = esMetros ? precioUnitario * metrosEfectivos : precioUnitario * cantidad;
+
+  /**
+   * Valida y confirma el borrador del campo de metros (entrada manual).
+   * Devuelve el corte confirmado (múltiplo de 0,5 m dentro del disponible)
+   * o null si es inválido, avisando en la UI sin redondeos silenciosos.
+   * Se usa tanto en onBlur como antes de agregar al carrito.
+   */
+  const confirmarMetros = (): number | null => {
+    if (displayMetros == null) return metrosEfectivos;
+    const r = parseMetros(displayMetros);
+    setDisplayMetros(undefined);
+    if (r.valor == null) {
+      setMetrosError(r.error ?? "Cantidad inválida");
+      return null;
+    }
+    if (!esMetrajeValido(r.valor, stockDisponible)) {
+      setMetrosError(
+        r.valor > stockDisponible
+          ? t("productos.stockInsuficienteMetros", { count: stockDisponible })
+          : t("productos.metrajePasoNoValido"),
+      );
+      return null;
+    }
+    setMetros(r.valor);
+    setMetrosError(null);
+    return r.valor;
+  };
 
   if (cargando) {
     return (
@@ -216,14 +269,30 @@ export default function ProductoDetalleScreen() {
       setToast("Selecciona un tamaño disponible");
       return;
     }
-    if (producto.venta_por_metros && (!metros || metros <= 0)) {
-      setToast("Ingresa una cantidad de metros válida");
-      return;
+
+    let metrosParaAgregar = metrosEfectivos;
+    if (producto.venta_por_metros) {
+      // Confirma (y revalida) el borrador pendiente del campo de metros:
+      // nunca se agrega un valor no validado contra la disponibilidad real.
+      const confirmado = confirmarMetros();
+      if (confirmado == null || confirmado <= 0) {
+        setToast("Ingresa una cantidad de metros válida");
+        return;
+      }
+      // Disponibilidad real (validación definitiva en el backend al pagar).
+      if (confirmado > stockDisponible) {
+        setToast(t("productos.stockInsuficienteMetros", { count: stockDisponible }));
+        return;
+      }
+      metrosParaAgregar = confirmado;
     }
 
     addItem(producto, {
       cantidad,
-      metros,
+      metros: metrosParaAgregar,
+      // Disponibilidad de la combinación elegida: la usa el carrito para
+      // validar cambios posteriores de metros/unidades.
+      stock_maximo: producto.venta_por_metros ? stockDisponible : undefined,
       // Color SIEMPRE según la paleta seleccionada (como la web).
       color: color || undefined,
       tamaño: tamano || varianteActiva?.tamaño || undefined,
@@ -231,7 +300,7 @@ export default function ProductoDetalleScreen() {
       id_variante: varianteActiva?.id,
     });
     setToast(
-      `${esMetros ? `${metros} m x ` : `${cantidad} x `}${producto.nombre_producto} agregado al carrito`,
+      `${esMetros ? `${formatMetros(metrosParaAgregar)} m x ` : `${cantidad} x `}${producto.nombre_producto} agregado al carrito`,
     );
   };
 
@@ -458,7 +527,7 @@ export default function ProductoDetalleScreen() {
             </View>
           )}
 
-          {/* Metros */}
+          {/* Metros — cortes de 0,5 m limitados por la disponibilidad (PEN-08) */}
           {esMetros && (
             <View style={styles.seccionVariantes}>
               <Text style={styles.tituloVariantes}>
@@ -466,52 +535,50 @@ export default function ProductoDetalleScreen() {
               </Text>
               <TextInput
                 style={styles.inputMetros}
-                value={displayMetros}
+                value={displayMetros ?? formatMetros(metrosEfectivos)}
                 onChangeText={(v) => {
                   setDisplayMetros(v.replace(/[^0-9.,]/g, ""));
                   setMetrosError(null);
                 }}
                 onBlur={() => {
-                  const r = parseMetros(displayMetros);
-                  if (r.valor == null) {
-                    setMetrosError(r.error ?? "Cantidad inválida");
-                    setDisplayMetros(formatMetros(metros));
-                    return;
-                  }
-                  setMetros(r.valor);
-                  setDisplayMetros(formatMetros(r.valor));
-                  setMetrosError(null);
+                  confirmarMetros();
                 }}
                 keyboardType="decimal-pad"
                 placeholder="p. ej. 1,5"
                 aria-label="Metros"
               />
               {metrosError && <Text style={styles.metrosError}>{metrosError}</Text>}
-              <View style={styles.chipsMedida}>
-                {METROS_OPCIONES.map((opcion) => (
-                  <Pressable
-                    key={opcion}
-                    onPress={() => {
-                      setMetros(opcion);
-                      setDisplayMetros(formatMetros(opcion));
-                      setMetrosError(null);
-                    }}
-                    style={[
-                      styles.chipMedida,
-                      metros === opcion && styles.chipMedidaActiva,
-                    ]}
-                  >
-                    <Text
+              {opcionesMetrajeLista.length > 0 ? (
+                <View style={styles.chipsMedida}>
+                  {opcionesMetrajeLista.map((opcion) => (
+                    <Pressable
+                      key={opcion}
+                      onPress={() => {
+                        setMetros(opcion);
+                        setDisplayMetros(undefined);
+                        setMetrosError(null);
+                      }}
                       style={[
-                        styles.chipMedidaTexto,
-                        metros === opcion && styles.chipMedidaTextoActivo,
+                        styles.chipMedida,
+                        metrosEfectivos === opcion && styles.chipMedidaActiva,
                       ]}
                     >
-                      {opcion} m
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+                      <Text
+                        style={[
+                          styles.chipMedidaTexto,
+                          metrosEfectivos === opcion && styles.chipMedidaTextoActivo,
+                        ]}
+                      >
+                        {formatMetros(opcion)} m
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.sinMetrajeAviso}>
+                  {t("productos.sinMedidasDisponibles")}
+                </Text>
+              )}
             </View>
           )}
 
@@ -603,7 +670,7 @@ export default function ProductoDetalleScreen() {
                 </Text>
               </View>
               {esMetros && (
-                <Text style={styles.compraMetroHint}>{metros} m</Text>
+                <Text style={styles.compraMetroHint}>{formatMetros(metrosEfectivos)} m</Text>
               )}
             </View>
 
@@ -979,6 +1046,12 @@ const styles = StyleSheet.create({
     color: "#e05c5c",
     fontSize: 12,
     marginBottom: 8,
+  },
+
+  sinMetrajeAviso: {
+    color: "#e0a05c",
+    fontSize: 13,
+    fontFamily: FontFamilies.bodyMedium,
   },
 
   chipMedida: {

@@ -1,5 +1,5 @@
-import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
-// Pantalla AdminNovedades de Neodomus. Reúne el estado y las acciones de su vista.
+﻿import LocalizedNotificationText from '@components/common/LocalizedNotificationText';
+// Pantalla AdminNovedades de Neodomus. ReÃºne el estado y las acciones de su vista.
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -30,6 +30,7 @@ import AuthImage from '@components/common/AuthImage';
 import { Paginacion } from '@components/common/Paginacion';
 import { usePaginacion } from '../../hooks/usePaginacion';
 import { useIdioma } from '@i18n/IdiomaContext';
+import { activarConTeclado } from '@utils/keyboard';
 
 interface EvidenciaNovedad {
   id_evidencia_n: number;
@@ -90,20 +91,20 @@ interface TecnicoSimple {
 }
 
 const TIPOS = [
-  'Retraso en entrega', 'Cliente ausente', 'Cliente no recibió el pedido',
-  'Dirección incorrecta', 'Producto dañado', 'Producto faltante',
-  'Producto equivocado', 'Pérdida de producto', 'Robo de productos',
-  'Accidente', 'Problema con el vehículo/transporte', 'Problema técnico',
+  'Retraso en entrega', 'Cliente ausente', 'Cliente no recibiÃ³ el pedido',
+  'DirecciÃ³n incorrecta', 'Producto daÃ±ado', 'Producto faltante',
+  'Producto equivocado', 'PÃ©rdida de producto', 'Robo de productos',
+  'Accidente', 'Problema con el vehÃ­culo/transporte', 'Problema tÃ©cnico',
   'Problema durante una cita', 'Cita no realizada', 'Cita reprogramada',
-  'Cliente solicita reprogramación', 'Problema con instalación',
+  'Cliente solicita reprogramaciÃ³n', 'Problema con instalaciÃ³n',
   'Retraso que afecta cita', 'Otro',
 ];
 
-const ESTADOS = ['Pendiente', 'En revisión', 'Aprobada', 'Rechazada', 'Resuelta', 'Cerrada'];
+const ESTADOS = ['Pendiente', 'En revisiÃ³n', 'Aprobada', 'Rechazada', 'Resuelta', 'Cerrada'];
 const PRIORIDADES = ['baja', 'normal', 'alta', 'urgente'];
 
 const CLASE_ESTADO: Record<string, string> = {
-  Pendiente: 'warn', 'En revisión': 'info', Aprobada: 'ok',
+  Pendiente: 'warn', 'En revisiÃ³n': 'info', Aprobada: 'ok',
   Rechazada: 'err', Resuelta: 'ok', Cerrada: 'neutral',
 };
 const CLASE_PRIORIDAD: Record<string, string> = {
@@ -115,12 +116,12 @@ const ICONO_PRIORIDAD: Record<string, string> = {
 };
 
 const formatFecha = (f: string | null | undefined, idioma: string) => {
-  if (!f) return '—';
+  if (!f) return 'â€”';
   return new Date(f).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
 const formatFechaCorta = (f: string | null | undefined, idioma: string) => {
-  if (!f) return '—';
+  if (!f) return 'â€”';
   return new Date(f).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
@@ -157,7 +158,7 @@ const AdminNovedades = () => {
   const [nuevoEstado, setNuevoEstado] = useState('');
   const [accionDetalle, setAccionDetalle] = useState('');
 
-  // Cupón
+  // CupÃ³n
   const [mostrarCupon, setMostrarCupon] = useState(false);
   const [cuponCodigo, setCuponCodigo] = useState('');
   const [cuponTipo, setCuponTipo] = useState('porcentaje');
@@ -170,13 +171,13 @@ const AdminNovedades = () => {
   const [respuestaAdmin, setRespuestaAdmin] = useState('');
   const [enviandoRespuesta, setEnviandoRespuesta] = useState(false);
 
-  // Mensaje/solución al cliente
+  // Mensaje/soluciÃ³n al cliente
   const [mensajeCliente, setMensajeCliente] = useState('');
   const [solucionCliente, setSolucionCliente] = useState('');
   const [clienteVisible, setClienteVisible] = useState(false);
   const [enviandoMensaje, setEnviandoMensaje] = useState(false);
 
-  // Cambiar técnico
+  // Cambiar tÃ©cnico
   const [mostrarCambioTecnico, setMostrarCambioTecnico] = useState(false);
   const [nuevoTecnicoId, setNuevoTecnicoId] = useState('');
   const [motivoCambio, setMotivoCambio] = useState('');
@@ -249,7 +250,7 @@ const AdminNovedades = () => {
 
   const { page, setPage, totalPages, pageItems, numeroFila } = usePaginacion(filtradas, 10);
 
-  // Al cambiar cualquier filtro/búsqueda se vuelve a una página válida (la 1).
+  // Al cambiar cualquier filtro/bÃºsqueda se vuelve a una pÃ¡gina vÃ¡lida (la 1).
   useEffect(() => {
     setPage(1);
   }, [busqueda, filtroEstado, filtroTipo, filtroPrioridad, filtroTecnico, filtroPedido, filtroRelacion, filtroCliente, filtroConEvidencia, setPage]);
@@ -411,7 +412,7 @@ const AdminNovedades = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* ── Header ─────────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="ap-header">
         <div>
           <h1 className="ap-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -429,7 +430,7 @@ const AdminNovedades = () => {
         </div>
       </div>
 
-      {/* ── Toast ──────────────────────────────────────────── */}
+      {/* â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -443,7 +444,7 @@ const AdminNovedades = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Resumen rápido por estado ─────────────────────── */}
+      {/* â”€â”€ Resumen rÃ¡pido por estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="ap-pills" style={{ marginBottom: 20 }}>
         {ESTADOS.map((e) => (
           <button
@@ -458,7 +459,7 @@ const AdminNovedades = () => {
         ))}
       </div>
 
-      {/* ── Filtros ──────────────────────────────────────── */}
+      {/* â”€â”€ Filtros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16, alignItems: 'center' }}>
         <div className="ap-search ap-search-larga" style={{ maxWidth: 420 }}>
           <FaMagnifyingGlass />
@@ -537,7 +538,7 @@ const AdminNovedades = () => {
         )}
       </div>
 
-      {/* ── Tabla ────────────────────────────────────────── */}
+      {/* â”€â”€ Tabla â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {cargando ? (
         <div className="ap-states">
           <div className="ap-loader" />
@@ -603,10 +604,10 @@ const AdminNovedades = () => {
                       <div className="ap-initials" style={{ width: 30, height: 30, fontSize: '0.7rem' }}>
                         {n.tecnico_nombre ? n.tecnico_nombre.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
                       </div>
-                      <span style={{ fontSize: '0.85rem' }}>{n.tecnico_nombre || '—'}</span>
+                      <span style={{ fontSize: '0.85rem' }}>{n.tecnico_nombre || 'â€”'}</span>
                     </div>
                   </td>
-                  <td style={{ fontSize: '0.85rem' }}>{n.cliente_nombre || '—'}</td>
+                  <td style={{ fontSize: '0.85rem' }}>{n.cliente_nombre || 'â€”'}</td>
                   <td>
                     {n.id_pedido ? (
                       <span className="ap-badge info" style={{ fontSize: '0.7rem' }}>
@@ -643,17 +644,17 @@ const AdminNovedades = () => {
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.mensaje_cliente ? '#f5c542' : '#8f8f8f' }}>
                     {n.mensaje_cliente ? (
-                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={0} onKeyDown={activarConTeclado} style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaPaperPlane style={{ marginRight: 4 }} /> Enviado
                       </span>
-                    ) : '—'}
+                    ) : 'â€”'}
                   </td>
                   <td style={{ fontSize: '0.82rem', color: n.solucion_cliente ? '#46d06f' : '#8f8f8f' }}>
                     {n.solucion_cliente ? (
-                      <span role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
+                      <span role="button" tabIndex={0} onKeyDown={activarConTeclado} style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(n.id_novedad)}>
                         <FaCheck style={{ marginRight: 4 }} /> {n.cliente_visible ? 'Visible' : 'Oculta'}
                       </span>
-                    ) : '—'}
+                    ) : 'â€”'}
                   </td>
                   <td>
                     <button
@@ -674,7 +675,7 @@ const AdminNovedades = () => {
         </>
       )}
 
-      {/* ── Modal de detalle ────────────────────────────────── */}
+      {/* â”€â”€ Modal de detalle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {detalle && (
           <motion.div
@@ -736,11 +737,11 @@ const AdminNovedades = () => {
                   </div>
                   <div className="ap-def">
                     <div className="ap-def-label"><FaTruck style={{ marginRight: 4 }} />{t('novedades.admin.col.tecnico')}</div>
-                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tecnico_nombre || '—'}</div>
+                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.tecnico_nombre || 'â€”'}</div>
                   </div>
                   <div className="ap-def">
                     <div className="ap-def-label"><FaUser style={{ marginRight: 4 }} />{t('novedades.admin.col.cliente')}</div>
-                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.cliente_nombre || '—'}</div>
+                    <div className="ap-def-value" style={{ fontSize: '0.85rem' }}>{detalle.cliente_nombre || 'â€”'}</div>
                   </div>
                   {detalle.id_pedido && (
                     <div className="ap-def">
@@ -841,7 +842,7 @@ const AdminNovedades = () => {
                       {detalle.cupon.tipo_descuento === 'porcentaje'
                         ? t('novedades.admin.descuento', { valor: detalle.cupon.valor_descuento })
                         : t('novedades.admin.descuentoFijo', { valor: Number(detalle.cupon.valor_descuento).toLocaleString(idioma === 'en' ? 'en-US' : 'es-CO') })}
-                      {' · '}{detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos ? t('novedades.admin.disponible') : t('novedades.admin.noDisponible')}
+                      {' Â· '}{detalle.cupon.activo && detalle.cupon.usos_realizados < detalle.cupon.usos_maximos ? t('novedades.admin.disponible') : t('novedades.admin.noDisponible')}
                     </p>
                   </div>
                 )}
@@ -904,7 +905,7 @@ const AdminNovedades = () => {
                   </button>
                 </div>
 
-                {/* Enviar mensaje/solución al cliente */}
+                {/* Enviar mensaje/soluciÃ³n al cliente */}
                 <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#e6e6e6', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <FaPaperPlane style={{ color: '#f5c542' }} /> {t('novedades.admin.enviarSolucion')}
@@ -944,7 +945,7 @@ const AdminNovedades = () => {
                   </button>
                 </div>
 
-                {/* Cambiar técnico */}
+                {/* Cambiar tÃ©cnico */}
                 {(detalle.id_pedido || detalle.id_cita) && (
                   <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>

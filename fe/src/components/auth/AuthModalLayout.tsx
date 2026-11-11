@@ -31,7 +31,7 @@ const AuthModalLayout = () => {
         >
           <span aria-hidden="true">&times;</span>
         </button>
-        <div role="button" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') (e.currentTarget as HTMLElement).click(); }}  className="auth-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="auth-modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
           <Outlet />
         </div>
       </div>

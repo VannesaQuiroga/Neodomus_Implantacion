@@ -18,9 +18,9 @@ vinculada a su solicitud vía ``id_solicitud_dv``.
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Optional
 
-from sqlalchemy import func as sqlfunc
 from sqlalchemy.orm import Session
 
 from app.models.cliente import Cliente
@@ -80,19 +80,64 @@ def _nombre_producto(detalle: DetallePedido | None, producto: Producto | None) -
     return f"Producto #{detalle.id_producto_d if detalle else '?'}"
 
 
+DINERO_PRECISION = Decimal("0.01")
+
+
+def _dinero(valor: Decimal | float | int) -> Decimal:
+    """Redondea un importe a la precisión monetaria (2 decimales, HALF_UP)."""
+    return Decimal(str(valor)).quantize(DINERO_PRECISION, rounding=ROUND_HALF_UP)
+
+
+def _metros_solicitados(valor) -> Decimal:
+    """Convierte la longitud solicitada a Decimal exacto.
+
+    Rechaza valores no finitos, <= 0 y con más de 2 decimales (no se
+    redondea silenciosamente una entrada con mayor precisión), igual que
+    hace el checkout (``pedidos_service._decimal_metros``)."""
+    try:
+        d = Decimal(str(valor))
+    except (TypeError, ValueError, InvalidOperation):
+        raise ItemInvalido("Cantidad en metros inválida.")
+    if not d.is_finite() or d <= 0:
+        raise ItemInvalido("Los metros a devolver deben ser mayores a cero.")
+    if d.as_tuple().exponent < -2:
+        raise ItemInvalido("La longitud admite como máximo 2 decimales.")
+    return d
+
+
+def _formato_metros(d: Decimal) -> str:
+    """'2.50' → '2,5' para los mensajes al cliente."""
+    texto = f"{d.normalize():f}".rstrip("0").rstrip(".") if d == d.to_integral() else f"{d:f}"
+    return texto.replace(".", ",").replace(",00", "")
+
+
 # ────────────────────────────────────────────────────────────────────
 # Elegibilidad y unidades disponibles
 # ────────────────────────────────────────────────────────────────────
 
-def unidades_comprometidas(db: Session, id_pedido: int) -> dict[int, int]:
-    """Unidades por producto solicitadas en solicitudes NO RECHAZADAS.
+def compromiso_por_producto(db: Session, id_pedido: int) -> dict:
+    """Cantidades por producto comprometidas en solicitudes NO rechazadas.
 
-    Las unidades cuentan como comprometidas incluso cuando la devolución ya
-    terminó (Recibida / Reembolso procesado): un producto devuelto y
-    procesado no puede volver a solicitarse. Solo un rechazo libera las
-    unidades."""
+    Las cantidades cuentan como comprometidas incluso cuando la devolución
+    ya terminó (Recibida / Reembolso procesado): un producto devuelto y
+    procesado no puede volver a solicitarse. Solo un rechazo libera.
+
+    Devuelve ``{"unidades": {pid: int}, "metros": {pid: Decimal},
+    "metros_comprados": {pid: Decimal}}``:
+
+    - Filas nuevas por metros traen ``cantidad_metros`` (se suma exacta).
+    - Filas legadas (``cantidad_metros`` NULL) de un detalle vendido por
+      metros comprometen el corte completo de ese detalle: el flujo antiguo
+      trataba el corte como una unidad entera.
+    - ``metros_comprados`` totaliza la longitud comprada por producto para
+      poder validar que la devolución corresponda al corte completo.
+    """
     filas = (
-        db.query(Devolucion.id_producto_d, sqlfunc.coalesce(sqlfunc.sum(Devolucion.cantidad), 0))
+        db.query(
+            Devolucion.id_producto_d,
+            Devolucion.cantidad,
+            Devolucion.cantidad_metros,
+        )
         .join(
             SolicitudDevolucion,
             SolicitudDevolucion.id_solicitud == Devolucion.id_solicitud_dv,
@@ -101,14 +146,67 @@ def unidades_comprometidas(db: Session, id_pedido: int) -> dict[int, int]:
             Devolucion.id_pedido_d == id_pedido,
             SolicitudDevolucion.estado != EST_RECHAZADA,
         )
-        .group_by(Devolucion.id_producto_d)
         .all()
     )
-    return {int(pid): int(qty) for pid, qty in filas if pid}
+
+    detalles = (
+        db.query(DetallePedido)
+        .filter(
+            DetallePedido.id_pedido_d == id_pedido,
+            DetallePedido.id_producto_d.isnot(None),
+        )
+        .all()
+    )
+    metros_por_producto: dict[int, Decimal] = {}
+    for d in detalles:
+        if d.cantidad_metros is not None:
+            metros_por_producto[int(d.id_producto_d)] = metros_por_producto.get(
+                int(d.id_producto_d), Decimal("0")
+            ) + Decimal(str(d.cantidad_metros))
+
+    unidades: dict[int, int] = {}
+    metros: dict[int, Decimal] = {}
+    filas_legadas_metro: set[int] = set()
+    for pid, cantidad, metros_fila in filas:
+        if not pid:
+            continue
+        pid = int(pid)
+        if metros_fila is not None:
+            metros[pid] = metros.get(pid, Decimal("0")) + Decimal(str(metros_fila))
+        elif pid in metros_por_producto:
+            # Fila legada de un corte: compromete el corte completo.
+            metros[pid] = metros.get(pid, Decimal("0")) + metros_por_producto[pid]
+            filas_legadas_metro.add(pid)
+        else:
+            unidades[pid] = unidades.get(pid, 0) + int(cantidad or 1)
+
+    # No se puede comprometer más longitud de la comprada (defensivo).
+    for pid, total in metros.items():
+        comprado = metros_por_producto.get(pid)
+        if comprado is not None and total > comprado:
+            metros[pid] = comprado
+
+    return {
+        "unidades": unidades,
+        "metros": metros,
+        "metros_comprados": metros_por_producto,
+    }
+
+
+def unidades_comprometidas(db: Session, id_pedido: int) -> dict[int, int]:
+    """Unidades por producto solicitadas en solicitudes NO RECHAZADAS.
+
+    Mantenida por compatibilidad con flujos existentes; la elegibilidad usa
+    ``compromiso_por_producto`` (unidades + metros)."""
+    return compromiso_por_producto(db, id_pedido)["unidades"]
 
 
 def elegibilidad_pedido(db: Session, client: Cliente, id_pedido: int) -> dict:
-    """Productos del pedido con las unidades aún disponibles para devolver."""
+    """Productos del pedido con las cantidades aún disponibles para devolver.
+
+    Para productos vendidos por metros la devolución aplica al CORTE
+    COMPLETO: se reporta la longitud comprada y la longitud aún disponible;
+    una fracción no autorizada no es devoluble (PEN-09)."""
     pedido = (
         db.query(Pedido)
         .filter(Pedido.id_pedido == id_pedido, Pedido.id_cliente_pe == client.id_cliente)
@@ -126,7 +224,7 @@ def elegibilidad_pedido(db: Session, client: Cliente, id_pedido: int) -> dict:
         .all()
     )
 
-    comprometido = unidades_comprometidas(db, pedido.id_pedido)
+    compromiso = compromiso_por_producto(db, pedido.id_pedido)
     ids = [d.id_producto_d for d in detalles]
     productos_map = (
         {p.id_producto: p for p in db.query(Producto).filter(Producto.id_producto.in_(ids)).all()}
@@ -137,19 +235,49 @@ def elegibilidad_pedido(db: Session, client: Cliente, id_pedido: int) -> dict:
     lineas = []
     alguna_disponible = False
     for d in detalles:
-        comprada = int(d.cantidad_detalle or 1)
-        disponible = max(0, comprada - comprometido.get(int(d.id_producto_d), 0))
+        pid = int(d.id_producto_d)
         precio = float(d.precio_unitario_detalle or 0)
+        if d.cantidad_metros is not None:
+            # Venta por metros: la devolución es del corte completo.
+            metros_comprados = Decimal(str(d.cantidad_metros))
+            metros_disponibles = max(
+                Decimal("0"), metros_comprados - compromiso["metros"].get(pid, Decimal("0"))
+            )
+            # Solo es devoluble el corte completo e intacto.
+            corte_intacto = metros_disponibles >= metros_comprados
+            disponible = 1 if corte_intacto else 0
+            monto_maximo = float(_dinero(metros_disponibles * Decimal(str(precio))))
+            if disponible > 0:
+                alguna_disponible = True
+            lineas.append({
+                "id_detalle": d.id_detalle,
+                "id_producto": pid,
+                "nombre": _nombre_producto(d, productos_map.get(pid)),
+                "cantidad_comprada": int(d.cantidad_detalle or 1),
+                "cantidad_disponible": disponible,
+                "precio_unitario": round(precio, 2),
+                "monto_maximo": monto_maximo,
+                "venta_por_metros": True,
+                "metros_comprados": float(metros_comprados),
+                "metros_disponibles": float(metros_disponibles),
+            })
+            continue
+
+        comprada = int(d.cantidad_detalle or 1)
+        disponible = max(0, comprada - compromiso["unidades"].get(pid, 0))
         if disponible > 0:
             alguna_disponible = True
         lineas.append({
             "id_detalle": d.id_detalle,
-            "id_producto": int(d.id_producto_d),
-            "nombre": _nombre_producto(d, productos_map.get(d.id_producto_d)),
+            "id_producto": pid,
+            "nombre": _nombre_producto(d, productos_map.get(pid)),
             "cantidad_comprada": comprada,
             "cantidad_disponible": disponible,
             "precio_unitario": round(precio, 2),
             "monto_maximo": round(disponible * precio, 2),
+            "venta_por_metros": False,
+            "metros_comprados": None,
+            "metros_disponibles": None,
         })
 
     # Entregado por el técnico O con la cita de instalación finalizada.
@@ -222,7 +350,16 @@ def crear_solicitud(
 ) -> SolicitudDevolucion:
     """Crea una solicitud de devolución (parcial o total) con sus líneas.
 
-    ``items``: [{'id_producto': int, 'cantidad': int}, ...]
+    ``items``: [{'id_producto': int, 'cantidad': int, 'metros'?: número}, ...]
+
+    Reglas de negocio (PEN-09):
+
+    - Productos vendidos por metros: la devolución debe corresponder al
+      CORTE COMPLETO comprado. Se acepta el campo ``metros`` igual a la
+      longitud comprada, o la forma legada ``cantidad=1`` (corte entero).
+      Una fracción distinta se rechaza: no hay devoluciones parciales no
+      autorizadas, y la validación vive SOLO en el backend.
+    - Productos por unidades: ``cantidad`` entera, sin exceder lo disponible.
     """
     info = elegibilidad_pedido(db, client, id_pedido)
     if not info["elegible"]:
@@ -241,35 +378,100 @@ def crear_solicitud(
 
     disponibles = {p["id_producto"]: p for p in info["productos"]}
 
-    # Validar items y consolidar duplicados.
+    # Validar items y consolidar duplicados (unidades y metros por producto).
     consolidado: dict[int, int] = {}
+    consolidado_metros: dict[int, Decimal] = {}
     for it in items:
+        if not isinstance(it, dict):
+            raise ItemInvalido("Producto o cantidad inválidos.")
         try:
             pid = int(it.get("id_producto"))
-            cant = int(it.get("cantidad", 1))
         except (TypeError, ValueError):
             raise ItemInvalido("Producto o cantidad inválidos.")
         if pid not in disponibles:
             raise ItemInvalido("Ese producto no pertenece a este pedido.")
+        linea = disponibles[pid]
+
+        if linea["venta_por_metros"]:
+            # ── Corte por metros: devolución del corte completo ──
+            metros_comprados = Decimal(str(linea["metros_comprados"]))
+            metros_disponibles = Decimal(str(linea["metros_disponibles"]))
+            if metros_disponibles < metros_comprados:
+                raise ItemInvalido(
+                    f"El corte de '{linea['nombre']}' ya tiene una devolución "
+                    "en proceso; no puedes volver a solicitarla."
+                )
+            metros_in = it.get("metros")
+            if metros_in is None:
+                # Forma legada: cantidad=1 representa el corte completo.
+                try:
+                    cant = int(it.get("cantidad", 1))
+                except (TypeError, ValueError):
+                    raise ItemInvalido("Producto o cantidad inválidos.")
+                if cant != 1:
+                    raise ItemInvalido(
+                        "La devolución del corte debe corresponder al corte "
+                        f"completo ({_formato_metros(metros_comprados)} m)."
+                    )
+                metros = metros_comprados
+            else:
+                metros = _metros_solicitados(metros_in)
+                if metros != metros_comprados:
+                    raise ItemInvalido(
+                        "La devolución del corte debe corresponder al corte "
+                        f"completo ({_formato_metros(metros_comprados)} m); "
+                        f"recibimos {_formato_metros(metros)} m."
+                    )
+            if pid in consolidado_metros:
+                raise ItemInvalido(
+                    f"'{linea['nombre']}' ya está en esta solicitud."
+                )
+            consolidado_metros[pid] = metros
+            continue
+
+        # ── Producto por unidades enteras (flujo existente) ──
+        if it.get("metros") is not None:
+            raise ItemInvalido(f"'{linea['nombre']}' no se vendió por metros.")
+        try:
+            cant = int(it.get("cantidad", 1))
+        except (TypeError, ValueError):
+            raise ItemInvalido("Producto o cantidad inválidos.")
         if cant <= 0:
             raise ItemInvalido("La cantidad a devolver debe ser mayor a cero.")
-        disp = disponibles[pid]["cantidad_disponible"]
+        disp = int(linea["cantidad_disponible"])
         total = consolidado.get(pid, 0) + cant
         if total > disp:
             raise ItemInvalido(
-                f"Solo puedes devolver {disp} unidad(es) de '{disponibles[pid]['nombre']}'."
+                f"Solo puedes devolver {disp} unidad(es) de '{linea['nombre']}'."
             )
         consolidado[pid] = total
 
-    monto_total = sum(
-        round(disponibles[pid]["precio_unitario"] * cant, 2) for pid, cant in consolidado.items()
-    )
+    if not consolidado and not consolidado_metros:
+        raise ItemInvalido("Selecciona al menos un producto para devolver.")
+
+    # Monto con aritmética decimal exacta sobre los valores HISTÓRICOS del
+    # pedido (precio unitario congelado en el checkout × cantidad devuelta).
+    monto_total = Decimal("0")
+    for pid, cant in consolidado.items():
+        monto_total += _dinero(
+            Decimal(str(disponibles[pid]["precio_unitario"])) * cant
+        )
+    for pid, metros in consolidado_metros.items():
+        monto_total += _dinero(
+            Decimal(str(disponibles[pid]["precio_unitario"])) * metros
+        )
 
     # ¿Queda algo sin devolver después de esta solicitud? → parcial/total.
-    quedan = any(
-        disponibles[p["id_producto"]]["cantidad_disponible"] - consolidado.get(p["id_producto"], 0) > 0
-        for p in info["productos"]
-    )
+    quedan = False
+    for p in info["productos"]:
+        pid = p["id_producto"]
+        if p["venta_por_metros"]:
+            metros = consolidado_metros.get(pid, Decimal("0"))
+            if Decimal(str(p["metros_disponibles"])) - metros > 0:
+                quedan = True
+        else:
+            if int(p["cantidad_disponible"]) - consolidado.get(pid, 0) > 0:
+                quedan = True
     tipo = "parcial" if quedan else "total"
 
     solicitud = SolicitudDevolucion(
@@ -281,7 +483,7 @@ def crear_solicitud(
         comentario=(comentario or "").strip() or None,
         estado=EST_SOLICITADA,
         tipo_devolucion=tipo,
-        monto_total=round(monto_total, 2),
+        monto_total=float(monto_total),
     )
     db.add(solicitud)
     db.flush()
@@ -300,6 +502,21 @@ def crear_solicitud(
             id_pedido_d=id_pedido,
             id_producto_d=pid,
             cantidad=cant,
+            motivo=texto_motivo,
+            estado="Pendiente",
+            preferencia=None,
+            id_solicitud_dv=solicitud.id_solicitud,
+        )
+        _asignar_tecnico_recogida(db, linea)
+        db.add(linea)
+
+    for pid, metros in consolidado_metros.items():
+        linea = Devolucion(
+            id_cliente_d=client.id_cliente,
+            id_pedido_d=id_pedido,
+            id_producto_d=pid,
+            cantidad=1,  # el corte es una pieza; la longitud vive en metros
+            cantidad_metros=metros,
             motivo=texto_motivo,
             estado="Pendiente",
             preferencia=None,
@@ -348,15 +565,7 @@ def serializar_solicitud(db: Session, s: SolicitudDevolucion) -> dict:
 
     reembolso = None
     if s.estado == EST_REEMBOLSO or (s.resolucion or "") == "Reembolso":
-        reembolso = (
-            db.query(Reembolso)
-            .filter(
-                Reembolso.id_pedido == s.id_pedido_s,
-                Reembolso.motivo.like(f"%{s.numero}%"),
-            )
-            .order_by(Reembolso.id_reembolso.desc())
-            .first()
-        )
+        reembolso = _reembolso_de_solicitud(db, s)
 
     items = []
     recogidos = 0
@@ -380,13 +589,21 @@ def serializar_solicitud(db: Session, s: SolicitudDevolucion) -> dict:
         if l.recogida_estado == "Recogida":
             recogidos += 1
         usuario_tec = tecnicos_map.get(l.id_tecnico_recogida)
+        metros = float(l.cantidad_metros) if l.cantidad_metros is not None else None
+        if metros is not None:
+            # Corte por metros: el precio unitario es POR METRO.
+            subtotal = float(_dinero(Decimal(str(precio)) * Decimal(str(l.cantidad_metros))))
+        else:
+            subtotal = round(precio * l.cantidad, 2)
         items.append({
             "id_devolucion": l.id_devolucion,
             "id_producto": l.id_producto_d,
             "producto": _nombre_producto(det, prod),
             "cantidad": l.cantidad,
+            "metros": metros,
+            "venta_por_metros": metros is not None,
             "precio_unitario": round(precio, 2),
-            "subtotal_linea": round(precio * l.cantidad, 2),
+            "subtotal_linea": subtotal,
             "estado_linea": l.estado,
             "recogida_estado": l.recogida_estado,
             "id_tecnico_recogida": l.id_tecnico_recogida,
@@ -469,16 +686,47 @@ def _sincronizar_lineas(db: Session, s: SolicitudDevolucion) -> None:
                 l.resuelta_at = ahora
 
 
+def _reembolso_de_solicitud(db: Session, s: SolicitudDevolucion) -> Reembolso | None:
+    """Reembolso asociado a esta solicitud (por origen explícito o por el
+    motivo legado 'DEV-nnnnnn'), el más reciente primero."""
+    return (
+        db.query(Reembolso)
+        .filter(
+            (
+                (Reembolso.id_solicitud_origen == s.id_solicitud)
+                | (
+                    (Reembolso.id_pedido == s.id_pedido_s)
+                    & Reembolso.motivo.like(f"%{s.numero}%")
+                )
+            )
+        )
+        .order_by(Reembolso.id_reembolso.desc())
+        .first()
+    )
+
+
 def _crear_reembolso_solicitud(db: Session, s: SolicitudDevolucion):
     """Registra el reembolso SOLO del valor de esta solicitud (parcial o
-    total) usando la pasarela simulada. Devuelve el Reembolso o None."""
+    total) usando la pasarela simulada. Devuelve el Reembolso o None.
+
+    Idempotencia (PEN-10): la deduplicación usa el vínculo explícito
+    ``id_solicitud_origen`` y el motivo legado; el índice único de
+    ``reembolsos.id_solicitud_origen`` impide en la base de datos un segundo
+    reembolso para la misma devolución."""
+    from sqlalchemy.exc import IntegrityError
+
     from app.services.reembolso_service import crear_reembolso
 
     existe = (
         db.query(Reembolso)
         .filter(
-            Reembolso.id_pedido == s.id_pedido_s,
-            Reembolso.motivo.like(f"%{s.numero}%"),
+            (
+                (Reembolso.id_solicitud_origen == s.id_solicitud)
+                | (
+                    (Reembolso.id_pedido == s.id_pedido_s)
+                    & Reembolso.motivo.like(f"%{s.numero}%")
+                )
+            ),
             Reembolso.estado.in_(("Pendiente", "Procesando", "Reembolsado")),
         )
         .first()
@@ -494,13 +742,26 @@ def _crear_reembolso_solicitud(db: Session, s: SolicitudDevolucion):
         .order_by(Pago.id_pago.desc())
         .first()
     )
-    return crear_reembolso(
-        db,
-        monto=float(s.monto_total),
-        motivo=f"Devolución {s.numero} ({s.tipo_devolucion}) aprobada — pedido #{s.id_pedido_s}",
-        pedido_id=s.id_pedido_s,
-        numero_transaccion_original=(pago.numero_transaccion if pago else None),
-    )
+    try:
+        return crear_reembolso(
+            db,
+            monto=float(s.monto_total),
+            motivo=f"Devolución {s.numero} ({s.tipo_devolucion}) aprobada — pedido #{s.id_pedido_s}",
+            pedido_id=s.id_pedido_s,
+            numero_transaccion_original=(pago.numero_transaccion if pago else None),
+            solicitud_origen_id=s.id_solicitud,
+        )
+    except IntegrityError:
+        # Última barrera: otro proceso registró el reembolso de esta misma
+        # solicitud. El rollback deja la transacción limpia (sin estado a
+        # medias) y se informa para que el administrador reconsulte.
+        db.rollback()
+        existe = _reembolso_de_solicitud(db, s)
+        if existe is not None:
+            raise ItemInvalido(
+                "Esta devolución ya tiene un reembolso registrado."
+            ) from None
+        raise
 
 
 def cambiar_estado(
@@ -513,13 +774,29 @@ def cambiar_estado(
     observaciones: str | None = None,
     admin_id: int | None = None,
 ) -> tuple[SolicitudDevolucion, Optional[Reembolso]]:
-    """Aplica una transición del pipeline con validaciones y efectos."""
+    """Aplica una transición del pipeline con validaciones y efectos.
+
+    Idempotencia y concurrencia (PEN-10): la fila de la solicitud se bloquea
+    (SELECT ... FOR UPDATE) y se relee antes de validar la transición, de
+    modo que dos administradores simultáneos se serialicen: el segundo ve el
+    estado ya confirmado y recibe un error de transición inválida. El estado
+    aprobado y el reembolso creado se confirman en la MISMA transacción.
+    """
+    bloqueada = (
+        db.query(SolicitudDevolucion)
+        .with_for_update()
+        .populate_existing()
+        .filter(SolicitudDevolucion.id_solicitud == s.id_solicitud)
+        .first()
+    )
+    if bloqueada is not None:
+        s = bloqueada
+
     if nuevo_estado not in TRANSICIONES.get(s.estado, set()):
         raise ValueError(
             f"No puedes pasar la devolución de '{s.estado}' a '{nuevo_estado}'."
         )
 
-    reembolso = None
     if nuevo_estado == EST_APROBADA:
         resolucion_norm = (resolucion or "Reembolso").strip().capitalize()
         if resolucion_norm not in RESOLUCIONES:
@@ -527,8 +804,6 @@ def cambiar_estado(
         s.resolucion = resolucion_norm
         s.resuelta_por = admin_id
         s.resuelta_at = datetime.now()
-        if resolucion_norm == "Reembolso":
-            reembolso = _crear_reembolso_solicitud(db, s)
     elif nuevo_estado == EST_RECHAZADA:
         if not (motivo_rechazo or "").strip():
             raise ValueError("Indica el motivo del rechazo.")
@@ -543,7 +818,14 @@ def cambiar_estado(
     s.estado = nuevo_estado
     s.updated_at = datetime.now()
     _sincronizar_lineas(db, s)
-    db.commit()
+
+    reembolso = None
+    if nuevo_estado == EST_APROBADA and (s.resolucion or "") == "Reembolso":
+        # ``crear_reembolso`` confirma su propia transacción: el estado de la
+        # solicitud se consolida junto con el reembolso en ese mismo commit.
+        reembolso = _crear_reembolso_solicitud(db, s)
+    else:
+        db.commit()
     db.refresh(s)
     return s, reembolso
 
@@ -583,15 +865,7 @@ def avanzar_por_recogida(db: Session, linea: Devolucion) -> None:
     s.updated_at = datetime.now()
 
     if nuevo == EST_RECIBIDA and (s.resolucion or "") == "Reembolso":
-        reembolso = (
-            db.query(Reembolso)
-            .filter(
-                Reembolso.id_pedido == s.id_pedido_s,
-                Reembolso.motivo.like(f"%{s.numero}%"),
-            )
-            .order_by(Reembolso.id_reembolso.desc())
-            .first()
-        )
+        reembolso = _reembolso_de_solicitud(db, s)
         if reembolso is not None and reembolso.estado == "Reembolsado":
             s.estado = EST_REEMBOLSO
 
