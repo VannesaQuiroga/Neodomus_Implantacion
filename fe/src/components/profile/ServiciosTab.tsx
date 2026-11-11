@@ -14,6 +14,7 @@ import api from '@services/api';
 import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import ModalPortal from '@components/common/ModalPortal';
+import { activarConTeclado } from '@utils/keyboard';
 
 const TIPO_SERVICIO: Record<string, string> = {
   instalacion: 'citas.instalacion',
@@ -339,7 +340,7 @@ const ServiciosTab = () => {
       {/* Modal de calificación */}
       {calificandoCita && (
         <ModalPortal>
-          <div className="pf-modal-backdrop" onClick={() => setCalificandoCita(null)}>
+          <div className="pf-modal-backdrop" role="button" tabIndex={0} aria-label={t('common.cerrar')} onClick={() => setCalificandoCita(null)} onKeyDown={activarConTeclado}>
             <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-servicios-calif-titulo">
             <div className="pf-modal-header">
               <h3 id="pf-servicios-calif-titulo"><FaStar /> {t('perfil.servicios.modalTitulo')}</h3>

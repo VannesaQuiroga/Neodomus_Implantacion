@@ -6,6 +6,7 @@ import { useIdioma } from '@i18n/IdiomaContext';
 import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
 import ModalPortal from '@components/common/ModalPortal';
+import { activarConTeclado } from '@utils/keyboard';
 
 const tipoLabelKey: Record<TipoPago, string> = {
   tarjeta: 'perfil.pagos.tipoTarjeta',
@@ -55,7 +56,7 @@ const PayFormModal = ({ metodo, onClose, onGuardar }: PayFormProps) => {
 
   return (
     <ModalPortal>
-      <div className="pf-modal-backdrop" onClick={onClose}>
+      <div className="pf-modal-backdrop" role="button" tabIndex={0} aria-label={t('common.cerrar')} onClick={onClose} onKeyDown={activarConTeclado}>
         <div className="pf-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-pay-titulo">
           <div className="pf-modal-header">
             <h3 id="pf-pay-titulo">{metodo ? t('perfil.pagos.editarTitulo') : t('perfil.pagos.agregarTitulo')}</h3>
@@ -254,7 +255,7 @@ const PaymentsTab = ({ notify }: { notify: NotifyFn }) => {
 
       {eliminando && (
         <ModalPortal>
-          <div className="pf-modal-backdrop" onClick={() => setEliminando(null)}>
+          <div className="pf-modal-backdrop" role="button" tabIndex={0} aria-label={t('common.cerrar')} onClick={() => setEliminando(null)} onKeyDown={activarConTeclado}>
             <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-pay-eliminar-titulo">
               <div className="pf-modal-header">
                 <h3 id="pf-pay-eliminar-titulo">{t('perfil.pagos.eliminarTitulo')}</h3>

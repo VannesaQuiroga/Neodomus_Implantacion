@@ -161,7 +161,7 @@ const ReviewsTab = ({ notify }: { notify: NotifyFn }) => {
       })
       .catch((err) => console.error(err));
 
-    (async () => {
+    void (async () => {
       try {
         const calificadas = await cargarResenasProductos();
         await cargarPendientesProducto(calificadas);

@@ -18,6 +18,7 @@ import {
 } from 'react-icons/fa6';
 import { useIdioma } from '@i18n/IdiomaContext';
 import { esDomingo } from '@utils/fechas';
+import { activarConTeclado } from '@utils/keyboard';
 import api from '@services/api';
 import '@styles/admin-panel.css';
 import '@styles/dashboard-admin.css';
@@ -538,7 +539,7 @@ const TecnicoCitas = () => {
       )}
 
       {reagendando && (
-        <div className="ap-modal-overlay" onClick={cancelarReagendar}>
+        <div className="ap-modal-overlay" role="button" tabIndex={0} aria-label={t('common.cerrar')} onClick={cancelarReagendar} onKeyDown={activarConTeclado}>
           <div className="ap-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="tec-reagendar-titulo">
             <div className="ap-modal-head">
               <div>

@@ -33,6 +33,7 @@ import { getAvatar, getIniciales, getMensajes, PF_AVATAR_KEY, removeAvatar } fro
 import api from '@services/api';
 import { useFavoritos } from '@utils/favoritos';
 import { aplicarFallbackImagenProducto, resolverImagenProducto } from '@utils/productImages';
+import { activarConTeclado } from '@utils/keyboard';
 
 interface NavItem {
   id: string;
@@ -662,7 +663,7 @@ const Perfil = () => {
       {/* ── Modal inhabilitar cuenta ─────────────────────────── */}
       {confirmarInhabilitar && (
         <ModalPortal>
-          <div className="pf-modal-backdrop" onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)}>
+          <div className="pf-modal-backdrop" role="button" tabIndex={0} aria-label={t('common.cerrar')} onClick={() => !enviandoSolicitud && setConfirmarInhabilitar(false)} onKeyDown={activarConTeclado}>
             <div className="pf-modal pf-modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pf-inhabilitar-titulo">
               <div className="pf-modal-header">
                 <h3 id="pf-inhabilitar-titulo">{t('perfil.inhabilitarCuenta')}</h3>

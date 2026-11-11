@@ -20,6 +20,7 @@ import SectionHeader from './SectionHeader';
 import { NotifyFn } from './PersonalTab';
 import ModalPortal from '@components/common/ModalPortal';
 import { pedidoCompletado } from '@utils/pedidos';
+import { activarConTeclado } from '@utils/keyboard';
 
 interface Detalle {
   id_detalle: number;
@@ -408,7 +409,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
         }
         return { id_producto: Number(pid), cantidad: cant };
       })
-      .filter((i) => (i.metros != null ? i.cantidad > 0 : i.cantidad > 0));
+      .filter((i) => i.cantidad > 0);
 
   const totalSeleccionado = (): number => {
     if (!elegibilidad) return 0;
@@ -902,7 +903,7 @@ const OrdersTab = ({ notify }: { notify: NotifyFn }) => {
       {/* ── Modal: wizard de solicitud de devolución ── */}
       {wizardPedido && (
         <ModalPortal>
-          <div className="pf-modal-backdrop" onClick={cerrarWizard}>
+          <div className="pf-modal-backdrop" role="button" tabIndex={0} aria-label={t('common.cerrar')} onClick={cerrarWizard} onKeyDown={activarConTeclado}>
             <div className="pf-modal pf-modal-dev" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('perfil.pedidos.modalTitulo', { id: wizardPedido.id_pedido })}>
               <div className="pf-modal-header">
                 <h3>
