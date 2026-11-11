@@ -14,6 +14,7 @@ import {
   View,
   type ScrollViewProps,
 } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PublicNavbar from "./PublicNavbar";
@@ -24,7 +25,7 @@ const TAB_BAR_ESTIMADO = 66;
 interface PublicScreenProps extends ScrollViewProps {
   children: ReactNode;
   /** Ref externo para scroll-to-top al cambiar de sección. */
-  scrollRef?: React.MutableRefObject<ScrollView | null>;
+  scrollRef?: React.RefObject<ScrollViewInstance | null>;
 }
 
 export default function PublicScreen({

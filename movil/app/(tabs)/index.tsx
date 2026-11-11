@@ -26,7 +26,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import type { ScrollView } from "react-native";
+import type { ScrollViewInstance } from "react-native";
 
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import PublicScreen from "@/components/public/PublicScreen";
@@ -36,7 +36,7 @@ import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
 export default function HomeScreen() {
   const { height: altoVentana } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
   useScrollTopAlEntrar(scrollRef);
 
   // Animación slideLine (web): la barra dorada se dibuja 0→1 en 800ms.

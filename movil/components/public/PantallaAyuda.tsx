@@ -16,7 +16,8 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+} from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import PublicScreen from "@/components/public/PublicScreen";
@@ -60,7 +61,7 @@ const TABS: { id: TabAyuda; clave: string; icono: string }[] = [
 // Comunica con el backend mediante API "/faq".
 export default function PantallaAyuda() {
   const { t } = useIdioma();
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
   // Entrar a Ayuda desde otra sección → empezar arriba.
   useScrollTopAlEntrar(scrollRef);
   const [tabActivo, setTabActivo] = useState<TabAyuda>("faq");

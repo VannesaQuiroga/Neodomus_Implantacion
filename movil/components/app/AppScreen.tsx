@@ -18,6 +18,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -40,7 +41,7 @@ export default function AppScreen({
 }: AppScreenProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
   useScrollTopAlEntrar(scrollRef);
 
   return (

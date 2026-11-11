@@ -15,6 +15,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,7 +54,7 @@ interface Recogida {
 // ── Component ────────────────────────────────────────────────
 
 export default function TecnicoEntregasScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const { t } = useIdioma();
   useScrollTopAlEntrar(scrollRef);
   const insets = useSafeAreaInsets();

@@ -15,6 +15,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -52,7 +53,7 @@ export default function CarritoScreen() {
   const { autenticado, userType } = useAuth();
   const { t } = useIdioma();
   const [avisoLoginVisible, setAvisoLoginVisible] = useState(false);
-  const scrollRef = useRef<import("react-native").ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
   // Entrar al carrito desde otra sección → empezar arriba.
   useScrollTopAlEntrar(scrollRef);
 

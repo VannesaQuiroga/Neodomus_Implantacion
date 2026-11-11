@@ -10,6 +10,7 @@
 
 import React, { useRef, useState } from "react";
 import { Platform, TextInput, StyleSheet, View } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 
 interface OtpInputProps {
   valor: string;
@@ -26,7 +27,7 @@ export default function OtpInput({
   deshabilitado = false,
   error = false,
 }: OtpInputProps) {
-  const refs = useRef<(TextInput | null)[]>([]);
+  const refs = useRef<(TextInputInstance | null)[]>([]);
   const [focoIndice, setFocoIndice] = useState(0);
 
   const manejarCambio = (indice: number, textoCrudo: string) => {

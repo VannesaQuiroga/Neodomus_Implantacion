@@ -15,6 +15,7 @@ import {
   View,
   Linking,
 } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
@@ -83,7 +84,7 @@ export default function TecnicoDashboard() {
   const { usuario } = useAuth();
   const { t } = useIdioma();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const router = useRouter();
   useScrollTopAlEntrar(scrollRef);
 

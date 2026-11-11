@@ -16,6 +16,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
@@ -43,7 +44,7 @@ export default function ChatBot({ onCerrar, altura = 460 }: ChatBotProps) {
   ]);
   const [entrada, setEntrada] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   // Mantener el último mensaje visible.
   useEffect(() => {

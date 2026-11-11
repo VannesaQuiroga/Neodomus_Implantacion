@@ -2,6 +2,7 @@ import LocalizedNotificationText from "@/components/common/LocalizedNotification
 // Ruta móvil de citas. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { apiFetch } from "@/services/api";
@@ -45,7 +46,7 @@ function formatFechaLarga(fecha: string, idioma: string) {
 
 // Comunica con el backend mediante API "/tecnicos/mis-citas", API `/tecnicos/citas/${id}/estado`.
 export default function TecnicoCitasScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const { t, idioma } = useIdioma();
   useScrollTopAlEntrar(scrollRef);
   const insets = useSafeAreaInsets();

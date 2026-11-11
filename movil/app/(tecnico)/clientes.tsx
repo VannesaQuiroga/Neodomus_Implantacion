@@ -1,6 +1,7 @@
 // Ruta móvil de clientes. Expo Router la incorpora a la navegación según su ubicación en app/.
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
 import { apiFetch } from "@/services/api";
@@ -11,7 +12,7 @@ import { SearchBar } from "@/components/tecnico/Filtros";
 
 // Comunica con el backend mediante API "/tecnicos/mis-clientes".
 export default function TecnicoClientesScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   useScrollTopAlEntrar(scrollRef);
   const insets = useSafeAreaInsets();
   const { t } = useIdioma();

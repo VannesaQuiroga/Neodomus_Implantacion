@@ -3,6 +3,7 @@ import LocalizedNotificationText from "@/components/common/LocalizedNotification
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, Modal } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -42,7 +43,7 @@ function matchEstadoDevolucion(item: any, filtro: string): boolean {
 
 // Comunica con el backend mediante API "/devoluciones/mis-recogidas", API "/devoluciones/mis-recogidas?historial=true", API `/devoluciones/${id}/evidencia-recogida`; prepara FormData para enviar campos y archivos.
 export default function TecnicoDevolucionesScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const { t } = useIdioma();
   useScrollTopAlEntrar(scrollRef);
   const insets = useSafeAreaInsets();

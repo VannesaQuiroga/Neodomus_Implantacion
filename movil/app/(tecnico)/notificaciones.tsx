@@ -3,6 +3,7 @@ import LocalizedNotificationText from "@/components/common/LocalizedNotification
 import React, { useEffect, useState, useRef } from "react";
 import { useIdioma } from "@/contexts/IdiomaContext";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NeodomusColors as C, FontFamilies } from "@/constants/theme";
@@ -13,7 +14,7 @@ import { useScrollTopAlEntrar } from "@/hooks/useScrollTopAlEntrar";
 export default function TecnicoNotificacionesScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useIdioma();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   useScrollTopAlEntrar(scrollRef);
   const [notifs, setNotifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
