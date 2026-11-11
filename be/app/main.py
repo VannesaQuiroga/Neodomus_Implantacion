@@ -17,9 +17,13 @@ async def lifespan(_app: FastAPI):
     # no ejecutar trabajos en segundo plano sobre la base de pruebas.
     if os.getenv("DISABLE_SCHEDULER") != "1":
         iniciar_scheduler()
-    yield
-    if os.getenv("DISABLE_SCHEDULER") != "1":
-        detener_scheduler()
+    # try/finally (S9152): garantiza que el scheduler se detenga también si el
+    # proceso se apura por una excepción durante el arranque de la app.
+    try:
+        yield
+    finally:
+        if os.getenv("DISABLE_SCHEDULER") != "1":
+            detener_scheduler()
 
 # Importar routers
 from app.routers import (

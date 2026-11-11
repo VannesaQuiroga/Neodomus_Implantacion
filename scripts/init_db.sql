@@ -44,17 +44,19 @@ CREATE TABLE IF NOT EXISTS proveedores (
     direccion_proveedor VARCHAR(150)
 );
 
+-- Proveedores de demostración coherentes con el giro comercial de NeoDomus
+-- (domótica). Prefijo «Demo» y correos @example.com identifican datos de prueba.
 INSERT IGNORE INTO proveedores (nombre_proveedor, contacto_proveedor, telefono_proveedor, correo_proveedor, direccion_proveedor) VALUES
-('Deportes Elite S.A.', 'Carlos Ramírez', '3104567890', 'contacto@deporteselite.com', 'Cra 45 #12-34, Bogotá'),
-('SportLine Distribuciones', 'María Gómez', '3159876543', 'ventas@sportline.com', 'Av. Las Américas #23-45, Medellín'),
-('TodoFitness Ltda.', 'Andrés López', '3006543210', 'info@todofitness.com', 'Calle 50 #67-12, Cali'),
-('Proveedora Olímpica', 'Laura Torres', '3123456789', 'ltorres@proveedoraolimpica.com', 'Carrera 9 #80-22, Barranquilla'),
-('Suministros Deportivos SAS', 'Jorge Martínez', '3012233445', 'jorge@suministrosdeportivos.com', 'Calle 100 #15-40, Bogotá'),
-('Equipos ProGym', 'Diana Herrera', '3209988776', 'dherrera@progym.com', 'Av. 30 de Agosto #45-67, Pereira'),
-('Distribuciones RunningPro', 'Luis Castillo', '3167788990', 'ventas@runningpro.com', 'Calle 10 #25-30, Bucaramanga'),
-('Balones y Redes S.A.', 'Paola Rincón', '3184455667', 'paola@balonesyredes.com', 'Cra 21 #45-10, Cartagena'),
-('FitEquipos SAS', 'Andrés Peña', '3178899001', 'andres@fitequipos.com', 'Cl 45 #23-10, Manizales'),
-('GymPro Distribuciones', 'Carolina Ríos', '3164455667', 'carolina@gympro.com', 'Cra 15 #30-20, Ibagué');
+('Proveedor Demo 01 - Sensores Inteligentes', 'Ana Martínez', '3101110101', 'proveedor.demo01@example.com', 'Cra 13 #45-12, Bogotá'),
+('Proveedor Demo 02 - Cámaras y Seguridad', 'Carlos Gómez', '3122220202', 'proveedor.demo02@example.com', 'Calle 100 #19-55, Bogotá'),
+('Proveedor Demo 03 - Iluminación Inteligente', 'Laura Restrepo', '3153330303', 'proveedor.demo03@example.com', 'Av. El Poblado #10-30, Medellín'),
+('Proveedor Demo 04 - Cerraduras y Acceso', 'Diego Salas', '3184440404', 'proveedor.demo04@example.com', 'Cra 43A #6-50, Medellín'),
+('Proveedor Demo 05 - Enchufes y Control', 'Paula Vélez', '3015550505', 'proveedor.demo05@example.com', 'Av. 3N #34-67, Cali'),
+('Proveedor Demo 06 - Automatización Residencial', 'Jorge Duarte', '3146660606', 'proveedor.demo06@example.com', 'Calle 50 #45-10, Medellín'),
+('Proveedor Demo 07 - Climatización Inteligente', 'Mariana Ortiz', '3177770707', 'proveedor.demo07@example.com', 'Cra 9 #80-22, Barranquilla'),
+('Proveedor Demo 08 - Conectividad y Redes', 'Andrés Cárdenas', '3028880808', 'proveedor.demo08@example.com', 'Calle 36 #33-40, Bucaramanga'),
+('Proveedor Demo 09 - Paneles de Control', 'Valeria Pardo', '3169990909', 'proveedor.demo09@example.com', 'Cra 1 #8-12, Cartagena'),
+('Proveedor Demo 10 - Energía y Respaldos', 'Camilo Rueda', '3191110101', 'proveedor.demo10@example.com', 'Av. Circunvalar #15-20, Pereira');
 
 CREATE TABLE IF NOT EXISTS categorias (
     id_categoria INT AUTO_INCREMENT PRIMARY KEY,
@@ -154,17 +156,21 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 -- Contraseñas de usuarios (patrón: 12345678 + inicial nombre MAYÚS + inicial apellido minús + .)
+-- El hash real NUNCA se versiona (S8215): los usuarios sembrados aquí se
+-- crean con la contraseña temporal "!" marcada como inválida; nadie puede
+-- iniciar sesión con ella (verify_password la rechaza). Tras sembrar la BD,
+-- restablece cada contraseña con scripts/reset_passwords.py o seed_test_users.py.
 INSERT IGNORE INTO usuarios (first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active) VALUES
-('CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '$2y$salt$redactedhash', 2, 1),
-('JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '$2y$salt$redactedhash', 2, 1),
-('JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '$2y$salt$redactedhash', 2, 1),
-('LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '$2y$salt$redactedhash', 1, 1),
-('ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '$2y$salt$redactedhash', 2, 1),
-('CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '$2y$salt$redactedhash', 1, 1),
-('NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '$2y$salt$redactedhash', 1, 1),
-('LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '$2y$salt$redactedhash', 2, 1),
-('JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '$2y$salt$redactedhash', 2, 1),
-('MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '$2y$salt$redactedhash', 2, 1);
+('CARLOS ANDRÉS', 'GÓMEZ RÍOS', 1, 1023456790, 3001234567, 'carlos.andres.gomez@gmail.com', '!', 2, 1),
+('JORGE DANIEL', 'CHARRY PÉREZ', 1, 1034567890, 3002345678, 'jorge.charry@gmail.com', '!', 2, 1),
+('JUAN SEBASTIÁN', 'MORENO TORRES', 1, 1078901234, 3003456789, 'juan.moreno@gmail.com', '!', 2, 1),
+('LUIS EDUARDO', 'MARTÍNEZ GAITÁN', 1, 1090123456, 3004567890, 'luis.martinez@gmail.com', '!', 1, 1),
+('ANDRÉS MAURICIO', 'LÓPEZ VARGAS', 1, 1056789012, 3005678901, 'andres.lopez@gmail.com', '!', 2, 1),
+('CAMILA ANDREA', 'RODRÍGUEZ PEÑA', 1, 1089012345, 3006789012, 'camila.rodriguez@gmail.com', '!', 1, 1),
+('NICOL ALEJANDRA', 'MARIÑO ROMERO', 1, 1045678901, 3007890123, 'nicolmarinoromero@gmail.com', '!', 1, 1),
+('LAURA MARCELA', 'PÉREZ DUARTE', 2, 1009876543, 3008901234, 'nicolmarino09@gmail.com', '!', 2, 1),
+('JULIÁN FELIPE', 'CARVAJAL CABALLERO', 2, 1012345678, 3009012345, 'julian.carvajal@gmail.com', '!', 2, 1),
+('MARÍA FERNANDA', 'RINCÓN SALAZAR', 2, 1067890123, 3010123456, 'maria.rincon@gmail.com', '!', 2, 1);
 
 CREATE TABLE IF NOT EXISTS clientes (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
@@ -185,21 +191,23 @@ CREATE TABLE IF NOT EXISTS clientes (
     FOREIGN KEY (id_tipo_documento_c) REFERENCES tipos_documento(id_tipo_documento)
 );
 
-SET @hash = '$2y$salt$redactedhash';
+-- Hash real NUNCA versionado (S8215): valor inválido que verify_password
+-- rechaza; la contraseña se restablece con scripts/reset_passwords.py.
+SET @hash = '!';
 
 -- Contraseñas de clientes (patrón: 12345678 + inicial nombre MAYÚS + inicial apellido minús + .)
 INSERT IGNORE INTO clientes (first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token) VALUES
-('LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '$2y$salt$redactedhash', 1, NULL),
-('DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '$2y$salt$redactedhash', 1, NULL),
-('ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '$2y$salt$redactedhash', 1, NULL),
-('MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '$2y$salt$redactedhash', 1, NULL),
-('NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '$2y$salt$redactedhash', 1, NULL),
-('FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '$2y$salt$redactedhash', 1, NULL),
-('CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '$2y$salt$redactedhash', 1, NULL),
-('SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '$2y$salt$redactedhash', 1, NULL),
+('LAURA', 'GARCÍA ROJAS', 1, 1012345678, 3001234567, 'laura.garcia@gmail.com', 'Cra 10 #12-34', '!', 1, NULL),
+('DANIELA', 'RAMÍREZ PEÑA', 1, 1034567890, 3023456789, 'daniela.ramirez@gmail.com', 'Av 30 #15-09', '!', 1, NULL),
+('ANDRÉS', 'GONZÁLEZ MORA', 2, 1045678901, 3034567890, 'andres.gonzalez@gmail.com', 'Mz A Casa 10', '!', 1, NULL),
+('MARIANA', 'SUÁREZ LÓPEZ', 1, 1056789012, 3045678901, 'mariana.suarez@gmail.com', 'Cl 8B #20-45', '!', 1, NULL),
+('NATALIA', 'CASTRO JIMÉNEZ', 1, 1078901234, 3067890123, 'natalia.castro@gmail.com', 'Cl 19 #13-55', '!', 1, NULL),
+('FELIPE', 'MARTÍNEZ PÉREZ', 1, 1089012345, 3078901234, 'felipe.martinez@gmail.com', 'Av 68 #54-23', '!', 1, NULL),
+('CAMILA', 'ORTIZ SALAZAR', 2, 1090123456, 3089012345, 'camila.ortiz@gmail.com', 'Cl 100 #25-10', '!', 1, NULL),
+('SEBASTIÁN', 'LÓPEZ ROMERO', 1, 1101234567, 3090123456, 'sebastian.lopez@gmail.com', 'Cra 7 #89-12', '!', 1, NULL),
 ('SOFÍA', 'RAMÍREZ ORTEGA', 1, 1112345678, 3101234567, 'sofia.ramirez@gmail.com', 'Cl 50 #12-34', @hash, 1, NULL),
 ('MATEO', 'GUTIÉRREZ PARDO', 2, 1123456789, 3112345678, 'mateo.gutierrez@gmail.com', 'Av 20 #45-67', @hash, 1, NULL),
-('VALENTINA', 'HIDALGO CASTRO', 1, 1134567890, 3123456789, 'valentina.hidalgo@gmail.com', 'Cl 8 #34-56', '$2y$salt$redactedhash', 1, NULL);
+('VALENTINA', 'HIDALGO CASTRO', 1, 1134567890, 3123456789, 'valentina.hidalgo@gmail.com', 'Cl 8 #34-56', '!', 1, NULL);
 
 -- ------------------------------
 -- Tabla de registros pendientes (SIN clave foránea)
@@ -399,21 +407,21 @@ CREATE TABLE IF NOT EXISTS productos (
 
 INSERT IGNORE INTO productos (nombre_producto, referencia_producto, id_proveedor_pr, precio_compra_producto, precio_venta_producto, fecha_registro_producto, imagen_url, id_cate_pr) VALUES
 ('Sensor De Movimiento Pir', 'smi-001', 1, 52000.00, 82000.00, NOW(), NULL, 1),
-('Controlador Central Domótico', 'ccd-004', 3, 190000.00, 285000.00, NOW(), NULL, 2),
-('Cinta Led Rgb', 'led-003', 1, 7000.00, 14000.00, NOW(), NULL, 3),
-('Kit De Automatización Básica', 'kit-001', 5, 175000.00, 260000.00, NOW(), NULL, 4),
-('Cable Utp Cat6', 'utp6-050', 4, 2100.00, 3500.00, NOW(), NULL, 5),
-('Sensor De Puerta/Ventana', 'spd-006', 2, 30000.00, 45000.00, NOW(), NULL, 1),
-('Enchufe Inteligente Wifi', 'eiw-007', 1, 46000.00, 69000.00, NOW(), NULL, 6),
-('Fuente De Poder 12v 5a', 'ps12-5a', 4, 39000.00, 58000.00, NOW(), NULL, 7),
+('Controlador Central Domótico', 'ccd-004', 6, 190000.00, 285000.00, NOW(), NULL, 2),
+('Cinta Led Rgb', 'led-003', 3, 7000.00, 14000.00, NOW(), NULL, 3),
+('Kit De Automatización Básica', 'kit-001', 6, 175000.00, 260000.00, NOW(), NULL, 4),
+('Cable Utp Cat6', 'utp6-050', 8, 2100.00, 3500.00, NOW(), NULL, 5),
+('Sensor De Puerta/Ventana', 'spd-006', 1, 30000.00, 45000.00, NOW(), NULL, 1),
+('Enchufe Inteligente Wifi', 'eiw-007', 5, 46000.00, 69000.00, NOW(), NULL, 6),
+('Fuente De Poder 12v 5a', 'ps12-5a', 10, 39000.00, 58000.00, NOW(), NULL, 7),
 ('Cámara Ip 1080p', 'cip-003', 2, 165000.00, 245000.00, NOW(), NULL, 8),
-('Batería Recargable 18650', 'bat18650', 6, 11000.00, 18000.00, NOW(), NULL, 7),
-('Termostato Inteligente', 'ter-101', 2, 100000.00, 155000.00, NOW(), NULL, 9),
-('Interruptor Táctil Wifi', 'int-202', 1, 43000.00, 65000.00, NOW(), NULL, 10),
-('Sirena Inalámbrica', 'sir-303', 3, 62000.00, 95000.00, NOW(), NULL, 8),
-('Detector De Humo', 'dhu-404', 4, 55000.00, 85000.00, NOW(), NULL, 1),
-('Persiana Motorizada', 'per-505', 5, 255000.00, 380000.00, NOW(), NULL, 9),
-('Panel Táctil Central', 'pan-606', 6, 600000.00, 890000.00, NOW(), NULL, 2);
+('Batería Recargable 18650', 'bat18650', 10, 11000.00, 18000.00, NOW(), NULL, 7),
+('Termostato Inteligente', 'ter-101', 7, 100000.00, 155000.00, NOW(), NULL, 9),
+('Interruptor Táctil Wifi', 'int-202', 3, 43000.00, 65000.00, NOW(), NULL, 10),
+('Sirena Inalámbrica', 'sir-303', 2, 62000.00, 95000.00, NOW(), NULL, 8),
+('Detector De Humo', 'dhu-404', 1, 55000.00, 85000.00, NOW(), NULL, 1),
+('Persiana Motorizada', 'per-505', 7, 255000.00, 380000.00, NOW(), NULL, 9),
+('Panel Táctil Central', 'pan-606', 9, 600000.00, 890000.00, NOW(), NULL, 2);
 
 -- Tabla asociativa producto-especialización (migración 0030)
 CREATE TABLE IF NOT EXISTS producto_especializacion (
@@ -1208,39 +1216,58 @@ UPDATE productos SET precio_compra_producto = 600000.00,  precio_venta_producto 
 -- =====================================================
 
 INSERT IGNORE INTO clientes (id_cliente, first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token, created_at) VALUES
-(1, 'Usuario Demo 11', 'Sintetico', 1, 1012345678, 3001234567, 'demo011@example.com', 'Cra 10 #12-34', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(2, 'Usuario Demo 12', 'Sintetico', 1, 1034567890, 3023456789, 'demo012@example.com', 'Av 30 #15-09', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(3, 'Usuario Demo 13', 'Sintetico', 2, 1045678901, 3034567890, 'demo013@example.com', 'Mz A Casa 10', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(4, 'Usuario Demo 14', 'Sintetico', 1, 1056789012, 3045678901, 'demo014@example.com', 'Cl 8B #20-45', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(5, 'Usuario Demo 15', 'Sintetico', 1, 1078901234, 3067890123, 'demo015@example.com', 'Cl 19 #13-55', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(6, 'Usuario Demo 16', 'Sintetico', 1, 1089012345, 3078901234, 'demo016@example.com', 'Av 68 #54-23', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(7, 'Usuario Demo 17', 'Sintetico', 2, 1090123456, 3089012345, 'demo017@example.com', 'Cl 100 #25-10', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(8, 'Usuario Demo 18', 'Sintetico', 1, 1101234567, 3090123456, 'demo018@example.com', 'Cra 7 #89-12', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(9, 'Usuario Demo 19', 'Sintetico', 1, 1112345678, 3101234567, 'demo019@example.com', 'Cl 50 #12-34', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(10, 'Usuario Demo 20', 'Sintetico', 2, 1123456789, 3112345678, 'demo020@example.com', 'Av 20 #45-67', '$2y$salt$redactedhash', 1, NULL, '2026-11-07 04:55:29'),
-(1136, 'NUEVO', 'CLIENTE', NULL, NULL, NULL, 't11.ver.1794111357917858@neodomus.com', NULL, '$2y$salt$redactedhash', 1, NULL, '2026-11-08 04:15:58');
+(1, 'Usuario Demo 11', 'Sintetico', 1, 1012345678, 3001234567, 'demo011@example.com', 'Cra 10 #12-34', '!', 1, NULL, '2026-11-11 06:33:53'),
+(2, 'Usuario Demo 12', 'Sintetico', 1, 1034567890, 3023456789, 'demo012@example.com', 'Av 30 #15-09', '!', 1, NULL, '2026-11-11 06:33:53'),
+(3, 'Usuario Demo 13', 'Sintetico', 2, 1045678901, 3034567890, 'demo013@example.com', 'Mz A Casa 10', '!', 1, NULL, '2026-11-11 06:33:53'),
+(4, 'Usuario Demo 14', 'Sintetico', 1, 1056789012, 3045678901, 'demo014@example.com', 'Cl 8B #20-45', '!', 1, NULL, '2026-11-11 06:33:53'),
+(5, 'Usuario Demo 15', 'Sintetico', 1, 1078901234, 3067890123, 'demo015@example.com', 'Cl 19 #13-55', '!', 1, NULL, '2026-11-11 06:33:53'),
+(6, 'Usuario Demo 16', 'Sintetico', 1, 1089012345, 3078901234, 'demo016@example.com', 'Av 68 #54-23', '!', 1, NULL, '2026-11-11 06:33:53'),
+(7, 'Usuario Demo 17', 'Sintetico', 2, 1090123456, 3089012345, 'demo017@example.com', 'Cl 100 #25-10', '!', 1, NULL, '2026-11-11 06:33:53'),
+(8, 'Usuario Demo 18', 'Sintetico', 1, 1101234567, 3090123456, 'demo018@example.com', 'Cra 7 #89-12', '!', 1, NULL, '2026-11-11 06:33:53'),
+(9, 'Usuario Demo 19', 'Sintetico', 1, 1112345678, 3101234567, 'demo019@example.com', 'Cl 50 #12-34', '!', 1, NULL, '2026-11-11 06:33:53'),
+(10, 'Usuario Demo 20', 'Sintetico', 2, 1123456789, 3112345678, 'demo020@example.com', 'Av 20 #45-67', '!', 1, NULL, '2026-11-11 06:33:53'),
+(1172, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405273358999@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:54:33'),
+(1174, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405273821695@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:54:33'),
+(1175, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405274260083@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:54:34'),
+(1176, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405274678884@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:54:34'),
+(1177, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405275081284@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:54:35'),
+(1179, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405275561215@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:54:35'),
+(1180, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405338522869@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 13:55:38'),
+(1189, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405830084865@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:03:50'),
+(1191, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405844968373@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:04:05'),
+(1197, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405939660482@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:05:39'),
+(1198, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405940723310@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:05:40'),
+(1199, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794405990773337@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:06:30'),
+(1200, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794406040824958@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:07:20'),
+(1201, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794406090877704@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:08:10'),
+(1202, 'Cli', 'T2', NULL, NULL, NULL, 't2.cli.1794406140923957@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:09:00'),
+(1206, 'Otro', 'Audit', NULL, NULL, NULL, 'audit.otro.1794406270622365@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:11:10'),
+(1245, 'Otro', 'Audit', NULL, NULL, NULL, 'audit.otro.1794406321818072@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:12:01'),
+(1255, 'Otro', 'Audit', NULL, NULL, NULL, 'audit.otro.1794406354464535@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:12:34'),
+(1479, 'Otro', 'Audit', NULL, NULL, NULL, 'audit.otro.1794406614847230@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:16:54'),
+(1652, 'NUEVO', 'CLIENTE', NULL, NULL, NULL, 't11.ver.1794406709328431@neodomus.com', NULL, '!', 1, NULL, '2026-11-11 14:18:29');
 
 INSERT IGNORE INTO usuarios (id_usuario, first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active, created_at) VALUES
-(1, 'Usuario Demo 01', 'Sintetico', 1, 1023456790, 3001234567, 'demo001@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(2, 'Usuario Demo 02', 'Sintetico', 1, 1034567890, 3002345678, 'demo002@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(3, 'Usuario Demo 03', 'Sintetico', 1, 1078901234, 3003456789, 'demo003@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(4, 'Usuario Demo 04', 'Sintetico', 1, 1090123456, 3004567890, 'demo004@example.com', '$2y$salt$redactedhash', 1, 1, '2026-11-07 04:55:29'),
-(5, 'Usuario Demo 05', 'Sintetico', 1, 1056789012, 3005678901, 'demo005@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(6, 'Usuario Demo 06', 'Sintetico', 1, 1089012345, 3006789012, 'demo006@example.com', '$2y$salt$redactedhash', 1, 1, '2026-11-07 04:55:29'),
-(7, 'Usuario Demo 07', 'Sintetico', 1, 1045678901, 3007890123, 'demo007@example.com', '$2y$salt$redactedhash', 1, 1, '2026-11-07 04:55:29'),
-(8, 'Usuario Demo 08', 'Sintetico', 2, 1009876543, 3008901234, 'demo008@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(9, 'Usuario Demo 09', 'Sintetico', 2, 1012345678, 3009012345, 'demo009@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(10, 'Usuario Demo 10', 'Sintetico', 2, 1067890123, 3010123456, 'demo010@example.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:29'),
-(11, 'CARLOS ANDRÉS', 'GÓMEZ RÍOS', NULL, NULL, NULL, 'carlos.andres.gomez@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49'),
-(12, 'JORGE DANIEL', 'CHARRY PÉREZ', NULL, NULL, NULL, 'jorge.charry@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49'),
-(13, 'JUAN SEBASTIÁN', 'MORENO TORRES', NULL, NULL, NULL, 'juan.moreno@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49'),
-(14, 'LUIS EDUARDO', 'MARTÍNEZ GAITÁN', NULL, NULL, NULL, 'luis.martinez@gmail.com', '$2y$salt$redactedhash', 1, 1, '2026-11-07 04:55:49'),
-(15, 'ANDRÉS MAURICIO', 'LÓPEZ VARGAS', NULL, NULL, NULL, 'andres.lopez@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49'),
-(16, 'CAMILA ANDREA', 'RODRÍGUEZ PEÑA', NULL, NULL, NULL, 'camila.rodriguez@gmail.com', '$2y$salt$redactedhash', 1, 1, '2026-11-07 04:55:49'),
-(17, 'NICOL ALEJANDRA', 'MARIÑO ROMERO', NULL, NULL, NULL, 'nicolmarinoromero@gmail.com', '$2y$salt$redactedhash', 1, 1, '2026-11-07 04:55:49'),
-(18, 'LAURA MARCELA', 'PÉREZ DUARTE', NULL, NULL, NULL, 'nicolmarino09@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49'),
-(19, 'JULIÁN FELIPE', 'CARVAJAL CABALLERO', NULL, NULL, NULL, 'julian.carvajal@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49'),
-(20, 'MARÍA FERNANDA', 'RINCÓN SALAZAR', NULL, NULL, NULL, 'maria.rincon@gmail.com', '$2y$salt$redactedhash', 2, 1, '2026-11-07 04:55:49');
+(1, 'Usuario Demo 01', 'Sintetico', 1, 1023456790, 3001234567, 'demo001@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(2, 'Usuario Demo 02', 'Sintetico', 1, 1034567890, 3002345678, 'demo002@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(3, 'Usuario Demo 03', 'Sintetico', 1, 1078901234, 3003456789, 'demo003@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(4, 'Usuario Demo 04', 'Sintetico', 1, 1090123456, 3004567890, 'demo004@example.com', '!', 1, 1, '2026-11-11 06:33:53'),
+(5, 'Usuario Demo 05', 'Sintetico', 1, 1056789012, 3005678901, 'demo005@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(6, 'Usuario Demo 06', 'Sintetico', 1, 1089012345, 3006789012, 'demo006@example.com', '!', 1, 1, '2026-11-11 06:33:53'),
+(7, 'Usuario Demo 07', 'Sintetico', 1, 1045678901, 3007890123, 'demo007@example.com', '!', 1, 1, '2026-11-11 06:33:53'),
+(8, 'Usuario Demo 08', 'Sintetico', 2, 1009876543, 3008901234, 'demo008@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(9, 'Usuario Demo 09', 'Sintetico', 2, 1012345678, 3009012345, 'demo009@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(10, 'Usuario Demo 10', 'Sintetico', 2, 1067890123, 3010123456, 'demo010@example.com', '!', 2, 1, '2026-11-11 06:33:53'),
+(11, 'CARLOS ANDRÉS', 'GÓMEZ RÍOS', NULL, NULL, NULL, 'carlos.andres.gomez@gmail.com', '!', 2, 1, '2026-11-11 06:34:24'),
+(12, 'JORGE DANIEL', 'CHARRY PÉREZ', NULL, NULL, NULL, 'jorge.charry@gmail.com', '!', 2, 1, '2026-11-11 06:34:24'),
+(13, 'JUAN SEBASTIÁN', 'MORENO TORRES', NULL, NULL, NULL, 'juan.moreno@gmail.com', '!', 2, 1, '2026-11-11 06:34:24'),
+(14, 'LUIS EDUARDO', 'MARTÍNEZ GAITÁN', NULL, NULL, NULL, 'luis.martinez@gmail.com', '!', 1, 1, '2026-11-11 06:34:24'),
+(15, 'ANDRÉS MAURICIO', 'LÓPEZ VARGAS', NULL, NULL, NULL, 'andres.lopez@gmail.com', '!', 2, 1, '2026-11-11 06:34:24'),
+(16, 'CAMILA ANDREA', 'RODRÍGUEZ PEÑA', NULL, NULL, NULL, 'camila.rodriguez@gmail.com', '!', 1, 1, '2026-11-11 06:34:24'),
+(17, 'NICOL ALEJANDRA', 'MARIÑO ROMERO', NULL, NULL, NULL, 'nicolmarinoromero@gmail.com', '!', 1, 1, '2026-11-11 06:34:24'),
+(18, 'LAURA MARCELA', 'PÉREZ DUARTE', NULL, NULL, NULL, 'nicolmarino09@gmail.com', '!', 2, 1, '2026-11-11 06:34:24'),
+(19, 'JULIÁN FELIPE', 'CARVAJAL CABALLERO', NULL, NULL, NULL, 'julian.carvajal@gmail.com', '!', 2, 1, '2026-11-11 06:34:24'),
+(20, 'MARÍA FERNANDA', 'RINCÓN SALAZAR', NULL, NULL, NULL, 'maria.rincon@gmail.com', '!', 2, 1, '2026-11-11 06:34:25');
 
 INSERT IGNORE INTO tecnicos (id_tecnico, id_usuario_t, certificacion_t) VALUES
 (1, 1, 'Certificación en Redes y Cableado Estructurado'),

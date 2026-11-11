@@ -639,27 +639,31 @@ async def solicitar_reabastecimiento(
             f"color:#666;text-align:{'left' if ancho else 'center'}'>{texto}</td>"
         )
 
-    filas_html = "".join(
-        "<tr style='background:%s'>%s%s%s%s%s%s</tr>"
-        % (
-            "#ffffff" if i % 2 == 0 else "#faf7f0",
-            _celda(f"<strong>{p.nombre_producto}</strong>", True),
-            _celda(item_marca or p.marca or "-"),
-            _celda(p.referencia_producto or "-"),
-            _celda(
-                f"{v.nombre}{(' · ' + _etiqueta_medida(v)) if v else ''}"
-                if v
-                else "—",
-                True,
-            ),
-            _celda(
-                (v.stock if v else (p.stock_producto or 0)),
-            ),
-            _celda(
-                f"<span style='color:#b8860b;font-weight:700;font-size:14px'>"
-                f"{item_cantidad:g}{' m' if p.venta_por_metros else ' u.'}</span>",
-            ),
+    def _fila_reabastecimiento(
+        i: int, p: Producto, item_cantidad: float, v, item_marca: str
+    ) -> str:
+        # f-string en vez de % (S2275: evita desajustes argumento-marcador).
+        fondo = "#ffffff" if i % 2 == 0 else "#faf7f0"
+        celda_nombre = _celda(f"<strong>{p.nombre_producto}</strong>", True)
+        celda_marca = _celda(item_marca or p.marca or "-")
+        celda_referencia = _celda(p.referencia_producto or "-")
+        celda_variante = _celda(
+            f"{v.nombre}{(' · ' + _etiqueta_medida(v)) if v else ''}" if v else "—",
+            True,
         )
+        celda_stock = _celda(v.stock if v else (p.stock_producto or 0))
+        celda_cantidad = _celda(
+            f"<span style='color:#b8860b;font-weight:700;font-size:14px'>"
+            f"{item_cantidad:g}{' m' if p.venta_por_metros else ' u.'}</span>"
+        )
+        return (
+            f"<tr style='background:{fondo}'>"
+            f"{celda_nombre}{celda_marca}{celda_referencia}"
+            f"{celda_variante}{celda_stock}{celda_cantidad}</tr>"
+        )
+
+    filas_html = "".join(
+        _fila_reabastecimiento(i, p, item_cantidad, v, item_marca)
         for i, (p, item_cantidad, v, item_marca) in enumerate(filas)
     )
     subject = f"Solicitud de reabastecimiento para {proveedor.nombre_proveedor}"

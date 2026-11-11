@@ -5,7 +5,7 @@ helpers de test_t1_identidad. Controla el tiempo manipulando expires_at en la
 BD (sin pausas reales) y neutraliza el transporte de correo (testdb).
 """
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from jose import jwt as jose_jwt
@@ -74,7 +74,7 @@ class VerificacionCorreoTestCase(BaseT1TestCase):
         self._emails_pending.append(email)
         self._register(email)
         p = self.db.query(PendingRegistration).filter(PendingRegistration.email == email).first()
-        p.expires_at = datetime.utcnow() - timedelta(hours=1)
+        p.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
         self.db.commit()
         self.assertEqual(self._verify(p.code).status_code, 400)
 
@@ -130,7 +130,7 @@ class RecuperacionPasswordTestCase(BaseT1TestCase):
         self._forgot(c.email)
         self._resincronizar()
         t = self.db.query(PasswordResetToken).filter(PasswordResetToken.email == c.email).first()
-        t.expires_at = datetime.utcnow() - timedelta(minutes=1)
+        t.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=1)
         self.db.commit()
         r = self._post("/api/v1/auth/reset-password", json={"token": t.code, "new_password": "NuevaPass123"})
         self.assertEqual(r.status_code, 400, r.text)
@@ -170,14 +170,14 @@ class TiposTokenYHashTestCase(BaseT1TestCase):
     def test_token_sin_type_rechazado(self):
         c = self._crear_cliente("notype")
         token = self._jwt({"sub": c.email, "user_type": "client", "uid": str(c.id_cliente),
-                           "exp": datetime.utcnow() + timedelta(minutes=5)})
+                           "exp": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=5)})
         r = self._get("/api/v1/notificaciones/mias", headers=self._bearer(token))
         self.assertEqual(r.status_code, 401, r.text)
 
     def test_token_tipo_desconocido_rechazado(self):
         c = self._crear_cliente("weirdtype")
         token = self._jwt({"sub": c.email, "user_type": "client", "uid": str(c.id_cliente),
-                           "type": "weird", "exp": datetime.utcnow() + timedelta(minutes=5)})
+                           "type": "weird", "exp": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=5)})
         r = self._get("/api/v1/notificaciones/mias", headers=self._bearer(token))
         self.assertEqual(r.status_code, 401, r.text)
 

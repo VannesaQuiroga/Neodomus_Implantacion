@@ -74,7 +74,7 @@ def main():
     suffix = int(tag[:8], 16) % 900000000 + 100000000
     email = f'e2e.register.{tag}@example.com'
     duplicado = f'e2e.register.dup.{tag}@example.com'
-    clave_demo = f'Reg{tag}9!'
+    acceso_demo = f'Reg{tag}9!'
 
     db = testdb.TestSessionLocal()
     duplicado_id = None
@@ -84,7 +84,7 @@ def main():
     try:
         cliente_duplicado = Cliente(
             first_name='Duplicado', last_name='Registro E2E', email=duplicado,
-            password_hash=hash_password(clave_demo), is_active=True,
+            password_hash=hash_password(acceso_demo), is_active=True,
             id_tipo_documento_c=1, documento_cliente=suffix,
             telefono_cliente=3000000000 + suffix % 100000000,
             address='Calle E2E 123',
@@ -103,7 +103,7 @@ def main():
             VITE_API_URL=f'http://127.0.0.1:{api_port}/api/v1',
             E2E_BASE_URL=f'http://127.0.0.1:{web_port}',
             E2E_REGISTER_EMAIL=email,
-            E2E_REGISTER_PASSWORD=clave_demo,
+            E2E_REGISTER_PASSWORD=acceso_demo,
             E2E_REGISTER_DUPLICATE_EMAIL=duplicado,
             E2E_RESULT_PATH=str(result_path),
         )

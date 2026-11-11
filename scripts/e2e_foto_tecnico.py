@@ -73,11 +73,11 @@ def main():
 
     tag = uuid4().hex[:10]
     admin_email = f'foto.admin.{tag}@example.com'
-    clave_admin = f'Admin{tag}9'
+    acceso_admin = f'Admin{tag}9'
     tecnico_email = f'foto.tec.{tag}@example.com'
-    clave_tecnico = f'Tec{tag}9'
+    acceso_tecnico = f'Tec{tag}9'
     roto_email = f'foto.roto.{tag}@example.com'
-    clave_roto = f'Roto{tag}9'
+    acceso_roto = f'Roto{tag}9'
 
     db = testdb.TestSessionLocal()
     procesos = []
@@ -90,13 +90,13 @@ def main():
             raise RuntimeError('Faltan roles administrador/tecnico en la base de pruebas')
 
         admin = User(first_name='Admin', last_name='Foto', email=admin_email,
-                     password_hash=hash_password(clave_admin), id_rol_u=rol_admin.id_rol, is_active=True)
+                     password_hash=hash_password(acceso_admin), id_rol_u=rol_admin.id_rol, is_active=True)
         db.add(admin)
         db.flush()
         admin_id = admin.id_usuario
 
         tecnico = User(first_name='Tecnico', last_name='ConFoto', email=tecnico_email,
-                       password_hash=hash_password(clave_tecnico), id_rol_u=rol_tec.id_rol, is_active=True)
+                       password_hash=hash_password(acceso_tecnico), id_rol_u=rol_tec.id_rol, is_active=True)
         db.add(tecnico)
         db.flush()
         tecnico_id = tecnico.id_usuario
@@ -104,7 +104,7 @@ def main():
 
         roto = User(
             first_name='Tecnico', last_name='SinFoto', email=roto_email,
-            password_hash=hash_password(clave_roto), id_rol_u=rol_tec.id_rol, is_active=True,
+            password_hash=hash_password(acceso_roto), id_rol_u=rol_tec.id_rol, is_active=True,
             foto_url='http://127.0.0.1:9000/neodomus-test-e2e/perfiles/no-existe.png',
         )
         db.add(roto)
@@ -127,11 +127,11 @@ def main():
             VITE_API_URL=f'http://127.0.0.1:{api_port}/api/v1',
             E2E_BASE_URL=f'http://127.0.0.1:{web_port}',
             E2E_ADMIN_EMAIL=admin_email,
-            E2E_ADMIN_PASSWORD=clave_admin,
+            E2E_ADMIN_PASSWORD=acceso_admin,
             E2E_TECNICO_EMAIL=tecnico_email,
-            E2E_TECNICO_PASSWORD=clave_tecnico,
+            E2E_TECNICO_PASSWORD=acceso_tecnico,
             E2E_TECNICO_ROTO_EMAIL=roto_email,
-            E2E_TECNICO_ROTO_PASSWORD=clave_roto,
+            E2E_TECNICO_ROTO_PASSWORD=acceso_roto,
             E2E_FOTO_A=str(foto_a),
             E2E_FOTO_B=str(foto_b),
         )

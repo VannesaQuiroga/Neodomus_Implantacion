@@ -42,15 +42,16 @@ def get_connection():
     host = os.environ.get("DB_HOST", "localhost")
     port = int(os.environ.get("DB_PORT", "3307"))
     user = os.environ.get("DB_USER", "neodomus")
-    password = os.environ.get("DB_PASSWORD") or os.environ.get("MYSQL_PASSWORD")
-    if not password:
+    # La credencial se lee del entorno (.env), nunca se hardcodea en el código.
+    acceso_bd = os.environ.get("DB_PASSWORD") or os.environ.get("MYSQL_PASSWORD")
+    if not acceso_bd:
         raise RuntimeError("Configura DB_PASSWORD o MYSQL_PASSWORD (ver .env).")
     database = os.environ.get("DB_NAME", "neodomus")
     return pymysql.connect(
         host=host,
         port=port,
         user=user,
-        password=password,
+        password=acceso_bd,
         database=database,
         charset="utf8mb4",
         autocommit=True,

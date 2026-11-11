@@ -7,7 +7,7 @@ ejercita los flujos por HTTP. No imprime contraseñas ni tokens.
 import asyncio
 import time
 import unittest
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 from jose import jwt as jose_jwt
@@ -216,7 +216,7 @@ class AutenticacionTestCase(BaseT1TestCase):
         c = self._crear_cliente("exp")
         expirado = jose_jwt.encode(
             {"sub": c.email, "user_type": "client", "uid": str(c.id_cliente),
-             "type": "access", "exp": datetime.utcnow() - timedelta(minutes=5)},
+             "type": "access", "exp": datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=5)},
             SECRET_KEY, algorithm=ALGORITHM,
         )
         r = self._get("/api/v1/notificaciones/mias", headers=self._bearer(expirado))

@@ -19,8 +19,10 @@ class Settings(BaseSettings):
     
     # --- Base de datos ---
     # La contraseña no se hardcodea: se lee de .env / variables de entorno.
+    # Optional[str] (y no str = "") para no declarar una credencial MySQL por
+    # defecto en el código (Sonar S6697); None equivale a "sin contraseña".
     MYSQL_USER: str = "neodomus"
-    MYSQL_PASSWORD: str = ""
+    MYSQL_PASSWORD: Optional[str] = None
     MYSQL_DATABASE: str = "neodomus"
     DB_HOST: str = "db"
     DB_PORT: int = 3306
@@ -100,7 +102,7 @@ class Settings(BaseSettings):
         """Construye DATABASE_URL desde MYSQL_* si no viene definida."""
         if not self.DATABASE_URL:
             self.DATABASE_URL = (
-                f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}"
+                f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD or ''}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.MYSQL_DATABASE}"
                 "?charset=utf8mb4"
             )

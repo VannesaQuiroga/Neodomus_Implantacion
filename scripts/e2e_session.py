@@ -52,7 +52,7 @@ def main():
         raise RuntimeError('Node no está disponible')
     tag = uuid4().hex
     email = f'e2e.session.{tag}@example.test'
-    clave_demo = f'Session{tag}9'
+    acceso_demo = f'Session{tag}9'
     db = testdb.TestSessionLocal()
     client_id = product_id = None
     processes = []
@@ -60,7 +60,7 @@ def main():
     flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
     try:
         client = Cliente(first_name='Sesion', last_name='E2E', email=email,
-                         password_hash=hash_password(clave_demo), is_active=True,
+                         password_hash=hash_password(acceso_demo), is_active=True,
                          id_tipo_documento_c=1, documento_cliente=900000002,
                          telefono_cliente=3000000002, address='Calle prueba 123')
         product = Producto(nombre_producto='Cable sesión E2E', referencia_producto=f'SESSION-{tag}',
@@ -75,7 +75,7 @@ def main():
         env.update(DISABLE_SCHEDULER='1', PAYMENT_PROVIDER='simulator',
                    VITE_API_URL=f'http://127.0.0.1:{api_port}/api/v1',
                    E2E_BASE_URL=f'http://127.0.0.1:{web_port}',
-                   E2E_SESSION_EMAIL=email, E2E_SESSION_PASSWORD=clave_demo,
+                   E2E_SESSION_EMAIL=email, E2E_SESSION_PASSWORD=acceso_demo,
                    E2E_SESSION_PRODUCT=str(product_id))
         # El propio servidor importa testdb ANTES de importar la aplicación.
         bootstrap = ('import app.tests.testdb as t; '
@@ -95,7 +95,7 @@ def main():
                 if '--interactive' in sys.argv:
                     # Credenciales efímeras de prueba; nunca una cuenta real.
                     print(f"URL={env['E2E_BASE_URL']} PRODUCTO={product_id}", flush=True)
-                    print(f"CLIENTE_PRUEBA={email} PASSWORD_PRUEBA={clave_demo}", flush=True)
+                    print(f"CLIENTE_PRUEBA={email} PASSWORD_PRUEBA={acceso_demo}", flush=True)
                     input('Enter para detener servidores y limpiar fixtures: ')
                     return 0
                 result = subprocess.run([node, 'node_modules/@playwright/test/cli.js', 'test',

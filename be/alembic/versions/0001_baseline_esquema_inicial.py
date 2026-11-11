@@ -23,7 +23,11 @@ branch_labels = None
 depends_on = None
 
 
-HASH_ADMIN = "$2y$salt$redactedhash"
+# Hash real NUNCA versionado (S8215). "!" es un marcador de contraseña no
+# establecida: bcrypt no puede verificarlo y el login se rechaza de forma
+# controlada (verify_password captura el ValueError). Credenciales reales
+# se generan en runtime con hash_password() (scripts/seed_test_users.py).
+PASSWORD_NO_DEFINIDA = "!"
 
 
 def _seed(bind, table, sql):
@@ -82,16 +86,16 @@ def upgrade() -> None:
         "proveedores",
         """
         INSERT INTO proveedores (nombre_proveedor, contacto_proveedor, telefono_proveedor, correo_proveedor, direccion_proveedor) VALUES
-        ('Deportes Elite S.A.', 'Carlos Ramírez', '3104567890', 'contacto@deporteselite.com', 'Cra 45 #12-34, Bogotá'),
-        ('SportLine Distribuciones', 'María Gómez', '3159876543', 'ventas@sportline.com', 'Av. Las Américas #23-45, Medellín'),
-        ('TodoFitness Ltda.', 'Andrés López', '3006543210', 'info@todofitness.com', 'Calle 50 #67-12, Cali'),
-        ('Proveedora Olímpica', 'Laura Torres', '3123456789', 'ltorres@proveedoraolimpica.com', 'Carrera 9 #80-22, Barranquilla'),
-        ('Suministros Deportivos SAS', 'Jorge Martínez', '3012233445', 'jorge@suministrosdeportivos.com', 'Calle 100 #15-40, Bogotá'),
-        ('Equipos ProGym', 'Diana Herrera', '3209988776', 'dherrera@progym.com', 'Av. 30 de Agosto #45-67, Pereira'),
-        ('Distribuciones RunningPro', 'Luis Castillo', '3167788990', 'ventas@runningpro.com', 'Calle 10 #25-30, Bucaramanga'),
-        ('Balones y Redes S.A.', 'Paola Rincón', '3184455667', 'paola@balonesyredes.com', 'Cra 21 #45-10, Cartagena'),
-        ('FitEquipos SAS', 'Andrés Peña', '3178899001', 'andres@fitequipos.com', 'Cl 45 #23-10, Manizales'),
-        ('GymPro Distribuciones', 'Carolina Ríos', '3164455667', 'carolina@gympro.com', 'Cra 15 #30-20, Ibagué')
+        ('Proveedor Demo 01 - Sensores Inteligentes', 'Ana Martínez', '3101110101', 'proveedor.demo01@example.com', 'Cra 13 #45-12, Bogotá'),
+        ('Proveedor Demo 02 - Cámaras y Seguridad', 'Carlos Gómez', '3122220202', 'proveedor.demo02@example.com', 'Calle 100 #19-55, Bogotá'),
+        ('Proveedor Demo 03 - Iluminación Inteligente', 'Laura Restrepo', '3153330303', 'proveedor.demo03@example.com', 'Av. El Poblado #10-30, Medellín'),
+        ('Proveedor Demo 04 - Cerraduras y Acceso', 'Diego Salas', '3184440404', 'proveedor.demo04@example.com', 'Cra 43A #6-50, Medellín'),
+        ('Proveedor Demo 05 - Enchufes y Control', 'Paula Vélez', '3015550505', 'proveedor.demo05@example.com', 'Av. 3N #34-67, Cali'),
+        ('Proveedor Demo 06 - Automatización Residencial', 'Jorge Duarte', '3146660606', 'proveedor.demo06@example.com', 'Calle 50 #45-10, Medellín'),
+        ('Proveedor Demo 07 - Climatización Inteligente', 'Mariana Ortiz', '3177770707', 'proveedor.demo07@example.com', 'Cra 9 #80-22, Barranquilla'),
+        ('Proveedor Demo 08 - Conectividad y Redes', 'Andrés Cárdenas', '3028880808', 'proveedor.demo08@example.com', 'Calle 36 #33-40, Bucaramanga'),
+        ('Proveedor Demo 09 - Paneles de Control', 'Valeria Pardo', '3169990909', 'proveedor.demo09@example.com', 'Cra 1 #8-12, Cartagena'),
+        ('Proveedor Demo 10 - Energía y Respaldos', 'Camilo Rueda', '3191110101', 'proveedor.demo10@example.com', 'Av. Circunvalar #15-20, Pereira')
         """,
     )
 
@@ -208,16 +212,16 @@ def upgrade() -> None:
         "usuarios",
         f"""
         INSERT INTO usuarios (first_name, last_name, id_tipo_documento_u, documento_usuario, telefono_usuario, email, password_hash, id_rol_u, is_active) VALUES
-        ('Usuario Demo 01', 'Sintetico', 1, 1023456790, 3001234567, 'demo001@example.com', '{HASH_ADMIN}', 2, 1),
-        ('Usuario Demo 02', 'Sintetico', 1, 1034567890, 3002345678, 'demo002@example.com', '{HASH_ADMIN}', 2, 1),
-        ('Usuario Demo 03', 'Sintetico', 1, 1078901234, 3003456789, 'demo003@example.com', '{HASH_ADMIN}', 2, 1),
-        ('Usuario Demo 04', 'Sintetico', 1, 1090123456, 3004567890, 'demo004@example.com', '{HASH_ADMIN}', 1, 1),
-        ('Usuario Demo 05', 'Sintetico', 1, 1056789012, 3005678901, 'demo005@example.com', '{HASH_ADMIN}', 2, 1),
-        ('Usuario Demo 06', 'Sintetico', 1, 1089012345, 3006789012, 'demo006@example.com', '{HASH_ADMIN}', 1, 1),
-        ('Usuario Demo 07', 'Sintetico', 1, 1045678901, 3007890123, 'demo007@example.com', '{HASH_ADMIN}', 1, 1),
-        ('Usuario Demo 08', 'Sintetico', 2, 1009876543, 3008901234, 'demo008@example.com', '{HASH_ADMIN}', 2, 1),
-        ('Usuario Demo 09', 'Sintetico', 2, 1012345678, 3009012345, 'demo009@example.com', '{HASH_ADMIN}', 2, 1),
-        ('Usuario Demo 10', 'Sintetico', 2, 1067890123, 3010123456, 'demo010@example.com', '{HASH_ADMIN}', 2, 1)
+        ('Usuario Demo 01', 'Sintetico', 1, 1023456790, 3001234567, 'demo001@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1),
+        ('Usuario Demo 02', 'Sintetico', 1, 1034567890, 3002345678, 'demo002@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1),
+        ('Usuario Demo 03', 'Sintetico', 1, 1078901234, 3003456789, 'demo003@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1),
+        ('Usuario Demo 04', 'Sintetico', 1, 1090123456, 3004567890, 'demo004@example.com', '{PASSWORD_NO_DEFINIDA}', 1, 1),
+        ('Usuario Demo 05', 'Sintetico', 1, 1056789012, 3005678901, 'demo005@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1),
+        ('Usuario Demo 06', 'Sintetico', 1, 1089012345, 3006789012, 'demo006@example.com', '{PASSWORD_NO_DEFINIDA}', 1, 1),
+        ('Usuario Demo 07', 'Sintetico', 1, 1045678901, 3007890123, 'demo007@example.com', '{PASSWORD_NO_DEFINIDA}', 1, 1),
+        ('Usuario Demo 08', 'Sintetico', 2, 1009876543, 3008901234, 'demo008@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1),
+        ('Usuario Demo 09', 'Sintetico', 2, 1012345678, 3009012345, 'demo009@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1),
+        ('Usuario Demo 10', 'Sintetico', 2, 1067890123, 3010123456, 'demo010@example.com', '{PASSWORD_NO_DEFINIDA}', 2, 1)
         """,
     )
 
@@ -245,16 +249,16 @@ def upgrade() -> None:
         "clientes",
         f"""
         INSERT INTO clientes (first_name, last_name, id_tipo_documento_c, documento_cliente, telefono_cliente, email, address, password_hash, is_active, verification_token) VALUES
-        ('Usuario Demo 11', 'Sintetico', 1, 1012345678, 3001234567, 'demo011@example.com', 'Cra 10 #12-34', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 12', 'Sintetico', 1, 1034567890, 3023456789, 'demo012@example.com', 'Av 30 #15-09', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 13', 'Sintetico', 2, 1045678901, 3034567890, 'demo013@example.com', 'Mz A Casa 10', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 14', 'Sintetico', 1, 1056789012, 3045678901, 'demo014@example.com', 'Cl 8B #20-45', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 15', 'Sintetico', 1, 1078901234, 3067890123, 'demo015@example.com', 'Cl 19 #13-55', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 16', 'Sintetico', 1, 1089012345, 3078901234, 'demo016@example.com', 'Av 68 #54-23', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 17', 'Sintetico', 2, 1090123456, 3089012345, 'demo017@example.com', 'Cl 100 #25-10', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 18', 'Sintetico', 1, 1101234567, 3090123456, 'demo018@example.com', 'Cra 7 #89-12', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 19', 'Sintetico', 1, 1112345678, 3101234567, 'demo019@example.com', 'Cl 50 #12-34', '{HASH_ADMIN}', 1, NULL),
-        ('Usuario Demo 20', 'Sintetico', 2, 1123456789, 3112345678, 'demo020@example.com', 'Av 20 #45-67', '{HASH_ADMIN}', 1, NULL)
+        ('Usuario Demo 11', 'Sintetico', 1, 1012345678, 3001234567, 'demo011@example.com', 'Cra 10 #12-34', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 12', 'Sintetico', 1, 1034567890, 3023456789, 'demo012@example.com', 'Av 30 #15-09', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 13', 'Sintetico', 2, 1045678901, 3034567890, 'demo013@example.com', 'Mz A Casa 10', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 14', 'Sintetico', 1, 1056789012, 3045678901, 'demo014@example.com', 'Cl 8B #20-45', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 15', 'Sintetico', 1, 1078901234, 3067890123, 'demo015@example.com', 'Cl 19 #13-55', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 16', 'Sintetico', 1, 1089012345, 3078901234, 'demo016@example.com', 'Av 68 #54-23', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 17', 'Sintetico', 2, 1090123456, 3089012345, 'demo017@example.com', 'Cl 100 #25-10', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 18', 'Sintetico', 1, 1101234567, 3090123456, 'demo018@example.com', 'Cra 7 #89-12', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 19', 'Sintetico', 1, 1112345678, 3101234567, 'demo019@example.com', 'Cl 50 #12-34', '{PASSWORD_NO_DEFINIDA}', 1, NULL),
+        ('Usuario Demo 20', 'Sintetico', 2, 1123456789, 3112345678, 'demo020@example.com', 'Av 20 #45-67', '{PASSWORD_NO_DEFINIDA}', 1, NULL)
         """,
     )
 
@@ -419,21 +423,21 @@ def upgrade() -> None:
         """
         INSERT INTO productos (nombre_producto, referencia_producto, id_proveedor_pr, precio_compra_producto, precio_venta_producto, fecha_registro_producto, imagen_url, id_cate_pr, descripcion_producto, colores_producto, estado_producto, stock_producto) VALUES
         ('sensor de movimiento pir', 'smi-001', 1, 45000.00, 70000.00, NOW(), NULL, 1, 'Sensor de movimiento PIR para detección de presencia con ángulo de 110° y alcance de 9 metros.', 'Blanco', 'activo', 50),
-        ('controlador central domótico', 'ccd-004', 3, 90000.00, 160000.00, NOW(), NULL, 2, 'Controlador central para automatizar todos los dispositivos del hogar.', 'Blanco,Negro', 'activo', 20),
-        ('cinta led rgb', 'led-003', 1, 12000.00, 20000.00, NOW(), NULL, 3, 'Cinta LED RGB de 5 m con control por app y 16 millones de colores.', 'RGB', 'activo', 100),
+        ('controlador central domótico', 'ccd-004', 6, 90000.00, 160000.00, NOW(), NULL, 2, 'Controlador central para automatizar todos los dispositivos del hogar.', 'Blanco,Negro', 'activo', 20),
+        ('cinta led rgb', 'led-003', 3, 12000.00, 20000.00, NOW(), NULL, 3, 'Cinta LED RGB de 5 m con control por app y 16 millones de colores.', 'RGB', 'activo', 100),
         ('kit de automatización básica', 'kit-001', 6, 100000.00, 180000.00, NOW(), NULL, 4, 'Kit completo para iniciar la automatización del hogar.', 'Negro', 'activo', 15),
-        ('cable utp cat6', 'utp6-050', 5, 3000.00, 6000.00, NOW(), NULL, 5, 'Cable UTP Cat6 de 50 metros para redes de alta velocidad.', 'Gris,Azul', 'activo', 300),
-        ('sensor de puerta/ventana', 'spd-006', 2, 25000.00, 39000.00, NOW(), NULL, 1, 'Sensor magnético de apertura para puertas y ventanas.', 'Blanco', 'activo', 75),
-        ('enchufe inteligente wifi', 'eiw-007', 3, 34000.00, 58000.00, NOW(), NULL, 6, 'Enchufe inteligente con control remoto vía WiFi y monitoreo de energía.', 'Blanco', 'activo', 40),
-        ('fuente de poder 12v 5a', 'ps12-5a', 4, 28000.00, 50000.00, NOW(), NULL, 7, 'Fuente de poder 12V 5A para dispositivos de seguridad y automatización.', 'Negro', 'activo', 60),
-        ('cámara ip 1080p', 'cip-003', 3, 120000.00, 170000.00, NOW(), NULL, 8, 'Cámara IP Full HD con visión nocturna y detección de movimiento.', 'Blanco,Negro', 'activo', 25),
-        ('batería recargable 18650', 'bat18650', 8, 5000.00, 10000.00, NOW(), NULL, 7, 'Batería recargable 18650 de 3000 mAh para sensores y dispositivos.', 'Negro', 'activo', 120),
-        ('termostato inteligente', 'ter-101', 2, 75000.00, 125000.00, NOW(), NULL, 9, 'Termostato inteligente compatible con WiFi, para climatización.', 'Blanco,Negro', 'activo', 0),
+        ('cable utp cat6', 'utp6-050', 8, 3000.00, 6000.00, NOW(), NULL, 5, 'Cable UTP Cat6 de 50 metros para redes de alta velocidad.', 'Gris,Azul', 'activo', 300),
+        ('sensor de puerta/ventana', 'spd-006', 1, 25000.00, 39000.00, NOW(), NULL, 1, 'Sensor magnético de apertura para puertas y ventanas.', 'Blanco', 'activo', 75),
+        ('enchufe inteligente wifi', 'eiw-007', 5, 34000.00, 58000.00, NOW(), NULL, 6, 'Enchufe inteligente con control remoto vía WiFi y monitoreo de energía.', 'Blanco', 'activo', 40),
+        ('fuente de poder 12v 5a', 'ps12-5a', 10, 28000.00, 50000.00, NOW(), NULL, 7, 'Fuente de poder 12V 5A para dispositivos de seguridad y automatización.', 'Negro', 'activo', 60),
+        ('cámara ip 1080p', 'cip-003', 2, 120000.00, 170000.00, NOW(), NULL, 8, 'Cámara IP Full HD con visión nocturna y detección de movimiento.', 'Blanco,Negro', 'activo', 25),
+        ('batería recargable 18650', 'bat18650', 10, 5000.00, 10000.00, NOW(), NULL, 7, 'Batería recargable 18650 de 3000 mAh para sensores y dispositivos.', 'Negro', 'activo', 120),
+        ('termostato inteligente', 'ter-101', 7, 75000.00, 125000.00, NOW(), NULL, 9, 'Termostato inteligente compatible con WiFi, para climatización.', 'Blanco,Negro', 'activo', 0),
         ('interruptor táctil wifi', 'int-202', 3, 32000.00, 55000.00, NOW(), NULL, 10, 'Interruptor táctil WiFi para controlar la iluminación desde el celular.', 'Blanco,Negro,Gris', 'activo', 0),
         ('sirena inalámbrica', 'sir-303', 2, 45000.00, 80000.00, NOW(), NULL, 8, 'Sirena inalámbrica con batería integrada para alarmas de seguridad.', 'Rojo,Blanco', 'activo', 0),
-        ('detector de humo', 'dhu-404', 4, 38000.00, 69000.00, NOW(), NULL, 1, 'Detector de humo con alarma incluida y batería de larga duración.', 'Blanco', 'activo', 0),
-        ('persiana motorizada', 'per-505', 5, 120000.00, 210000.00, NOW(), NULL, 9, 'Persiana motorizada programable para automatizar la luz natural.', 'Gris,Blanco', 'activo', 0),
-        ('panel táctil central', 'pan-606', 6, 250000.00, 420000.00, NOW(), NULL, 2, 'Panel táctil central para controlar toda la automatización desde un solo lugar.', 'Negro', 'activo', 0)
+        ('detector de humo', 'dhu-404', 1, 38000.00, 69000.00, NOW(), NULL, 1, 'Detector de humo con alarma incluida y batería de larga duración.', 'Blanco', 'activo', 0),
+        ('persiana motorizada', 'per-505', 7, 120000.00, 210000.00, NOW(), NULL, 9, 'Persiana motorizada programable para automatizar la luz natural.', 'Gris,Blanco', 'activo', 0),
+        ('panel táctil central', 'pan-606', 9, 250000.00, 420000.00, NOW(), NULL, 2, 'Panel táctil central para controlar toda la automatización desde un solo lugar.', 'Negro', 'activo', 0)
         """,
     )
 

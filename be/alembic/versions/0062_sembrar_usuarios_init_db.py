@@ -19,20 +19,25 @@ branch_labels = None
 depends_on = None
 
 
-HASH_REDACTADO = "$2y$salt$redactedhash"
+# Hash real NUNCA versionado (S8215). El valor "!" es un marcador inválido:
+# verify_password lo rechaza (ValueError capturado), de modo que estos
+# usuarios solo pueden entrar por Google o restableciendo su contraseña
+# (password_reset_required=1). Credenciales reales: scripts/seed_test_users.py
+# y scripts/reset_passwords.py las generan en runtime con hash_password().
+PASSWORD_SIN_DEFINIR = "!"
 
 
 EMPLEADOS = [
-    ("CARLOS ANDRÉS", "GÓMEZ RÍOS", "carlos.andres.gomez@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Redes y Cableado Estructurado"),
-    ("JORGE DANIEL", "CHARRY PÉREZ", "jorge.charry@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Instalación de Domótica"),
-    ("JUAN SEBASTIÁN", "MORENO TORRES", "juan.moreno@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Seguridad Electrónica"),
-    ("LUIS EDUARDO", "MARTÍNEZ GAITÁN", "luis.martinez@gmail.com", HASH_REDACTADO, "administrador", ""),
-    ("ANDRÉS MAURICIO", "LÓPEZ VARGAS", "andres.lopez@gmail.com", HASH_REDACTADO, "tecnico", "Certificación en Programación de PLCs"),
-    ("CAMILA ANDREA", "RODRÍGUEZ PEÑA", "camila.rodriguez@gmail.com", HASH_REDACTADO, "administrador", ""),
-    ("NICOL ALEJANDRA", "MARIÑO ROMERO", "nicolmarinoromero@gmail.com", HASH_REDACTADO, "administrador", ""),
-    ("LAURA MARCELA", "PÉREZ DUARTE", "nicolmarino09@gmail.com", HASH_REDACTADO, "tecnico", "Automatización de hogares"),
-    ("JULIÁN FELIPE", "CARVAJAL CABALLERO", "julian.carvajal@gmail.com", HASH_REDACTADO, "tecnico", "Automatización de hogares"),
-    ("MARÍA FERNANDA", "RINCÓN SALAZAR", "maria.rincon@gmail.com", HASH_REDACTADO, "tecnico", "Automatización de hogares"),
+    ("CARLOS ANDRÉS", "GÓMEZ RÍOS", "carlos.andres.gomez@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Certificación en Redes y Cableado Estructurado"),
+    ("JORGE DANIEL", "CHARRY PÉREZ", "jorge.charry@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Certificación en Instalación de Domótica"),
+    ("JUAN SEBASTIÁN", "MORENO TORRES", "juan.moreno@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Certificación en Seguridad Electrónica"),
+    ("LUIS EDUARDO", "MARTÍNEZ GAITÁN", "luis.martinez@gmail.com", PASSWORD_SIN_DEFINIR, "administrador", ""),
+    ("ANDRÉS MAURICIO", "LÓPEZ VARGAS", "andres.lopez@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Certificación en Programación de PLCs"),
+    ("CAMILA ANDREA", "RODRÍGUEZ PEÑA", "camila.rodriguez@gmail.com", PASSWORD_SIN_DEFINIR, "administrador", ""),
+    ("NICOL ALEJANDRA", "MARIÑO ROMERO", "nicolmarinoromero@gmail.com", PASSWORD_SIN_DEFINIR, "administrador", ""),
+    ("LAURA MARCELA", "PÉREZ DUARTE", "nicolmarino09@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Automatización de hogares"),
+    ("JULIÁN FELIPE", "CARVAJAL CABALLERO", "julian.carvajal@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Automatización de hogares"),
+    ("MARÍA FERNANDA", "RINCÓN SALAZAR", "maria.rincon@gmail.com", PASSWORD_SIN_DEFINIR, "tecnico", "Automatización de hogares"),
 ]
 
 
