@@ -89,3 +89,7 @@ be/scripts/
 # capturas temporales de pruebas del emulador/navegador
 movil/.chrome_test.png
 movil/.expo_emulador_ok.png
+
+# Archivos privados de despliegue
+deploy/.env.prod
+respaldos/

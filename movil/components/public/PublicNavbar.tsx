@@ -80,6 +80,14 @@ export default function PublicNavbar() {
           >
             <Text style={styles.textoBotonClaro}>{t("publico.iniciarSesion")}</Text>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.botonLogin, pressed && styles.presionado]}
+            onPress={() => router.push("/login")}
+            hitSlop={6}
+          >
+            <Text style={styles.textoBotonClaro}>Iniciar sesión</Text>
+          </Pressable>
         </View>
       ) : (
         <>
